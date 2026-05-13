@@ -319,18 +319,43 @@ def _setup_schedule() -> None:
     import subprocess
     from pathlib import Path
 
-    exe = shutil.which("garmin-readiness")
-    if not exe:
-        console.print("[red]garmin-readiness not found in PATH. Run 'pip install -e .' first.[/red]")
-        sys.exit(1)
+    python = sys.executable
+    project_dir = str(Path(__file__).parent.parent)
+    # Use ~/.garmin_readiness/.env — accessible to launchd without Full Disk Access
+    env_file = Path.home() / ".garmin_readiness" / ".env"
+    src_env = Path.cwd() / ".env"
+    if not env_file.exists() and src_env.exists():
+        import shutil as _shutil
+        _shutil.copy2(src_env, env_file)
+        env_file.chmod(0o600)
+    scripts_dir = Path.home() / ".garmin_readiness"
+    scripts_dir.mkdir(parents=True, exist_ok=True)
+
+    # Write wrapper scripts — more reliable than EnvironmentVariables in plists
+    serve_script = scripts_dir / "serve.sh"
+    email_script = scripts_dir / "email.sh"
+
+    serve_script.write_text(
+        f"#!/bin/bash\n"
+        f"export PYTHONPATH={project_dir}\n"
+        f"export DOTENV_PATH={env_file}\n"
+        f"exec {python} -m garmin_readiness.cli --serve\n"
+    )
+    email_script.write_text(
+        f"#!/bin/bash\n"
+        f"export PYTHONPATH={project_dir}\n"
+        f"export DOTENV_PATH={env_file}\n"
+        f"exec {python} -m garmin_readiness.cli --email --fetch\n"
+    )
+    serve_script.chmod(0o755)
+    email_script.chmod(0o755)
 
     label = "com.garmin-readiness.daily"
     plist_path = Path.home() / "Library" / "LaunchAgents" / f"{label}.plist"
-    env_file = Path.cwd() / ".env"
-
     plist_path.parent.mkdir(parents=True, exist_ok=True)
 
-    plist = f"""<?xml version="1.0" encoding="UTF-8"?>
+    def _plist(label: str, script: Path, extra_keys: str = "") -> str:
+        return f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
@@ -338,59 +363,41 @@ def _setup_schedule() -> None:
     <string>{label}</string>
     <key>ProgramArguments</key>
     <array>
-        <string>{exe}</string>
-        <string>--email</string>
-        <string>--fetch</string>
+        <string>/bin/bash</string>
+        <string>{script}</string>
     </array>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>DOTENV_PATH</key>
-        <string>{env_file}</string>
-    </dict>
-    <key>StartCalendarInterval</key>
+    {extra_keys}
+    <key>StandardOutPath</key>
+    <string>{Path.home()}/.garmin_readiness/{label.split(".")[-1]}.log</string>
+    <key>StandardErrorPath</key>
+    <string>{Path.home()}/.garmin_readiness/{label.split(".")[-1]}.log</string>
+</dict>
+</plist>"""
+
+    plist = _plist(
+        label,
+        email_script,
+        """<key>StartCalendarInterval</key>
     <dict>
         <key>Hour</key>
         <integer>7</integer>
         <key>Minute</key>
         <integer>0</integer>
-    </dict>
-    <key>StandardOutPath</key>
-    <string>{Path.home()}/.garmin_readiness/daily.log</string>
-    <key>StandardErrorPath</key>
-    <string>{Path.home()}/.garmin_readiness/daily.log</string>
-</dict>
-</plist>"""
+    </dict>""",
+    )
 
     # ── Server plist ─────────────────────────────────────────────────────
     server_label = "com.garmin-readiness.server"
     server_plist_path = Path.home() / "Library" / "LaunchAgents" / f"{server_label}.plist"
 
-    server_plist = f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>{server_label}</string>
-    <key>ProgramArguments</key>
-    <array>
-        <string>{exe}</string>
-        <string>--serve</string>
-    </array>
-    <key>EnvironmentVariables</key>
-    <dict>
-        <key>DOTENV_PATH</key>
-        <string>{env_file}</string>
-    </dict>
-    <key>RunAtLoad</key>
+    server_plist = _plist(
+        server_label,
+        serve_script,
+        """<key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
-    <true/>
-    <key>StandardOutPath</key>
-    <string>{Path.home()}/.garmin_readiness/server.log</string>
-    <key>StandardErrorPath</key>
-    <string>{Path.home()}/.garmin_readiness/server.log</string>
-</dict>
-</plist>"""
+    <true/>""",
+    )
 
     server_plist_path.write_text(server_plist)
     plist_path.write_text(plist)
