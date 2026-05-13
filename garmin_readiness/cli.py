@@ -355,19 +355,56 @@ def _setup_schedule() -> None:
 </dict>
 </plist>"""
 
+    # ── Server plist ─────────────────────────────────────────────────────
+    server_label = "com.garmin-readiness.server"
+    server_plist_path = Path.home() / "Library" / "LaunchAgents" / f"{server_label}.plist"
+
+    server_plist = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>{server_label}</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>{exe}</string>
+        <string>--serve</string>
+    </array>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>DOTENV_PATH</key>
+        <string>{env_file}</string>
+    </dict>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>{Path.home()}/.garmin_readiness/server.log</string>
+    <key>StandardErrorPath</key>
+    <string>{Path.home()}/.garmin_readiness/server.log</string>
+</dict>
+</plist>"""
+
+    server_plist_path.write_text(server_plist)
     plist_path.write_text(plist)
 
-    # Unload any old version first, then load
-    subprocess.run(["launchctl", "unload", str(plist_path)], capture_output=True)
-    result = subprocess.run(["launchctl", "load", str(plist_path)], capture_output=True, text=True)
+    # ── Load both ─────────────────────────────────────────────────────────
+    ok = True
+    for p, name in [(server_plist_path, "server"), (plist_path, "daily email")]:
+        subprocess.run(["launchctl", "unload", str(p)], capture_output=True)
+        r = subprocess.run(["launchctl", "load", str(p)], capture_output=True, text=True)
+        if r.returncode == 0:
+            console.print(f"[green]✓[/green] {name}")
+        else:
+            console.print(f"[red]✗ {name}:[/red] {r.stderr.strip()}")
+            ok = False
 
-    if result.returncode == 0:
-        console.print(f"[green]Scheduled daily email at 07:00.[/green]")
-        console.print(f"  Plist: {plist_path}")
-        console.print(f"  Log:   {Path.home()}/.garmin_readiness/daily.log")
-        console.print(f"\n  Test it now: [bold]garmin-readiness --email --dry-run[/bold]")
-    else:
-        console.print(f"[red]launchctl load failed:[/red] {result.stderr}")
+    if ok:
+        console.print(f"\n  Dashboard: [bold]http://127.0.0.1:8080[/bold]")
+        console.print(f"  Email:     daily at 07:00 (or on wake)")
+        console.print(f"  Logs:      ~/.garmin_readiness/server.log  /  daily.log")
+        console.print(f"\n  Test email: [bold]garmin-readiness --email --dry-run[/bold]")
 
 
 class _null_ctx:
