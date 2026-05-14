@@ -222,3 +222,40 @@ def seven_day_composite_trend_csv() -> str:
     """Comma-separated composite σ for the last 7 days (oldest→today), same as email prompt."""
     history = history_for_chart(days=7)
     return ", ".join(f"{v:+.2f}" if v is not None else "—" for _, v in history)
+
+
+def pmc_history(days: int = 90) -> list[dict]:
+    """Return daily CTL/ATL/TSB for the last `days` days (oldest first).
+
+    Uses Garmin's pre-computed acute (≈7d ATL) and chronic (≈28d CTL) training
+    load values. TSB = CTL − ATL. All values are in Garmin training-load units
+    (not Coggan TSS) so absolute thresholds from TrainingPeaks do not apply.
+    """
+    end = date.today()
+    start = end - timedelta(days=days - 1)
+    with _conn() as con:
+        _ensure_schema(con)
+        rows = con.execute(
+            """SELECT date, training_load_acute, training_load_chronic
+               FROM daily_metrics
+               WHERE date >= ? AND date <= ?
+               ORDER BY date""",
+            (start.isoformat(), end.isoformat()),
+        ).fetchall()
+
+    by_date = {row["date"]: row for row in rows}
+    result = []
+    for i in range(days):
+        d = start + timedelta(days=i)
+        row = by_date.get(d.isoformat())
+        atl = row["training_load_acute"] if row else None
+        ctl = row["training_load_chronic"] if row else None
+        tsb = round(ctl - atl, 1) if (ctl is not None and atl is not None) else None
+        result.append({
+            "date": d.isoformat(),
+            "label": d.strftime("%-d %b"),
+            "atl": round(atl, 1) if atl is not None else None,
+            "ctl": round(ctl, 1) if ctl is not None else None,
+            "tsb": tsb,
+        })
+    return result

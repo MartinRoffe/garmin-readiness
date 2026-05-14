@@ -24,6 +24,7 @@ from .history import (
     history_for_chart,
     load,
     load_recent_activities,
+    pmc_history,
     save,
     save_activities,
     seven_day_composite_trend_csv,
@@ -269,6 +270,17 @@ async def analysis_refresh():
         except Exception:
             pass
     return RedirectResponse(url="/analysis", status_code=303)
+
+
+@app.get("/performance", response_class=HTMLResponse)
+async def performance_view(request: Request):
+    history = pmc_history(days=90)
+    today = history[-1] if history else {}
+    return TEMPLATES.TemplateResponse(
+        request=request,
+        name="performance.html",
+        context={"history": history, "today": today},
+    )
 
 
 @app.get("/calendar", response_class=HTMLResponse)

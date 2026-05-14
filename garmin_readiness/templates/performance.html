@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Performance Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { mono: ['ui-monospace','SFMono-Regular','Menlo','monospace'] } } }
+    }
+  </script>
+  <style>body { background: #0f1117; }</style>
+</head>
+<body class="text-slate-200 font-mono min-h-screen">
+
+  {% set active_tab = 'performance' %}
+  {% include 'nav.html' %}
+
+  <div class="p-6">
+  <div class="max-w-5xl mx-auto">
+
+    <!-- Header -->
+    <div class="mb-6">
+      <p class="text-xs text-slate-500 uppercase tracking-widest mb-1">Training Load</p>
+      <h1 class="text-2xl font-bold text-white">Performance Management</h1>
+      <p class="text-xs text-slate-600 mt-1">Garmin 7-day acute · 28-day chronic · all values in Garmin training-load units</p>
+    </div>
+
+    <!-- Today's summary cards -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+
+      {% set ctl = today.ctl %}
+      {% set atl = today.atl %}
+      {% set tsb = today.tsb %}
+
+      <!-- CTL / Fitness -->
+      <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5">
+        <p class="text-[11px] text-slate-500 uppercase tracking-widest mb-2">Fitness · CTL</p>
+        {% if ctl is not none %}
+          <p class="text-3xl font-bold text-blue-400">{{ ctl | int }}</p>
+          <p class="text-xs text-slate-500 mt-1">28-day chronic load</p>
+        {% else %}
+          <p class="text-3xl text-slate-600">—</p>
+          <p class="text-xs text-slate-600 mt-1">no data</p>
+        {% endif %}
+      </div>
+
+      <!-- ATL / Fatigue -->
+      <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5">
+        <p class="text-[11px] text-slate-500 uppercase tracking-widest mb-2">Fatigue · ATL</p>
+        {% if atl is not none %}
+          <p class="text-3xl font-bold text-orange-400">{{ atl | int }}</p>
+          <p class="text-xs text-slate-500 mt-1">7-day acute load</p>
+        {% else %}
+          <p class="text-3xl text-slate-600">—</p>
+          <p class="text-xs text-slate-600 mt-1">no data</p>
+        {% endif %}
+      </div>
+
+      <!-- TSB / Form -->
+      <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5">
+        <p class="text-[11px] text-slate-500 uppercase tracking-widest mb-2">Form · TSB</p>
+        {% if tsb is not none %}
+          {% if tsb >= 0 %}
+            <p class="text-3xl font-bold text-emerald-400">+{{ tsb | int }}</p>
+            <p class="text-xs text-emerald-600 mt-1">fresh · fitness > fatigue</p>
+          {% elif tsb >= -100 %}
+            <p class="text-3xl font-bold text-yellow-400">{{ tsb | int }}</p>
+            <p class="text-xs text-yellow-700 mt-1">moderate training load</p>
+          {% elif tsb >= -200 %}
+            <p class="text-3xl font-bold text-orange-400">{{ tsb | int }}</p>
+            <p class="text-xs text-orange-700 mt-1">heavy training load</p>
+          {% else %}
+            <p class="text-3xl font-bold text-red-400">{{ tsb | int }}</p>
+            <p class="text-xs text-red-700 mt-1">very high fatigue</p>
+          {% endif %}
+        {% else %}
+          <p class="text-3xl text-slate-600">—</p>
+          <p class="text-xs text-slate-600 mt-1">no data</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- CTL vs ATL chart -->
+    <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5 mb-4">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-xs text-slate-500 uppercase tracking-widest">Fitness vs Fatigue · 90 days</p>
+        <div class="flex gap-4 text-[11px]">
+          <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 bg-blue-400 rounded"></span> CTL fitness</span>
+          <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 bg-orange-400 rounded"></span> ATL fatigue</span>
+        </div>
+      </div>
+      <div class="h-52">
+        <canvas id="ctlAtlChart"></canvas>
+      </div>
+    </div>
+
+    <!-- TSB chart -->
+    <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-xs text-slate-500 uppercase tracking-widest">Form · TSB (CTL − ATL)</p>
+        <div class="flex gap-4 text-[11px] text-slate-500">
+          <span class="text-emerald-600">▲ fresh</span>
+          <span class="text-red-700">▼ fatigued</span>
+        </div>
+      </div>
+      <div class="h-36">
+        <canvas id="tsbChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Note -->
+    <p class="text-xs text-slate-700 text-center">
+      CTL = Garmin 28-day chronic training load · ATL = 7-day acute load · TSB = CTL − ATL ·
+      thresholds are relative to zero, not Coggan TSS
+    </p>
+
+  </div>
+  </div>
+
+  <script>
+    const labels = {{ history | map(attribute='label') | list | tojson }};
+    const ctlData = {{ history | map(attribute='ctl') | list | tojson }};
+    const atlData = {{ history | map(attribute='atl') | list | tojson }};
+    const tsbData = {{ history | map(attribute='tsb') | list | tojson }};
+
+    const gridColour = '#1e2030';
+    const tickStyle  = { color: '#64748b', font: { family: 'monospace', size: 11 } };
+
+    // ── CTL vs ATL ──────────────────────────────────────────────────────────
+    new Chart(document.getElementById('ctlAtlChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'CTL (fitness)',
+            data: ctlData,
+            borderColor: '#60a5fa',
+            backgroundColor: 'rgba(96,165,250,0.08)',
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false,
+            spanGaps: true,
+          },
+          {
+            label: 'ATL (fatigue)',
+            data: atlData,
+            borderColor: '#fb923c',
+            backgroundColor: 'rgba(251,146,60,0.08)',
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0.3,
+            fill: false,
+            spanGaps: true,
+          },
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `${ctx.dataset.label}: ${ctx.raw ?? '—'}`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: gridColour }, ticks: { ...tickStyle, maxTicksLimit: 10 } },
+          y: {
+            grid: { color: gridColour },
+            ticks: { ...tickStyle },
+            min: 0,
+          }
+        }
+      }
+    });
+
+    // ── TSB with fill ────────────────────────────────────────────────────────
+    // Build segment colours: green above zero, red below
+    const tsbGreenPlugin = {
+      id: 'tsbFill',
+      beforeDatasetDraw(chart) {
+        const { ctx, chartArea: { top, bottom }, scales: { x, y } } = chart;
+        const ds = chart.data.datasets[0];
+        const meta = chart.getDatasetMeta(0);
+        const zero = y.getPixelForValue(0);
+
+        ctx.save();
+        for (let i = 0; i < meta.data.length - 1; i++) {
+          const p1 = meta.data[i];
+          const p2 = meta.data[i + 1];
+          if (p1.skip || p2.skip) continue;
+          const v1 = ds.data[i], v2 = ds.data[i + 1];
+          if (v1 === null || v2 === null) continue;
+
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.lineTo(p2.x, zero);
+          ctx.lineTo(p1.x, zero);
+          ctx.closePath();
+
+          const avg = (v1 + v2) / 2;
+          ctx.fillStyle = avg >= 0
+            ? 'rgba(52,211,153,0.20)'   // emerald
+            : 'rgba(248,113,113,0.18)'; // red
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    };
+
+    new Chart(document.getElementById('tsbChart'), {
+      type: 'line',
+      plugins: [tsbGreenPlugin],
+      data: {
+        labels,
+        datasets: [{
+          label: 'TSB (form)',
+          data: tsbData,
+          borderColor: tsbData.map(v => v === null ? 'transparent' : v >= 0 ? '#34d399' : '#f87171'),
+          borderWidth: 0,
+          pointRadius: 0,
+          tension: 0.3,
+          spanGaps: true,
+          segment: {
+            borderColor: ctx => {
+              const v = ctx.p1.parsed.y;
+              return v >= 0 ? '#34d399' : '#f87171';
+            }
+          }
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => `TSB: ${ctx.raw !== null ? (ctx.raw >= 0 ? '+' : '') + ctx.raw : '—'}`
+            }
+          }
+        },
+        scales: {
+          x: { grid: { color: gridColour }, ticks: { ...tickStyle, maxTicksLimit: 10 } },
+          y: {
+            grid: {
+              color: ctx => ctx.tick.value === 0 ? '#475569' : gridColour,
+              lineWidth: ctx => ctx.tick.value === 0 ? 1.5 : 1,
+            },
+            ticks: { ...tickStyle },
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
