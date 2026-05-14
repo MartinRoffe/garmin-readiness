@@ -17,7 +17,7 @@ from .analysis import load_analyses_for_activities, refresh_analyses
 from .client import get_api
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
 from .plan import PLAN_START as _PLAN_START, build_calendar_weeks
-from .report import generate_advice
+from .report import generate_advice, generate_pmc_analysis
 from .history import (
     baseline_stats,
     composite_score,
@@ -35,6 +35,7 @@ from .metrics import DailyMetrics, available_count, fetch_metrics, fetch_activit
 load_dotenv()
 
 _advice_cache: dict[str, str] = {}
+_pmc_cache: dict[str, str] = {}
 
 def _build_calendar_ctx() -> dict[str, Any]:
     return {"weeks": build_calendar_weeks(), "today": date.today(), "plan_start": _PLAN_START}
@@ -275,11 +276,14 @@ async def analysis_refresh():
 @app.get("/performance", response_class=HTMLResponse)
 async def performance_view(request: Request):
     history = pmc_history(days=90)
-    today = history[-1] if history else {}
+    today_entry = history[-1] if history else {}
+    date_key = date.today().isoformat()
+    if date_key not in _pmc_cache:
+        _pmc_cache[date_key] = generate_pmc_analysis(history)
     return TEMPLATES.TemplateResponse(
         request=request,
         name="performance.html",
-        context={"history": history, "today": today},
+        context={"history": history, "today": today_entry, "pmc_analysis": _pmc_cache[date_key]},
     )
 
 

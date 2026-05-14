@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import smtplib
-from datetime import date
+from datetime import date, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Optional
@@ -390,3 +390,101 @@ def run_report(m: DailyMetrics, dry_run: bool = False) -> None:
 
     send_email(html, subject, to_addr, from_addr, app_password)
     print(f"Email sent to {to_addr}  [{subject}]")
+
+
+# ── PMC analysis ─────────────────────────────────────────────────────────────
+
+def _build_pmc_prompt(history: list[dict]) -> str:
+    today = date.today()
+    recent = [h for h in history if h["ctl"] is not None]
+    if not recent:
+        return ""
+
+    cur = recent[-1]
+    week_ago = recent[-8] if len(recent) >= 8 else recent[0]
+
+    ctl_delta = round(cur["ctl"] - week_ago["ctl"], 1) if week_ago["ctl"] else None
+    atl_delta = round(cur["atl"] - week_ago["atl"], 1) if week_ago["atl"] else None
+    tsb_delta = round(cur["tsb"] - week_ago["tsb"], 1) if week_ago["tsb"] is not None and week_ago["tsb"] is not None else None
+
+    lines = [
+        "Performance Management Chart data (Garmin training-load units, not Coggan TSS):",
+        f"  Today — CTL (fitness): {cur['ctl']}  ATL (fatigue): {cur['atl']}  TSB (form): {cur['tsb']}",
+        f"  7-day change — CTL: {f'{ctl_delta:+.1f}' if ctl_delta is not None else '—'}  "
+        f"ATL: {f'{atl_delta:+.1f}' if atl_delta is not None else '—'}  "
+        f"TSB: {f'{tsb_delta:+.1f}' if tsb_delta is not None else '—'}",
+        "",
+        "Last 14 days (date · CTL · ATL · TSB):",
+    ]
+    for h in recent[-14:]:
+        lines.append(f"  {h['date']}  CTL={h['ctl']}  ATL={h['atl']}  TSB={h['tsb']}")
+
+    lines += ["", "Upcoming 7 days (planned sessions):"]
+    for i in range(7):
+        d = today + timedelta(days=i)
+        session = session_for_date(d)
+        if session:
+            stype, label, dur = session
+            dur_str = f"{dur}m" if dur and dur < 60 else (f"{dur // 60}h{dur % 60:02d}m" if dur and dur % 60 else f"{dur // 60}h") if dur else "—"
+            lines.append(f"  {d.isoformat()} ({d.strftime('%a')})  {label} [{stype}] {dur_str}")
+        else:
+            lines.append(f"  {d.isoformat()} ({d.strftime('%a')})  outside plan")
+
+    lines += [
+        "",
+        "Note: CTL uses 28-day window (not classic 42-day), so it responds faster than TrainingPeaks.",
+        "      TSB thresholds are relative to zero only — do not apply Coggan absolute zones.",
+        "",
+        "Please provide a concise training-load analysis covering:",
+        "1. Current form: is TSB in a sustainable zone or showing signs of overreaching?",
+        "2. Fitness trajectory: is CTL building as expected?",
+        "3. One specific recommendation for the next 7 days given the planned sessions.",
+        "Keep it under 120 words. Plain paragraphs, no headers or bullets. Address the athlete as 'you'.",
+    ]
+    return "\n".join(lines)
+
+
+def _rule_based_pmc(history: list[dict]) -> str:
+    recent = [h for h in history if h["tsb"] is not None]
+    if not recent:
+        return "Not enough training load data yet — keep logging to build your baseline."
+    cur = recent[-1]
+    tsb = cur["tsb"]
+    ctl = cur["ctl"]
+    if tsb < -200:
+        tone = "Your form is very deep in the red — fatigue is significantly outpacing fitness. A recovery day or two would help consolidate the training gains."
+    elif tsb < -100:
+        tone = "You're carrying a substantial training load. This is a productive stress zone, but watch for signs of accumulated fatigue."
+    elif tsb < 0:
+        tone = "Moderate fatigue relative to fitness — a normal training state. Continue as planned."
+    else:
+        tone = "You're in positive form: fitness exceeds current fatigue. Good time for a quality session or race effort."
+    ctl_str = f"CTL is {ctl:.0f}" if ctl else "CTL data available"
+    return f"{ctl_str} with TSB at {tsb:.0f}. {tone}"
+
+
+def generate_pmc_analysis(history: list[dict]) -> str:
+    """Return a short Claude Haiku commentary on the current PMC state."""
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return _rule_based_pmc(history)
+
+    prompt = _build_pmc_prompt(history)
+    if not prompt:
+        return _rule_based_pmc(history)
+
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
+            system=(
+                "You are an experienced cycling coach reviewing an athlete's training load data. "
+                "Be direct, specific, and evidence-based. Reference the actual numbers. "
+                "No bullet markdown — short paragraphs only. Address the athlete as 'you'."
+            ),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return msg.content[0].text
+    except Exception:
+        return _rule_based_pmc(history)

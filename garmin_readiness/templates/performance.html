@@ -84,6 +84,18 @@
       </div>
     </div>
 
+    <!-- Coach analysis -->
+    {% if pmc_analysis %}
+    <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5 mb-6">
+      <p class="text-xs text-slate-500 uppercase tracking-widest mb-3">Coach's Analysis</p>
+      {% for para in pmc_analysis.strip().split('\n\n') %}
+        {% if para.strip() %}
+          <p class="text-sm text-slate-300 leading-relaxed {% if not loop.last %}mb-2{% endif %}">{{ para.strip() }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- CTL vs ATL chart -->
     <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5 mb-4">
       <div class="flex items-center justify-between mb-4">
