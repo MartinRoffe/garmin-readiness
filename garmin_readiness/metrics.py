@@ -91,18 +91,17 @@ def fetch_metrics(api, target_date: date) -> DailyMetrics:
         if bb and isinstance(bb, list):
             values: list[float] = []
             for entry in bb:
-                if isinstance(entry, (list, tuple)) and len(entry) >= 2:
-                    v = entry[1]
-                else:
-                    v = (
-                        entry.get("charged")
-                        or entry.get("chargeValue")
-                        or entry.get("bodyBatteryLevel")
-                    )
-                if v is not None:
-                    values.append(float(v))
+                # Prefer the time-series array — last entry is the current level
+                ts_array = entry.get("bodyBatteryValuesArray") if isinstance(entry, dict) else None
+                if ts_array:
+                    for reading in ts_array:
+                        if isinstance(reading, (list, tuple)) and len(reading) >= 2 and reading[1] is not None:
+                            values.append(float(reading[1]))
+                elif isinstance(entry, (list, tuple)) and len(entry) >= 2:
+                    if entry[1] is not None:
+                        values.append(float(entry[1]))
             if values:
-                m.body_battery_morning = max(values)
+                m.body_battery_morning = values[-1]  # most recent reading
     except Exception as e:
         logger.debug("Body Battery fetch failed: %s", e)
 
