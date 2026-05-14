@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from pathlib import Path
 from datetime import date, timedelta
 from typing import Optional
 
@@ -186,7 +187,13 @@ def _load_or_fetch(target: date, api=None, force: bool = False) -> DailyMetrics:
 def main() -> None:
     # DOTENV_PATH lets launchd (which has no shell env) point to the right .env file
     _env_path = os.getenv("DOTENV_PATH")
-    load_dotenv(_env_path if _env_path else None)
+    if _env_path:
+        load_dotenv(_env_path)
+    else:
+        load_dotenv()  # tries CWD/.env first
+        _fallback = Path.home() / ".garmin_readiness" / ".env"
+        if _fallback.exists():
+            load_dotenv(_fallback, override=False)
     logging.basicConfig(level=logging.WARNING)
 
     import argparse
