@@ -113,10 +113,15 @@
     <p class="eyebrow" style="margin-bottom:12px;color:var(--accent)">Coach's Analysis</p>
     {% for para in pmc_analysis.strip().split('\n\n') %}
       {% if para.strip() %}
-        <p style="font-size:13px;color:var(--text-dim);line-height:1.75{% if not loop.last %};margin-bottom:10px{% endif %}">{{ para.strip() }}</p>
+        <p class="pmc-para" style="font-size:13px;color:var(--text-dim);line-height:1.75{% if not loop.last %};margin-bottom:10px{% endif %}">{{ para.strip() }}</p>
       {% endif %}
     {% endfor %}
   </div>
+  <script>
+    document.querySelectorAll('.pmc-para').forEach(p => {
+      p.innerHTML = p.innerHTML.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:500">$1</strong>');
+    });
+  </script>
   {% endif %}
 
   <!-- ── CTL vs ATL chart ───────────────────────────────────────────── -->

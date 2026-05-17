@@ -160,10 +160,15 @@
     <p class="eyebrow" style="margin-bottom:12px;color:var(--accent)">Today's Advice</p>
     {% for para in advice.strip().split('\n\n') %}
       {% if para.strip() %}
-        <p style="font-size:13px;color:var(--text-dim);line-height:1.75{% if not loop.last %};margin-bottom:10px{% endif %}">{{ para.strip() }}</p>
+        <p class="advice-para" style="font-size:13px;color:var(--text-dim);line-height:1.75{% if not loop.last %};margin-bottom:10px{% endif %}">{{ para.strip() }}</p>
       {% endif %}
     {% endfor %}
   </div>
+  <script>
+    document.querySelectorAll('.advice-para').forEach(p => {
+      p.innerHTML = p.innerHTML.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:500">$1</strong>');
+    });
+  </script>
   {% endif %}
 
   <!-- ── Context ───────────────────────────────────────────────────── -->
