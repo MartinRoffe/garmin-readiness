@@ -1,3 +1,4 @@
+"""CLI entry point; dispatches to fetch, email, backfill, workout-upload, and server modes."""
 from __future__ import annotations
 
 import logging

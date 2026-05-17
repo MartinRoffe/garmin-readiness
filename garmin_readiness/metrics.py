@@ -1,3 +1,4 @@
+"""Garmin Connect API calls → DailyMetrics dataclass."""
 from __future__ import annotations
 
 import logging
@@ -57,6 +58,7 @@ def _safe_get(d: dict, *keys, default=None):
 
 
 def fetch_metrics(api, target_date: date) -> DailyMetrics:
+    """Fetch all wellness metrics for target_date; missing endpoints leave fields None."""
     date_str = target_date.strftime("%Y-%m-%d")
     m = DailyMetrics(date=target_date)
 
@@ -200,6 +202,7 @@ _TYPE_ICONS: dict[str, str] = {
 
 
 def fetch_activities(api, days: int = 7) -> list[dict]:
+    """Return raw activity dicts for the last `days` days."""
     from datetime import date, timedelta
     end = date.today().strftime("%Y-%m-%d")
     start = (date.today() - timedelta(days=days - 1)).strftime("%Y-%m-%d")
@@ -234,6 +237,7 @@ def fetch_activities(api, days: int = 7) -> list[dict]:
 
 
 def available_count(m: DailyMetrics) -> int:
+    """Count non-null numeric fields — used to detect empty/failed fetches."""
     return sum(
         1 for f in fields(m)
         if f.name not in TEXT_FIELDS and getattr(m, f.name) is not None

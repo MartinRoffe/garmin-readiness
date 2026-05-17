@@ -1,3 +1,4 @@
+"""HTML email builder: assembles readiness data, Claude advice, and planned workout."""
 from __future__ import annotations
 
 import os

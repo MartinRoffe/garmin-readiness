@@ -1,3 +1,4 @@
+"""SQLite persistence, baseline statistics, and z-score calculations."""
 from __future__ import annotations
 
 import math

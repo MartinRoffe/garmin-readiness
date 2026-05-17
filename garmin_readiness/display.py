@@ -1,3 +1,4 @@
+"""Value formatting helpers and activity enrichment for display."""
 from __future__ import annotations
 
 from typing import Optional
