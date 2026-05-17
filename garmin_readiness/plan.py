@@ -261,7 +261,7 @@ EVENT_PREP_DAYS: list[dict] = [
     {"date": date(2026, 9,  1), "type": "bike",  "label": "Zone 2 Steady",       "dur_min": 90},
     {"date": date(2026, 9,  3), "type": "long",  "label": "Z2 Endurance",        "dur_min": 120},
     {"date": date(2026, 9,  5), "type": "tempo", "label": "Sweetspot Intervals", "dur_min": 90},
-    {"date": date(2026, 9,  6), "type": "long",  "label": "Long Ride",           "dur_min": 150},
+    {"date": date(2026, 9,  6), "type": "long",  "label": "Pre-Event Long Ride",  "dur_min": 270},
     {"date": date(2026, 9,  7), "type": "long",  "label": "Long Ride (Easy)",    "dur_min": 90},
     {"date": date(2026, 9,  8), "type": "bike",  "label": "Recovery Spin",       "dur_min": 45},
     {"date": date(2026, 9,  9), "type": "tempo", "label": "Tempo Intervals",     "dur_min": 75},
