@@ -156,6 +156,21 @@ def load_recent_activities(days: int = 7) -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def load_activities_by_date(start: date, end: date) -> dict[str, list[dict]]:
+    """Return {date_str: [activity, ...]} for all activities in [start, end]."""
+    with _conn() as con:
+        _ensure_activities_schema(con)
+        rows = con.execute(
+            "SELECT * FROM activities WHERE date >= ? AND date <= ? ORDER BY start_time",
+            (start.isoformat(), end.isoformat()),
+        ).fetchall()
+    result: dict[str, list[dict]] = {}
+    for r in rows:
+        d = dict(r)
+        result.setdefault(d["date"], []).append(d)
+    return result
+
+
 def save(m: DailyMetrics) -> None:
     with _conn() as con:
         _ensure_schema(con)

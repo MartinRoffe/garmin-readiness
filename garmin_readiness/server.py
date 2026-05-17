@@ -23,6 +23,7 @@ from .history import (
     composite_score,
     history_for_chart,
     load,
+    load_activities_by_date,
     load_recent_activities,
     pmc_history,
     save,
@@ -289,6 +290,17 @@ async def performance_view(request: Request):
 
 _BIKE_TYPES = {"bike", "tempo", "ftp", "long"}
 
+# Garmin type_key values that count as completing each plan session type
+_ACTIVITY_MATCH: dict[str, set[str]] = {
+    "bike":     {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
+    "tempo":    {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
+    "ftp":      {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
+    "long":     {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
+    "strength": {"strength_training", "stair_climbing", "fitness_equipment"},
+    "ruck":     {"hiking", "walking", "trail_running", "running"},
+}
+
+
 @app.get("/calendar", response_class=HTMLResponse)
 async def calendar_view(request: Request):
     ctx = _build_calendar_ctx()
@@ -299,6 +311,21 @@ async def calendar_view(request: Request):
         if day["type"] in _BIKE_TYPES
     })
     ctx["workout_descs"] = prefetch_workout_descriptions(cycling_labels)
+
+    # Load all activities across the plan window and mark completion
+    plan_end = ctx["weeks"][-1]["days"][-1]["date"]
+    acts_by_date = load_activities_by_date(_PLAN_START, plan_end)
+    today = date.today()
+    for week in ctx["weeks"]:
+        for day in week["days"]:
+            stype = day["type"]
+            if stype == "rest" or day["date"] >= today:
+                day["completed"] = None  # no indicator for rest or future
+            else:
+                day_acts = acts_by_date.get(day["date"].isoformat(), [])
+                valid_keys = _ACTIVITY_MATCH.get(stype, set())
+                day["completed"] = any(a["type_key"] in valid_keys for a in day_acts)
+
     return TEMPLATES.TemplateResponse(request=request, name="calendar.html", context=ctx)
 
 
