@@ -87,6 +87,31 @@ def _ensure_activities_schema(con: sqlite3.Connection) -> None:
     """)
 
 
+def get_cached_text(key: str) -> Optional[str]:
+    with _conn() as con:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS text_cache (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                recorded_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        row = con.execute("SELECT value FROM text_cache WHERE key = ?", (key,)).fetchone()
+    return row["value"] if row else None
+
+
+def set_cached_text(key: str, value: str) -> None:
+    with _conn() as con:
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS text_cache (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                recorded_at TEXT DEFAULT (datetime('now'))
+            )
+        """)
+        con.execute("INSERT OR REPLACE INTO text_cache (key, value) VALUES (?, ?)", (key, value))
+
+
 def save_advice(target_date: date, text: str) -> None:
     with _conn() as con:
         con.execute("""

@@ -15,9 +15,11 @@ from .history import (
     LOWER_IS_BETTER,
     baseline_stats,
     composite_score,
+    get_cached_text,
     load_advice,
     load_recent_activities,
     save_advice,
+    set_cached_text,
     seven_day_composite_trend_csv,
     z_score,
 )
@@ -496,3 +498,50 @@ def generate_pmc_analysis(history: list[dict]) -> str:
         return msg.content[0].text
     except Exception:
         return _rule_based_pmc(history)
+
+
+_PMC_EXPLAINER_KEY = "pmc_explainer_v1"
+
+
+def generate_pmc_explainer() -> str:
+    """Return a plain-English explanation of ATL, CTL, and TSB — cached permanently."""
+    cached = get_cached_text(_PMC_EXPLAINER_KEY)
+    if cached:
+        return cached
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return ""
+
+    prompt = (
+        "Explain ATL, CTL, and TSB (Training Stress Balance) to an amateur endurance athlete "
+        "in plain, practical language. Context: the athlete is 50+, trains 6+ hours per week "
+        "mixing cycling, strength, and rucking, and is trying to build fitness while losing weight. "
+        "The values come from Garmin, which uses a 7-day window for ATL and 28-day for CTL — "
+        "these are relative Garmin load units, not Coggan TSS, so absolute thresholds differ.\n\n"
+        "Cover:\n"
+        "1. What each metric measures and why it matters\n"
+        "2. How to read the relationship between them day-to-day\n"
+        "3. What TSB values to watch for (positive = fresh, negative = fatigued, when to be concerned)\n"
+        "4. One or two practical tips for acting on these numbers\n\n"
+        "Use short paragraphs with a bold heading per section (use ** markdown bold). "
+        "Aim for around 200 words. Be direct and concrete — no vague generalities."
+    )
+
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=600,
+            system=(
+                "You are a knowledgeable endurance coach writing a concise reference guide "
+                "for an athlete who wants to understand their training metrics. "
+                "Write in second person, keep it practical."
+            ),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = msg.content[0].text
+        set_cached_text(_PMC_EXPLAINER_KEY, text)
+        return text
+    except Exception:
+        return ""

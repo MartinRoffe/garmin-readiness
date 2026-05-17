@@ -125,10 +125,31 @@
     </div>
 
     <!-- Note -->
-    <p class="text-xs text-slate-700 text-center">
+    <p class="text-xs text-slate-700 text-center mb-8">
       CTL = Garmin 28-day chronic training load · ATL = 7-day acute load · TSB = CTL − ATL ·
       thresholds are relative to zero, not Coggan TSS
     </p>
+
+    <!-- Metric explainer -->
+    {% if pmc_explainer %}
+    <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5">
+      <p class="text-xs text-slate-500 uppercase tracking-widest mb-4">Understanding ATL, CTL &amp; TSB</p>
+      <div id="explainer-body" class="space-y-3 text-sm text-slate-300 leading-relaxed"></div>
+    </div>
+    <script>
+      (function() {
+        const raw = {{ pmc_explainer | tojson }};
+        const container = document.getElementById('explainer-body');
+        raw.split(/\n\n+/).forEach(para => {
+          para = para.trim();
+          if (!para) return;
+          const p = document.createElement('p');
+          p.innerHTML = para.replace(/\*\*(.+?)\*\*/g, '<strong class="text-slate-100">$1</strong>');
+          container.appendChild(p);
+        });
+      })();
+    </script>
+    {% endif %}
 
   </div>
   </div>

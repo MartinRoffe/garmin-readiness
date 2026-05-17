@@ -17,7 +17,7 @@ from .analysis import load_analyses_for_activities, prefetch_nutrition_targets, 
 from .client import get_api
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
 from .plan import PLAN_START as _PLAN_START, build_calendar_weeks
-from .report import generate_advice, generate_pmc_analysis
+from .report import generate_advice, generate_pmc_analysis, generate_pmc_explainer
 from .history import (
     baseline_stats,
     composite_score,
@@ -284,7 +284,12 @@ async def performance_view(request: Request):
     return TEMPLATES.TemplateResponse(
         request=request,
         name="performance.html",
-        context={"history": history, "today": today_entry, "pmc_analysis": _pmc_cache[date_key]},
+        context={
+            "history": history,
+            "today": today_entry,
+            "pmc_analysis": _pmc_cache[date_key],
+            "pmc_explainer": generate_pmc_explainer(),
+        },
     )
 
 
