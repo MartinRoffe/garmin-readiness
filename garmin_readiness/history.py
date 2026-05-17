@@ -12,6 +12,16 @@ from .metrics import DailyMetrics, TEXT_FIELDS
 
 DB_PATH = Path.home() / ".garmin_readiness" / "history.db"
 
+# Garmin type_key values that satisfy each plan session type
+ACTIVITY_MATCH: dict[str, set[str]] = {
+    "bike":     {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
+    "tempo":    {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
+    "ftp":      {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
+    "long":     {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
+    "strength": {"strength_training", "stair_climbing", "fitness_equipment"},
+    "ruck":     {"hiking", "walking", "trail_running", "running"},
+}
+
 NUMERIC_FIELDS = [
     f.name
     for f in fields(DailyMetrics)

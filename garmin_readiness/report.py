@@ -12,10 +12,12 @@ import anthropic
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
 from .plan import session_for_date
 from .history import (
+    ACTIVITY_MATCH,
     LOWER_IS_BETTER,
     baseline_stats,
     composite_score,
     get_cached_text,
+    load_activities_by_date,
     load_advice,
     load_recent_activities,
     save_advice,
@@ -231,6 +233,81 @@ def _planned_session_html(d: date) -> str:
         </tr>"""
 
 
+def _week_completion_html(today: date) -> str:
+    """Return an HTML block showing this week's plan vs actual training time."""
+    from .plan import session_for_date
+    mon = today - timedelta(days=today.weekday())
+    # Plan: full week (Mon–Sun); actual: Mon–yesterday only (today not done yet)
+    acts_by_date = load_activities_by_date(mon, today - timedelta(days=1))
+
+    plan_min = 0
+    for i in range(7):
+        session = session_for_date(mon + timedelta(days=i))
+        if session:
+            stype, _, dur = session
+            if stype != "rest" and dur:
+                plan_min += dur
+
+    done_min = 0
+    for day_acts in acts_by_date.values():
+        for a in day_acts:
+            if any(a["type_key"] in keys for keys in ACTIVITY_MATCH.values()):
+                done_min += int((a.get("duration_seconds", 0) or 0) / 60)
+
+    if plan_min == 0:
+        return ""
+
+    pct = int(done_min / plan_min * 100)
+
+    def fmt(m: int) -> str:
+        if m < 60:
+            return f"{m}m"
+        h, r = divmod(m, 60)
+        return f"{h}h{r:02d}m" if r else f"{h}h"
+
+    pct_colour = "#34d399" if pct >= 90 else "#facc15" if pct >= 60 else "#f87171"
+    bar_filled = min(pct, 100)
+    bar_empty = 100 - bar_filled
+
+    days_elapsed = (today - mon).days  # 0=Mon, 6=Sun
+    week_num = (today - timedelta(days=today.weekday())).isocalendar()[1]
+
+    return f"""
+        <!-- Week completion -->
+        <tr>
+          <td style="padding:0 32px 24px;">
+            <p style="margin:0 0 10px;font-size:11px;color:#6b7280;letter-spacing:0.1em;text-transform:uppercase;border-top:1px solid #e5e7eb;padding-top:24px;">This Week · Training Progress</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border-radius:8px;padding:14px 16px;">
+              <tr>
+                <td style="padding:0;">
+                  <table width="100%" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td style="font-size:28px;font-weight:700;color:{pct_colour};width:64px;">{pct}%</td>
+                      <td style="padding-left:12px;">
+                        <p style="margin:0;font-size:12px;color:#374151;">
+                          <strong>{fmt(done_min)}</strong>
+                          <span style="color:#9ca3af;"> of {fmt(plan_min)} planned</span>
+                        </p>
+                        <p style="margin:4px 0 8px;font-size:11px;color:#9ca3af;">
+                          Day {days_elapsed + 1} of 7 · week {week_num}
+                        </p>
+                        <!-- progress bar -->
+                        <table width="100%" cellpadding="0" cellspacing="0" style="border-radius:4px;overflow:hidden;height:6px;">
+                          <tr>
+                            <td width="{bar_filled}%" style="background:{pct_colour};height:6px;"></td>
+                            <td width="{bar_empty}%" style="background:#e5e7eb;height:6px;"></td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>"""
+
+
 def build_html(m: DailyMetrics, stats: dict, comp_z: Optional[float], advice: str, activities: list[dict] | None = None) -> str:
     label, _ = readiness_label(comp_z)
 
@@ -324,6 +401,7 @@ def build_html(m: DailyMetrics, stats: dict, comp_z: Optional[float], advice: st
         </tr>
 
         {_planned_session_html(m.date)}
+        {_week_completion_html(m.date)}
 
         <!-- Metrics table -->
         <tr>

@@ -19,6 +19,7 @@ from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
 from .plan import PLAN_START as _PLAN_START, build_calendar_weeks
 from .report import generate_advice, generate_pmc_analysis, generate_pmc_explainer
 from .history import (
+    ACTIVITY_MATCH,
     baseline_stats,
     composite_score,
     history_for_chart,
@@ -295,16 +296,6 @@ async def performance_view(request: Request):
 
 _BIKE_TYPES = {"bike", "tempo", "ftp", "long"}
 
-# Garmin type_key values that count as completing each plan session type
-_ACTIVITY_MATCH: dict[str, set[str]] = {
-    "bike":     {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
-    "tempo":    {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
-    "ftp":      {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
-    "long":     {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
-    "strength": {"strength_training", "stair_climbing", "fitness_equipment"},
-    "ruck":     {"hiking", "walking", "trail_running", "running"},
-}
-
 # Map Garmin type_key → display session type for pre-plan activity cells
 _TYPE_KEY_SESSION: dict[str, str] = {
     "road_biking": "bike", "cycling": "bike", "virtual_ride": "bike",
@@ -403,7 +394,7 @@ async def calendar_view(request: Request):
                 day["actual_min"] = None
             else:
                 day_acts = acts_by_date.get(day["date"].isoformat(), [])
-                valid_keys = _ACTIVITY_MATCH.get(stype, set())
+                valid_keys = ACTIVITY_MATCH.get(stype, set())
                 matched = [a for a in day_acts if a["type_key"] in valid_keys]
                 day["completed"] = bool(matched)
                 actual = int(sum(a.get("duration_seconds", 0) or 0 for a in matched) / 60)
