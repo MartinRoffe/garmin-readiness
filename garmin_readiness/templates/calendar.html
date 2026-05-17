@@ -69,6 +69,9 @@
       <div class="grid grid-cols-8 gap-1 mb-1 opacity-70">
         <div class="flex flex-col items-end justify-center pr-2">
           <span class="text-[10px] text-slate-700">{{ week.start.strftime("%-d %b") }}</span>
+          {% if week.done_min_fmt and week.done_min_fmt != '—' %}
+            <span class="text-[10px] text-emerald-700 mt-0.5">{{ week.done_min_fmt }}</span>
+          {% endif %}
         </div>
         {% for day in week.days %}
         <div class="rounded border p-1.5 min-h-[56px] flex flex-col sess-{{ day.type }}
@@ -113,6 +116,10 @@
       <div class="flex flex-col items-end justify-center pr-2">
         <span class="text-[11px] text-slate-600">W{{ "%02d"|format(week.week_num) }}</span>
         <span class="text-[10px] text-slate-700">{{ week.start.strftime("%-d %b") }}</span>
+        <span class="text-[10px] text-slate-600 mt-0.5">{{ week.plan_min_fmt }}</span>
+        {% if week.done_min_fmt %}
+          <span class="text-[10px] text-emerald-700">{{ week.done_min_fmt }}</span>
+        {% endif %}
       </div>
 
       {% for day in week.days %}

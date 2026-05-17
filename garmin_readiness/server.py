@@ -323,29 +323,39 @@ def _fmt_dur(seconds: float) -> str:
     return f"{m // 60}h{m % 60:02d}m" if m % 60 else f"{m // 60}h"
 
 
+def _fmt_min(minutes: int) -> str:
+    if minutes == 0:
+        return "—"
+    if minutes < 60:
+        return f"{minutes}m"
+    h, m = divmod(minutes, 60)
+    return f"{h}h{m:02d}m" if m else f"{h}h"
+
+
 def _build_preplan_weeks(acts_by_date: dict) -> list[dict]:
     today = date.today()
-    # Align start to the Monday _PRE_PLAN_WEEKS before plan start
     start = _PLAN_START - timedelta(weeks=_PRE_PLAN_WEEKS)
     start -= timedelta(days=start.weekday())
     weeks = []
     d = start
     while d < _PLAN_START:
         wk_days = []
+        done_min = 0
         for i in range(7):
             day_date = d + timedelta(days=i)
             if day_date >= _PLAN_START:
                 break
             day_acts = acts_by_date.get(day_date.isoformat(), [])
-            # Primary = longest activity
             primary = max(day_acts, key=lambda a: a.get("duration_seconds") or 0) if day_acts else None
             if primary:
                 stype = _TYPE_KEY_SESSION.get(primary["type_key"], "rest")
                 dur_fmt = _fmt_dur(primary.get("duration_seconds") or 0)
                 label = primary.get("name") or stype.title()
                 extra = len(day_acts) - 1
+                actual_min = int(sum(a.get("duration_seconds", 0) or 0 for a in day_acts) / 60)
+                done_min += actual_min
             else:
-                stype, dur_fmt, label, extra = "rest", "", "", 0
+                stype, dur_fmt, label, extra, actual_min = "rest", "", "", 0, 0
             wk_days.append({
                 "date": day_date,
                 "day_num": day_date.day,
@@ -355,8 +365,9 @@ def _build_preplan_weeks(acts_by_date: dict) -> list[dict]:
                 "label": label,
                 "dur_fmt": dur_fmt,
                 "extra": extra,
+                "actual_min": actual_min,
             })
-        weeks.append({"start": d, "days": wk_days})
+        weeks.append({"start": d, "days": wk_days, "done_min_fmt": _fmt_min(done_min)})
         d += timedelta(weeks=1)
     return weeks
 
@@ -378,19 +389,28 @@ async def calendar_view(request: Request):
     preplan_acts = load_activities_by_date(pre_start, _PLAN_START - timedelta(days=1))
     ctx["preplan_weeks"] = _build_preplan_weeks(preplan_acts)
 
-    # Load all activities across the plan window and mark completion
+    # Load all activities across the plan window and mark completion + actual durations
     plan_end = ctx["weeks"][-1]["days"][-1]["date"]
     acts_by_date = load_activities_by_date(_PLAN_START, plan_end)
     today = date.today()
     for week in ctx["weeks"]:
+        plan_min = sum(d["dur_min"] for d in week["days"] if d["type"] != "rest")
+        done_min = 0
         for day in week["days"]:
             stype = day["type"]
             if stype == "rest" or day["date"] >= today:
                 day["completed"] = None
+                day["actual_min"] = None
             else:
                 day_acts = acts_by_date.get(day["date"].isoformat(), [])
                 valid_keys = _ACTIVITY_MATCH.get(stype, set())
-                day["completed"] = any(a["type_key"] in valid_keys for a in day_acts)
+                matched = [a for a in day_acts if a["type_key"] in valid_keys]
+                day["completed"] = bool(matched)
+                actual = int(sum(a.get("duration_seconds", 0) or 0 for a in matched) / 60)
+                day["actual_min"] = actual if matched else None
+                done_min += actual
+        week["plan_min_fmt"] = _fmt_min(plan_min)
+        week["done_min_fmt"] = _fmt_min(done_min) if done_min else None
 
     return TEMPLATES.TemplateResponse(request=request, name="calendar.html", context=ctx)
 
