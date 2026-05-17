@@ -54,7 +54,7 @@ On macOS with launchd, also copy `.env` to `~/.garmin_readiness/.env` (launchd r
 # Terminal readiness report
 garmin-readiness
 
-# Web dashboard at http://127.0.0.1:8080
+# Web dashboard at http://127.0.0.1:8743
 garmin-readiness --serve
 
 # Send daily email (add --dry-run to preview without sending)

@@ -13,7 +13,7 @@ pip install --force-reinstall .
 # CLI — fetch today's data and display in terminal
 garmin-readiness
 
-# Web dashboard at http://127.0.0.1:8080
+# Web dashboard at http://127.0.0.1:8743
 garmin-readiness --serve
 
 # Send daily readiness email (or --dry-run to preview)

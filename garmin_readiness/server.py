@@ -507,6 +507,6 @@ def date_fromisoformat_safe(s: str) -> date:
         return _today()
 
 
-def run(host: str = "0.0.0.0", port: int = 8080) -> None:
+def run(host: str = "0.0.0.0", port: int = 8743) -> None:
     import uvicorn
     uvicorn.run(app, host=host, port=port, log_level="warning")

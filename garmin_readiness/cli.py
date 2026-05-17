@@ -224,13 +224,13 @@ def main() -> None:
     parser.add_argument(
         "--serve",
         action="store_true",
-        help="Start the web dashboard at http://127.0.0.1:8080",
+        help="Start the web dashboard at http://127.0.0.1:8743",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=8080,
-        help="Port for --serve (default: 8080)",
+        default=8743,
+        help="Port for --serve (default: 8743)",
     )
     parser.add_argument(
         "--email",
@@ -472,7 +472,7 @@ def _setup_schedule() -> None:
             ok = False
 
     if ok:
-        console.print(f"\n  Dashboard: [bold]http://127.0.0.1:8080[/bold]")
+        console.print(f"\n  Dashboard: [bold]http://127.0.0.1:8743[/bold]")
         console.print(f"  Email:     daily at 07:00 (or on wake)")
         console.print(f"  Logs:      ~/.garmin_readiness/server.log  /  daily.log")
         console.print(f"\n  Test email: [bold]garmin-readiness --email --dry-run[/bold]")
