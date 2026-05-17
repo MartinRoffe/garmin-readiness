@@ -24,6 +24,7 @@
     .sess-camp-medium { background: #1f1405; border-color: #fbbf24; color: #fde68a; }
     .sess-camp-easy   { background: #0d1f14; border-color: #34d399; color: #6ee7b7; }
     .sess-camp-travel { background: #111827; border-color: #374151; color: #6b7280; }
+    .sess-charity     { background: #0c1a2e; border-color: #0ea5e9; color: #7dd3fc; }
     .sess-camp-rest   { background: #1a1d25; border-color: #2a2d3a; color: #4a5068; }
     a.no-underline    { text-decoration: none; }
     .today-ring    { outline: 2px solid #38bdf8; outline-offset: 2px; }
@@ -221,6 +222,46 @@
           <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
         </div>
         <p class="text-[11px] opacity-40 mt-auto">{{ day.label }}</p>
+      </div>
+      {% else %}
+      <div class="min-h-[64px]"></div>
+      {% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+
+    <!-- ── Ghent–Amsterdam Charity Ride ──────────────────────────────────── -->
+    <div class="border-t border-slate-800 mt-4 mb-5"></div>
+
+    <div class="mb-4">
+      <p class="text-xs text-slate-500 uppercase tracking-widest mb-1">Charity Ride · Belgium → Netherlands</p>
+      <h2 class="text-lg font-bold text-sky-400">Ghent to Amsterdam</h2>
+      <p class="text-xs text-slate-500 mt-1">13–14 September 2026 · 2-day event · ~310km total</p>
+    </div>
+
+    <div class="grid grid-cols-8 gap-1 mb-1">
+      <div class="text-[10px] text-slate-600 uppercase tracking-wider text-right pr-2 pt-1">Wk</div>
+      {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
+        <div class="day-header text-center">{{ d }}</div>
+      {% endfor %}
+    </div>
+
+    {% for charity_week in charity_weeks %}
+    <div class="grid grid-cols-8 gap-1 mb-1">
+      <div class="flex flex-col items-end justify-center pr-2">
+        <span class="text-[10px] text-slate-700">{{ charity_week.week_label }}</span>
+      </div>
+      {% for day in charity_week.days %}
+      {% if day.is_event %}
+      <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-charity
+                  {% if day.is_today %}today-ring{% endif %}
+                  {% if day.is_past %}is-past{% endif %}">
+        <div class="flex items-start justify-between mb-0.5">
+          <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
+          <span class="text-[9px] text-sky-500 font-semibold">D{{ day.day_num_ride }}</span>
+        </div>
+        <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+        <p class="text-[10px] opacity-60 mt-auto">~{{ day.km }}km</p>
       </div>
       {% else %}
       <div class="min-h-[64px]"></div>

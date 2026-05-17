@@ -223,3 +223,38 @@ def build_camp_weeks() -> list[dict]:
                 })
         weeks.append({"week_label": wk_start.strftime("%-d %b"), "days": cells})
     return weeks
+
+
+# ── Ghent–Amsterdam Charity Ride ──────────────────────────────────────────────
+CHARITY_DAYS: list[dict] = [
+    {"day": 1, "date": date(2026, 9, 13), "label": "Ghent → Eindhoven", "km": 190},
+    {"day": 2, "date": date(2026, 9, 14), "label": "Eindhoven → Amsterdam", "km": 120},
+]
+
+
+def build_charity_weeks() -> list[dict]:
+    today = date.today()
+    days_by_date = {d["date"]: d for d in CHARITY_DAYS}
+    # Sep 13 = Sunday, Sep 14 = Monday → two rows: Sep 7–13, Sep 14–20
+    grid_start = date(2026, 9, 7)
+    weeks = []
+    for wk in range(2):
+        wk_start = grid_start + timedelta(weeks=wk)
+        cells = []
+        for day_off in range(7):
+            d = wk_start + timedelta(days=day_off)
+            ride_day = days_by_date.get(d)
+            if ride_day:
+                cells.append({
+                    "date": d, "day_num": d.day, "month_abbr": d.strftime("%b"),
+                    "label": ride_day["label"], "km": ride_day["km"],
+                    "day_num_ride": ride_day["day"],
+                    "is_today": d == today, "is_past": d < today, "is_event": True,
+                })
+            else:
+                cells.append({
+                    "date": d, "day_num": d.day, "month_abbr": d.strftime("%b"),
+                    "is_event": False,
+                })
+        weeks.append({"week_label": wk_start.strftime("%-d %b"), "days": cells})
+    return weeks

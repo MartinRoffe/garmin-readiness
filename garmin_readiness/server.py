@@ -16,7 +16,7 @@ from fastapi.requests import Request
 from .analysis import load_analyses_for_activities, prefetch_nutrition_targets, prefetch_workout_descriptions, refresh_analyses
 from .client import get_api
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
-from .plan import PLAN_START as _PLAN_START, build_calendar_weeks, build_camp_weeks, session_for_date
+from .plan import PLAN_START as _PLAN_START, build_calendar_weeks, build_camp_weeks, build_charity_weeks, session_for_date
 from .report import generate_advice, generate_dashboard_explainer, generate_pmc_analysis, generate_pmc_explainer
 from .history import (
     ACTIVITY_MATCH,
@@ -74,6 +74,7 @@ def _build_calendar_ctx() -> dict[str, Any]:
         "today": date.today(),
         "plan_start": _PLAN_START,
         "camp_weeks": build_camp_weeks(),
+        "charity_weeks": build_charity_weeks(),
     }
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
