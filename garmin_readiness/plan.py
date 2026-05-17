@@ -172,3 +172,54 @@ def build_calendar_weeks() -> list[dict]:
             })
         weeks.append({"week_num": wk_idx + 1, "start": wk_start, "days": days})
     return weeks
+
+
+# ── Tenerife Cycling Camp ─────────────────────────────────────────────────────
+CAMP_START = date(2026, 8, 13)
+CAMP_END   = date(2026, 8, 27)
+
+TENERIFE_DAYS: list[dict] = [
+    {"day": 0,  "date": date(2026, 8, 13), "intensity": "travel", "label": "Travel — Arrive Tenerife",              "km": 0,   "elev_m": 0},
+    {"day": 1,  "date": date(2026, 8, 14), "intensity": "easy",   "label": "Leg Openers — Coastal Loop South",      "km": 40,  "elev_m": 450},
+    {"day": 2,  "date": date(2026, 8, 15), "intensity": "medium", "label": "Tamaimo Climb + Teno Loop",              "km": 65,  "elev_m": 1100},
+    {"day": 3,  "date": date(2026, 8, 16), "intensity": "hard",   "label": "Teide from the West — TF-38 Ascent",    "km": 90,  "elev_m": 2100},
+    {"day": 4,  "date": date(2026, 8, 17), "intensity": "easy",   "label": "Active Recovery — Harbour Spin",        "km": 30,  "elev_m": 300},
+    {"day": 5,  "date": date(2026, 8, 18), "intensity": "hard",   "label": "Masca + North Coast Grand Tour",        "km": 105, "elev_m": 2200},
+    {"day": 6,  "date": date(2026, 8, 19), "intensity": "easy",   "label": "Banana Plantations & Alcalá Coffee",   "km": 45,  "elev_m": 500},
+    {"day": 7,  "date": date(2026, 8, 20), "intensity": "rest",   "label": "Full Rest — Explore Los Gigantes",      "km": 0,   "elev_m": 0},
+    {"day": 8,  "date": date(2026, 8, 21), "intensity": "easy",   "label": "Legs Back — Coastal Ramble",            "km": 50,  "elev_m": 600},
+    {"day": 9,  "date": date(2026, 8, 22), "intensity": "hard",   "label": "Teide Full Loop — West Up, South Down", "km": 115, "elev_m": 2400},
+    {"day": 10, "date": date(2026, 8, 23), "intensity": "easy",   "label": "Recovery Spin — Cliffs Views Route",   "km": 35,  "elev_m": 350},
+    {"day": 11, "date": date(2026, 8, 24), "intensity": "hard",   "label": "Masca + Teide Double — Camp Finale",   "km": 130, "elev_m": 3200},
+    {"day": 12, "date": date(2026, 8, 25), "intensity": "easy",   "label": "The Farewell Loop — Cliffs & Coffee",  "km": 40,  "elev_m": 400},
+    {"day": 0,  "date": date(2026, 8, 26), "intensity": "rest",   "label": "Rest Before Flight",                    "km": 0,   "elev_m": 0},
+    {"day": 0,  "date": date(2026, 8, 27), "intensity": "travel", "label": "Travel — Home",                         "km": 0,   "elev_m": 0},
+]
+
+
+def build_camp_weeks() -> list[dict]:
+    today = date.today()
+    days_by_date = {d["date"]: d for d in TENERIFE_DAYS}
+    grid_start = date(2026, 8, 10)  # Monday before Aug 13
+    weeks = []
+    for wk in range(3):
+        wk_start = grid_start + timedelta(weeks=wk)
+        cells = []
+        for day_off in range(7):
+            d = wk_start + timedelta(days=day_off)
+            camp_day = days_by_date.get(d)
+            if camp_day:
+                cells.append({
+                    "date": d, "day_num": d.day, "month_abbr": d.strftime("%b"),
+                    "intensity": camp_day["intensity"], "label": camp_day["label"],
+                    "km": camp_day["km"], "elev_m": camp_day["elev_m"],
+                    "camp_day_num": camp_day["day"],
+                    "is_today": d == today, "is_past": d < today, "is_camp": True,
+                })
+            else:
+                cells.append({
+                    "date": d, "day_num": d.day, "month_abbr": d.strftime("%b"),
+                    "intensity": "empty", "is_camp": False,
+                })
+        weeks.append({"week_label": wk_start.strftime("%-d %b"), "days": cells})
+    return weeks

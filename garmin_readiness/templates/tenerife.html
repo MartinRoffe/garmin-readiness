@@ -25,6 +25,7 @@
     .day-medium { border-left: 4px solid #fbbf24; }
     .day-easy  { border-left: 4px solid #34d399; }
     .day-rest  { border-left: 4px solid #475569; }
+    .day-card  { scroll-margin-top: 56px; }
   </style>
 </head>
 <body class="text-slate-200 font-mono min-h-screen">
@@ -116,7 +117,7 @@
     <p class="text-xs text-slate-500 uppercase tracking-widest mb-3 mt-2">── Week One · Building the Base</p>
 
     <!-- Day 1 -->
-    <div class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-1" class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">01</span>
         <div class="flex-1 min-w-0">
@@ -142,7 +143,7 @@
     </div>
 
     <!-- Day 2 -->
-    <div class="day-card day-medium rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-2" class="day-card day-medium rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">02</span>
         <div class="flex-1 min-w-0">
@@ -168,7 +169,7 @@
     </div>
 
     <!-- Day 3 -->
-    <div class="day-card day-hard rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-3" class="day-card day-hard rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">03</span>
         <div class="flex-1 min-w-0">
@@ -194,7 +195,7 @@
     </div>
 
     <!-- Day 4 -->
-    <div class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-4" class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">04</span>
         <div class="flex-1 min-w-0">
@@ -220,7 +221,7 @@
     </div>
 
     <!-- Day 5 -->
-    <div class="day-card day-hard rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-5" class="day-card day-hard rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">05</span>
         <div class="flex-1 min-w-0">
@@ -246,7 +247,7 @@
     </div>
 
     <!-- Day 6 -->
-    <div class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-6 overflow-hidden">
+    <div id="day-6" class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-6 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">06</span>
         <div class="flex-1 min-w-0">
@@ -275,7 +276,7 @@
     <p class="text-xs text-slate-500 uppercase tracking-widest mb-3">── Week Two · Peak &amp; Punch</p>
 
     <!-- Day 7 -->
-    <div class="day-card day-rest rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-7" class="day-card day-rest rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">07</span>
         <div class="flex-1 min-w-0">
@@ -300,7 +301,7 @@
     </div>
 
     <!-- Day 8 -->
-    <div class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-8" class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">08</span>
         <div class="flex-1 min-w-0">
@@ -326,7 +327,7 @@
     </div>
 
     <!-- Day 9 -->
-    <div class="day-card day-hard rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-9" class="day-card day-hard rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">09</span>
         <div class="flex-1 min-w-0">
@@ -352,7 +353,7 @@
     </div>
 
     <!-- Day 10 -->
-    <div class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-10" class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">10</span>
         <div class="flex-1 min-w-0">
@@ -378,7 +379,7 @@
     </div>
 
     <!-- Day 11 -->
-    <div class="day-card day-hard rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
+    <div id="day-11" class="day-card day-hard rounded-xl bg-[#161b27] border border-[#1e2030] mb-3 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">11</span>
         <div class="flex-1 min-w-0">
@@ -404,7 +405,7 @@
     </div>
 
     <!-- Day 12 -->
-    <div class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-8 overflow-hidden">
+    <div id="day-12" class="day-card day-easy rounded-xl bg-[#161b27] border border-[#1e2030] mb-8 overflow-hidden">
       <div class="day-header flex items-center gap-3 px-4 py-3 cursor-pointer select-none" onclick="toggle(this)">
         <span class="text-2xl font-bold text-slate-700 w-9 flex-shrink-0">12</span>
         <div class="flex-1 min-w-0">
