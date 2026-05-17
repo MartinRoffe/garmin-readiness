@@ -16,7 +16,7 @@ from fastapi.requests import Request
 from .analysis import load_analyses_for_activities, prefetch_nutrition_targets, prefetch_workout_descriptions, refresh_analyses
 from .client import get_api
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
-from .plan import PLAN_START as _PLAN_START, build_calendar_weeks
+from .plan import PLAN_START as _PLAN_START, build_calendar_weeks, session_for_date
 from .report import generate_advice, generate_pmc_analysis, generate_pmc_explainer
 from .history import (
     ACTIVITY_MATCH,
@@ -38,6 +38,35 @@ load_dotenv()
 
 _advice_cache: dict[str, str] = {}
 _pmc_cache: dict[str, str] = {}
+
+def _week_completion() -> dict[str, Any]:
+    """Return week completion stats for the dashboard card."""
+    today = date.today()
+    mon = today - timedelta(days=today.weekday())
+    plan_min = 0
+    for i in range(7):
+        session = session_for_date(mon + timedelta(days=i))
+        if session:
+            stype, _, dur = session
+            if stype != "rest" and dur:
+                plan_min += dur
+    if plan_min == 0:
+        return {}
+    acts = load_activities_by_date(mon, today - timedelta(days=1))
+    done_min = 0
+    for day_acts in acts.values():
+        for a in day_acts:
+            if any(a["type_key"] in keys for keys in ACTIVITY_MATCH.values()):
+                done_min += int((a.get("duration_seconds", 0) or 0) / 60)
+    pct = int(done_min / plan_min * 100)
+    return {
+        "plan_min_fmt": _fmt_min(plan_min),
+        "done_min_fmt": _fmt_min(done_min),
+        "pct": pct,
+        "day_of_week": today.weekday() + 1,  # 1=Mon … 7=Sun
+        "bar_filled": min(pct, 100),
+    }
+
 
 def _build_calendar_ctx() -> dict[str, Any]:
     return {"weeks": build_calendar_weeks(), "today": date.today(), "plan_start": _PLAN_START}
@@ -231,6 +260,7 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
         "trend_note": seven_day_composite_trend_csv(),
         "activity_blurb": _activity_context_blurb(activities),
         "advice": _advice_cache[date_key],
+        "week_completion": _week_completion(),
     }
 
 

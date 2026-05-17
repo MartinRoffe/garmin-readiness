@@ -79,6 +79,37 @@
     </div>
     {% endif %}
 
+    <!-- ── Weekly training completion ──────────────────────────────── -->
+    {% if week_completion %}
+    {% set wc = week_completion %}
+    <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5 mb-6">
+      <p class="text-xs text-slate-500 uppercase tracking-widest mb-4">This Week · Training</p>
+      <div class="flex items-center gap-5">
+        <!-- % label -->
+        <div class="flex-shrink-0 w-16 text-right">
+          <p class="text-3xl font-bold
+            {% if wc.pct >= 90 %}text-emerald-400
+            {% elif wc.pct >= 60 %}text-yellow-400
+            {% else %}text-red-400{% endif %}">{{ wc.pct }}%</p>
+        </div>
+        <!-- bar + labels -->
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between text-[11px] mb-1.5">
+            <span class="text-slate-300 font-semibold">{{ wc.done_min_fmt }} done</span>
+            <span class="text-slate-500">of {{ wc.plan_min_fmt }} · day {{ wc.day_of_week }}/7</span>
+          </div>
+          <div class="w-full h-2 rounded-full bg-[#1e2030] overflow-hidden">
+            <div class="h-full rounded-full transition-all
+              {% if wc.pct >= 90 %}bg-emerald-500
+              {% elif wc.pct >= 60 %}bg-yellow-500
+              {% else %}bg-red-500{% endif %}"
+              style="width: {{ wc.bar_filled }}%"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- ── Narrative context (same signals as daily email prompt) ────── -->
     <div class="rounded-xl bg-[#161b27] border border-[#1e2030] p-5 mb-6">
       <p class="text-xs text-slate-500 uppercase tracking-widest mb-3">Same context as your email</p>
