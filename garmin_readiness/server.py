@@ -411,6 +411,7 @@ async def calendar_view(request: Request):
                 done_min += actual
         week["plan_min_fmt"] = _fmt_min(plan_min)
         week["done_min_fmt"] = _fmt_min(done_min) if done_min else None
+        week["completion_pct"] = int(done_min / plan_min * 100) if plan_min and done_min else None
 
     return TEMPLATES.TemplateResponse(request=request, name="calendar.html", context=ctx)
 

@@ -120,6 +120,14 @@
         {% if week.done_min_fmt %}
           <span class="text-[10px] text-emerald-700">{{ week.done_min_fmt }}</span>
         {% endif %}
+        {% if week.completion_pct is not none %}
+          <span class="text-[10px] font-semibold mt-0.5
+            {% if week.completion_pct >= 90 %}text-emerald-400
+            {% elif week.completion_pct >= 60 %}text-yellow-400
+            {% else %}text-red-400{% endif %}">
+            {{ week.completion_pct }}%
+          </span>
+        {% endif %}
       </div>
 
       {% for day in week.days %}
