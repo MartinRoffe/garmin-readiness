@@ -331,8 +331,25 @@ def main() -> None:
 
     if args.email:
         from .report import run_report
+
+        sentinel = Path.home() / ".garmin_readiness" / f"sent_{target.isoformat()}"
+        if sentinel.exists() and not args.dry_run:
+            console.print(f"[dim]Email already sent for {target}, skipping.[/dim]")
+            sys.exit(0)
+
+        # Require at least 4 numeric fields — fewer means the watch hasn't synced yet
+        if available_count(m) < 4 and not args.dry_run:
+            console.print(
+                f"[yellow]Only {available_count(m)} metrics available — watch hasn't synced yet. "
+                "Will retry later.[/yellow]"
+            )
+            sys.exit(2)
+
         with console.status("Generating advice…"):
             run_report(m, dry_run=args.dry_run)
+
+        if not args.dry_run:
+            sentinel.touch()
         return
 
     stats = baseline_stats(target)
@@ -372,7 +389,20 @@ def _setup_schedule() -> None:
         f"#!/bin/bash\n"
         f"export PYTHONPATH={project_dir}\n"
         f"export DOTENV_PATH={env_file}\n"
-        f"exec {python} -m garmin_readiness.cli --email --fetch\n"
+        f"# Retry every 30 min until 10:00 if watch hasn't synced yet (exit 2 = not ready)\n"
+        f"DEADLINE=$(date -v+3H +%s 2>/dev/null || date --date='+3 hours' +%s)\n"
+        f"while true; do\n"
+        f"    {python} -m garmin_readiness.cli --email --fetch\n"
+        f"    CODE=$?\n"
+        f"    [ $CODE -eq 0 ] && exit 0\n"
+        f"    [ $CODE -ne 2 ] && exit $CODE\n"
+        f"    [ $(date +%s) -ge $DEADLINE ] && {{\n"
+        f"        echo 'Watch never synced by 10:00 — giving up'\n"
+        f"        exit 2\n"
+        f"    }}\n"
+        f"    echo 'Watch not synced yet, retrying in 30 min…'\n"
+        f"    sleep 1800\n"
+        f"done\n"
     )
     serve_script.chmod(0o755)
     email_script.chmod(0o755)
