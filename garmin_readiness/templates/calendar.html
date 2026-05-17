@@ -53,6 +53,52 @@
       <span class="text-[11px] text-slate-600 self-center ml-2">· click any cycling session for details</span>
     </div>
 
+    <!-- ── Pre-plan history ──────────────────────────────────────────────── -->
+    {% if preplan_weeks %}
+    <div class="mb-6">
+      <p class="text-[11px] text-slate-500 uppercase tracking-widest mb-2">Pre-plan history</p>
+
+      <div class="grid grid-cols-8 gap-1 mb-1">
+        <div class="text-[10px] text-slate-600 uppercase tracking-wider text-right pr-2 pt-1">Wk</div>
+        {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
+          <div class="day-header text-center">{{ d }}</div>
+        {% endfor %}
+      </div>
+
+      {% for week in preplan_weeks %}
+      <div class="grid grid-cols-8 gap-1 mb-1 opacity-70">
+        <div class="flex flex-col items-end justify-center pr-2">
+          <span class="text-[10px] text-slate-700">{{ week.start.strftime("%-d %b") }}</span>
+        </div>
+        {% for day in week.days %}
+        <div class="rounded border p-1.5 min-h-[56px] flex flex-col sess-{{ day.type }}
+                    {% if day.is_today %}today-ring{% endif %}">
+          <div class="flex items-start justify-between mb-0.5">
+            <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
+            {% if day.is_today %}<span class="text-[9px] text-sky-400 font-semibold">TODAY</span>{% endif %}
+          </div>
+          {% if day.label %}
+            <p class="text-[10px] font-semibold leading-tight flex-1 truncate">{{ day.label }}</p>
+            <div class="flex items-center gap-1 mt-auto">
+              {% if day.dur_fmt %}<span class="text-[10px] opacity-60">{{ day.dur_fmt }}</span>{% endif %}
+              {% if day.extra %}<span class="text-[9px] text-slate-500">+{{ day.extra }}</span>{% endif %}
+            </div>
+          {% else %}
+            <p class="text-[10px] opacity-30 mt-auto">—</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {# Pad to 7 columns if week ends before Sunday (last partial week) #}
+        {% for _ in range(7 - week.days|length) %}
+        <div></div>
+        {% endfor %}
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="border-t border-slate-800 mb-5 mt-1"></div>
+    {% endif %}
+
     <!-- Day-of-week header -->
     <div class="grid grid-cols-8 gap-1 mb-1">
       <div class="text-[10px] text-slate-600 uppercase tracking-wider text-right pr-2 pt-1">Wk</div>

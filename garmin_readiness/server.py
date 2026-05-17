@@ -300,6 +300,61 @@ _ACTIVITY_MATCH: dict[str, set[str]] = {
     "ruck":     {"hiking", "walking", "trail_running", "running"},
 }
 
+# Map Garmin type_key → display session type for pre-plan activity cells
+_TYPE_KEY_SESSION: dict[str, str] = {
+    "road_biking": "bike", "cycling": "bike", "virtual_ride": "bike",
+    "indoor_cycling": "bike", "mountain_biking": "bike",
+    "strength_training": "strength", "stair_climbing": "strength", "fitness_equipment": "strength",
+    "hiking": "ruck", "walking": "ruck", "trail_running": "ruck", "running": "ruck",
+}
+
+_PRE_PLAN_WEEKS = 4
+
+
+def _fmt_dur(seconds: float) -> str:
+    m = int(seconds / 60)
+    if m < 60:
+        return f"{m}m"
+    return f"{m // 60}h{m % 60:02d}m" if m % 60 else f"{m // 60}h"
+
+
+def _build_preplan_weeks(acts_by_date: dict) -> list[dict]:
+    today = date.today()
+    # Align start to the Monday _PRE_PLAN_WEEKS before plan start
+    start = _PLAN_START - timedelta(weeks=_PRE_PLAN_WEEKS)
+    start -= timedelta(days=start.weekday())
+    weeks = []
+    d = start
+    while d < _PLAN_START:
+        wk_days = []
+        for i in range(7):
+            day_date = d + timedelta(days=i)
+            if day_date >= _PLAN_START:
+                break
+            day_acts = acts_by_date.get(day_date.isoformat(), [])
+            # Primary = longest activity
+            primary = max(day_acts, key=lambda a: a.get("duration_seconds") or 0) if day_acts else None
+            if primary:
+                stype = _TYPE_KEY_SESSION.get(primary["type_key"], "rest")
+                dur_fmt = _fmt_dur(primary.get("duration_seconds") or 0)
+                label = primary.get("name") or stype.title()
+                extra = len(day_acts) - 1
+            else:
+                stype, dur_fmt, label, extra = "rest", "", "", 0
+            wk_days.append({
+                "date": day_date,
+                "day_num": day_date.day,
+                "month_abbr": day_date.strftime("%b"),
+                "is_today": day_date == today,
+                "type": stype,
+                "label": label,
+                "dur_fmt": dur_fmt,
+                "extra": extra,
+            })
+        weeks.append({"start": d, "days": wk_days})
+        d += timedelta(weeks=1)
+    return weeks
+
 
 @app.get("/calendar", response_class=HTMLResponse)
 async def calendar_view(request: Request):
@@ -312,6 +367,12 @@ async def calendar_view(request: Request):
     })
     ctx["workout_descs"] = prefetch_workout_descriptions(cycling_labels)
 
+    # Pre-plan history (4 weeks before plan start)
+    pre_start = _PLAN_START - timedelta(weeks=_PRE_PLAN_WEEKS)
+    pre_start -= timedelta(days=pre_start.weekday())
+    preplan_acts = load_activities_by_date(pre_start, _PLAN_START - timedelta(days=1))
+    ctx["preplan_weeks"] = _build_preplan_weeks(preplan_acts)
+
     # Load all activities across the plan window and mark completion
     plan_end = ctx["weeks"][-1]["days"][-1]["date"]
     acts_by_date = load_activities_by_date(_PLAN_START, plan_end)
@@ -320,7 +381,7 @@ async def calendar_view(request: Request):
         for day in week["days"]:
             stype = day["type"]
             if stype == "rest" or day["date"] >= today:
-                day["completed"] = None  # no indicator for rest or future
+                day["completed"] = None
             else:
                 day_acts = acts_by_date.get(day["date"].isoformat(), [])
                 valid_keys = _ACTIVITY_MATCH.get(stype, set())
