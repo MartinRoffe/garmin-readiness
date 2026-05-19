@@ -485,7 +485,7 @@ async def calendar_view(request: Request):
         done_min = 0
         for day in week["days"]:
             stype = day["type"]
-            if stype == "rest" or day["date"] >= today:
+            if stype == "rest" or day["date"] > today:
                 day["completed"] = None
                 day["actual_min"] = None
                 for sub in (day.get("sub_sessions") or []):

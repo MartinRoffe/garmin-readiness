@@ -23,7 +23,7 @@
     a.no-underline    { text-decoration: none; }
     .today-ring    { outline: 2px solid #a3e635; outline-offset: 2px; }
     .is-past       { opacity: 0.4; }
-    .day-header    { color: #3f3f46; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+    .day-header    { color: #71717a; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
     .clickable-session { cursor: pointer; }
     .clickable-session:hover { filter: brightness(1.18); }
   </style>
@@ -114,14 +114,14 @@
     {% for week in weeks %}
     <div class="grid grid-cols-8 gap-1 mb-1">
       <div class="flex flex-col items-end justify-center pr-2">
-        <span class="text-[11px] text-slate-600">W{{ "%02d"|format(week.week_num) }}</span>
-        <span class="text-[10px] text-slate-700">{{ week.start.strftime("%-d %b") }}</span>
-        <span class="text-[10px] text-slate-600 mt-0.5">{{ week.plan_min_fmt }}</span>
+        <span class="text-[13px] font-bold text-slate-300">W{{ "%02d"|format(week.week_num) }}</span>
+        <span class="text-[11px] text-slate-500">{{ week.start.strftime("%-d %b") }}</span>
+        <span class="text-[11px] text-slate-500 mt-0.5">{{ week.plan_min_fmt }}</span>
         {% if week.done_min_fmt %}
-          <span class="text-[10px] text-emerald-700">{{ week.done_min_fmt }}</span>
+          <span class="text-[11px] text-emerald-500">{{ week.done_min_fmt }}</span>
         {% endif %}
         {% if week.completion_pct is not none %}
-          <span class="text-[10px] font-semibold mt-0.5
+          <span class="text-[14px] font-bold mt-1
             {% if week.completion_pct >= 90 %}text-emerald-400
             {% elif week.completion_pct >= 60 %}text-yellow-400
             {% else %}text-red-400{% endif %}">
@@ -150,9 +150,9 @@
           {% elif day.is_today %}
             <span class="text-[9px] text-sky-400 font-semibold">TODAY</span>
           {% elif day.completed == true %}
-            <span class="text-[10px] text-emerald-400 font-bold leading-none" title="Completed">✓</span>
+            <span class="text-[13px] text-emerald-400 font-bold leading-none" title="Completed">✓</span>
           {% elif day.completed == false %}
-            <span class="text-[10px] text-red-500 font-bold leading-none" title="Missed">✗</span>
+            <span class="text-[13px] text-red-500 font-bold leading-none" title="Missed">✗</span>
           {% endif %}
         </div>
         {% if day.type != 'rest' %}
@@ -162,9 +162,9 @@
               <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
                 <span class="text-[10px] font-semibold leading-tight">{{ sub.label }}</span>
                 {% if sub.completed == true %}
-                  <span class="text-[9px] text-emerald-400 font-bold flex-shrink-0">✓</span>
+                  <span class="text-[11px] text-emerald-400 font-bold flex-shrink-0">✓</span>
                 {% elif sub.completed == false %}
-                  <span class="text-[9px] text-red-500 font-bold flex-shrink-0">✗</span>
+                  <span class="text-[11px] text-red-500 font-bold flex-shrink-0">✗</span>
                 {% endif %}
               </div>
               {% endfor %}
