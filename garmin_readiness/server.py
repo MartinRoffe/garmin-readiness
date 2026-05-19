@@ -434,14 +434,30 @@ async def calendar_view(request: Request):
             if stype == "rest" or day["date"] >= today:
                 day["completed"] = None
                 day["actual_min"] = None
+                for sub in (day.get("sub_sessions") or []):
+                    sub["completed"] = None
+                    sub["actual_min"] = None
             else:
                 day_acts = acts_by_date.get(day["date"].isoformat(), [])
-                valid_keys = ACTIVITY_MATCH.get(stype, set())
-                matched = [a for a in day_acts if a["type_key"] in valid_keys]
-                day["completed"] = bool(matched)
-                actual = int(sum(a.get("duration_seconds", 0) or 0 for a in matched) / 60)
-                day["actual_min"] = actual if matched else None
-                done_min += actual
+                if day.get("sub_sessions"):
+                    for sub in day["sub_sessions"]:
+                        sub_matched = [a for a in day_acts if a["type_key"] == sub["garmin_key"]]
+                        sub["completed"] = bool(sub_matched)
+                        sub["actual_min"] = (
+                            int(sum(a.get("duration_seconds", 0) or 0 for a in sub_matched) / 60)
+                            if sub_matched else None
+                        )
+                    day["completed"] = all(s["completed"] for s in day["sub_sessions"])
+                    actual = sum(s["actual_min"] or 0 for s in day["sub_sessions"])
+                    day["actual_min"] = actual if actual else None
+                    done_min += actual
+                else:
+                    valid_keys = ACTIVITY_MATCH.get(stype, set())
+                    matched = [a for a in day_acts if a["type_key"] in valid_keys]
+                    day["completed"] = bool(matched)
+                    actual = int(sum(a.get("duration_seconds", 0) or 0 for a in matched) / 60)
+                    day["actual_min"] = actual if matched else None
+                    done_min += actual
         week["plan_min_fmt"] = _fmt_min(plan_min)
         week["done_min_fmt"] = _fmt_min(done_min) if done_min else None
         week["completion_pct"] = int(done_min / plan_min * 100) if plan_min and done_min else None

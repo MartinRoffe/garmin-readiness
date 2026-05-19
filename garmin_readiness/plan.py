@@ -131,6 +131,15 @@ TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
     ],
 ]
 
+# Sessions whose label maps to multiple independent Garmin activities.
+# Each sub-session specifies the Garmin type_key that marks it complete.
+COMPOUND_SESSIONS: dict[str, list[dict]] = {
+    "KB + MaxiClimber": [
+        {"label": "Kettlebell",  "garmin_key": "strength_training"},
+        {"label": "MaxiClimber", "garmin_key": "stair_climbing"},
+    ],
+}
+
 _PLAN_DAYS = len(TRAINING_WEEKS) * 7  # 84
 
 # AI coach recommendations keyed by ISO date; surfaced on the calendar card + modal.
@@ -168,6 +177,12 @@ def build_calendar_weeks() -> list[dict]:
                     dur_fmt = f"{dur // 60}h{dur % 60:02d}m"
                 else:
                     dur_fmt = f"{dur // 60}h"
+            compound = COMPOUND_SESSIONS.get(label)
+            sub_sessions = (
+                [{"label": s["label"], "garmin_key": s["garmin_key"], "completed": None, "actual_min": None}
+                 for s in compound]
+                if compound else None
+            )
             days.append({
                 "date": d,
                 "day_num": d.day,
@@ -179,6 +194,7 @@ def build_calendar_weeks() -> list[dict]:
                 "is_today": d == today,
                 "is_past": d < today,
                 "coach_note": COACH_NOTES.get(d.isoformat(), ""),
+                "sub_sessions": sub_sessions,
             })
         weeks.append({"week_num": wk_idx + 1, "start": wk_start, "days": days})
     return weeks

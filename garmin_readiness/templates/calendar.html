@@ -156,9 +156,27 @@
           {% endif %}
         </div>
         {% if day.type != 'rest' %}
-          <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-          {% if day.dur_fmt %}
-            <p class="text-[10px] opacity-60 mt-auto">{{ day.dur_fmt }}</p>
+          {% if day.sub_sessions %}
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px;margin-bottom:2px">
+              {% for sub in day.sub_sessions %}
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
+                <span class="text-[10px] font-semibold leading-tight">{{ sub.label }}</span>
+                {% if sub.completed == true %}
+                  <span class="text-[9px] text-emerald-400 font-bold flex-shrink-0">✓</span>
+                {% elif sub.completed == false %}
+                  <span class="text-[9px] text-red-500 font-bold flex-shrink-0">✗</span>
+                {% endif %}
+              </div>
+              {% endfor %}
+            </div>
+            {% if day.dur_fmt %}
+              <p class="text-[10px] opacity-40 mt-auto">{{ day.dur_fmt }}</p>
+            {% endif %}
+          {% else %}
+            <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+            {% if day.dur_fmt %}
+              <p class="text-[10px] opacity-60 mt-auto">{{ day.dur_fmt }}</p>
+            {% endif %}
           {% endif %}
         {% else %}
           <p class="text-[11px] opacity-40 mt-auto">Rest</p>
