@@ -35,10 +35,17 @@
 
   <div style="max-width:1080px;margin:0 auto;padding:40px 24px 80px">
 
-    <div style="margin-bottom:28px">
-      <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#71717a;margin-bottom:8px">12-Week Training Plan</p>
-      <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:#fafafa;line-height:1">Calendar</h1>
-      <p style="font-family:'DM Mono',monospace;font-size:10px;color:#3f3f46;margin-top:6px">{{ plan_start.strftime("%-d %b %Y") }} → 9 Aug 2026</p>
+    <div style="margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div>
+        <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#71717a;margin-bottom:8px">12-Week Training Plan</p>
+        <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:#fafafa;line-height:1">Calendar</h1>
+        <p style="font-family:'DM Mono',monospace;font-size:10px;color:#3f3f46;margin-top:6px">{{ plan_start.strftime("%-d %b %Y") }} → 9 Aug 2026</p>
+      </div>
+      {% if current_streak > 0 %}
+      <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;padding:6px 14px;border:1px solid #166534;color:#4ade80;background:#052e16/40;border-radius:2px;white-space:nowrap;align-self:flex-start;margin-top:4px">
+        🔥 {{ current_streak }}-day streak
+      </div>
+      {% endif %}
     </div>
 
     <!-- Legend -->
@@ -127,6 +134,9 @@
             {% else %}text-red-400{% endif %}">
             {{ week.completion_pct }}%
           </span>
+        {% endif %}
+        {% if week.days_total > 0 %}
+          <span class="text-[10px] text-slate-600 mt-0.5">{{ week.days_hit }}/{{ week.days_total }} days</span>
         {% endif %}
       </div>
 

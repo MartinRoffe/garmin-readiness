@@ -306,6 +306,37 @@ def seven_day_composite_trend_csv() -> str:
     return ", ".join(f"{v:+.2f}" if v is not None else "—" for _, v in history)
 
 
+def raw_history(days: int = 14) -> list[dict]:
+    """Return a list of dicts (one per day, oldest first) for the last `days` days.
+
+    Each dict has: date (date), hrv_last_night, sleep_score, avg_stress (all may be None).
+    Days with no DB row still appear with None values so the sparkline x-axis is continuous.
+    """
+    end = date.today()
+    start = end - timedelta(days=days - 1)
+    with _conn() as con:
+        _ensure_schema(con)
+        rows = con.execute(
+            """SELECT date, hrv_last_night, sleep_score, avg_stress
+               FROM daily_metrics
+               WHERE date >= ? AND date <= ?
+               ORDER BY date""",
+            (start.isoformat(), end.isoformat()),
+        ).fetchall()
+    by_date = {row["date"]: dict(row) for row in rows}
+    result = []
+    for i in range(days):
+        d = start + timedelta(days=i)
+        row = by_date.get(d.isoformat(), {})
+        result.append({
+            "date": d,
+            "hrv_last_night": row.get("hrv_last_night"),
+            "sleep_score": row.get("sleep_score"),
+            "avg_stress": row.get("avg_stress"),
+        })
+    return result
+
+
 def pmc_history(days: int = 90) -> list[dict]:
     """Return daily CTL/ATL/TSB for the last `days` days (oldest first).
 

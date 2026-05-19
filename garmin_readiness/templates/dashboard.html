@@ -214,6 +214,27 @@
     {% endfor %}
   </div>
 
+  <!-- ── Recovery sparklines ──────────────────────────────────────────── -->
+  {% if sparklines %}
+  <div class="card" style="padding:20px 24px;margin-bottom:12px">
+    <p class="eyebrow" style="margin-bottom:16px">14-Day Recovery Trends</p>
+    <div style="display:flex;gap:20px;flex-wrap:wrap">
+      <div style="flex:1;min-width:120px">
+        <p style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">HRV (ms)</p>
+        <div style="height:44px;position:relative"><canvas id="sparkHrv"></canvas></div>
+      </div>
+      <div style="flex:1;min-width:120px">
+        <p style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">Sleep Score</p>
+        <div style="height:44px;position:relative"><canvas id="sparkSleep"></canvas></div>
+      </div>
+      <div style="flex:1;min-width:120px">
+        <p style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">Avg Stress</p>
+        <div style="height:44px;position:relative"><canvas id="sparkStress"></canvas></div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── 14-day trend chart ─────────────────────────────────────────── -->
   <div class="card" style="padding:20px 24px;margin-bottom:12px">
     <p class="eyebrow" style="margin-bottom:18px">14-Day Composite Trend</p>
@@ -317,6 +338,34 @@
       }
     }
   });
+
+  {% if sparklines %}
+  (function() {
+    const sp = {{ sparklines | tojson }};
+    function makeSparkline(id, colour, dataKey) {
+      const canvas = document.getElementById(id);
+      if (!canvas) return;
+      const data = sp[dataKey];
+      if (!data || data.every(v => v === null)) return;
+      new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: sp.labels,
+          datasets: [{ data, borderColor: colour, borderWidth: 1.5, pointRadius: 0, tension: 0.3, spanGaps: false, fill: false }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false } },
+          animation: false,
+        }
+      });
+    }
+    makeSparkline('sparkHrv',    '#a3e635', 'hrv');
+    makeSparkline('sparkSleep',  '#38bdf8', 'sleep');
+    makeSparkline('sparkStress', '#fb923c', 'stress');
+  })();
+  {% endif %}
 
   const startTime = Date.now();
   const updEl = document.getElementById('last-updated');

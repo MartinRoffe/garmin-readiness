@@ -29,6 +29,7 @@ from .history import (
     load_activities_by_date,
     load_recent_activities,
     pmc_history,
+    raw_history,
     save,
     save_activities,
     seven_day_composite_trend_csv,
@@ -236,6 +237,15 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
     chart_labels = [d.strftime("%d %b") for d, _ in history]
     chart_values = [round(v, 3) if v is not None else None for _, v in history]
 
+    # Sparklines — last 14 days of key recovery metrics
+    spark_rows = raw_history(14)
+    sparklines = {
+        "hrv":    [r["hrv_last_night"] for r in spark_rows],
+        "sleep":  [r["sleep_score"]    for r in spark_rows],
+        "stress": [r["avg_stress"]     for r in spark_rows],
+        "labels": [r["date"].strftime("%-d %b") for r in spark_rows],
+    }
+
     # Activities — last 7 days, fetch fresh if force_fetch
     if force_fetch:
         email_addr = os.getenv("GARMIN_EMAIL", "")
@@ -271,6 +281,7 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
         "advice": _advice_cache[date_key],
         "week_completion": _week_completion(),
         "metric_explainer": generate_dashboard_explainer(),
+        "sparklines": sparklines,
     }
 
 
@@ -515,6 +526,20 @@ async def calendar_view(request: Request):
         week["plan_min_fmt"] = _fmt_min(plan_min)
         week["done_min_fmt"] = _fmt_min(done_min) if done_min else None
         week["completion_pct"] = int(done_min / plan_min * 100) if plan_min and done_min else None
+        week["days_hit"]   = sum(1 for d in week["days"] if d.get("completed") == True)
+        week["days_total"] = sum(1 for d in week["days"] if d["type"] != "rest" and d["date"] <= today)
+
+    # Current streak: consecutive completed (or rest) days up to and including today
+    all_plan_days = [d for week in ctx["weeks"] for d in week["days"]]
+    current_streak = 0
+    for day in reversed(all_plan_days):
+        if day["date"] > today:
+            continue
+        if day["type"] == "rest" or day.get("completed") == True:
+            current_streak += 1
+        else:
+            break
+    ctx["current_streak"] = current_streak
 
     return TEMPLATES.TemplateResponse(request=request, name="calendar.html", context=ctx)
 
