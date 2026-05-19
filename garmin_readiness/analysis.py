@@ -174,6 +174,16 @@ def _build_analysis_prompt(activity: dict, detail: dict) -> str:
         if session:
             stype, slabel, sdur = session
             plan_line = f"\nPlanned workout for this day: {slabel} ({stype}, {sdur}m)"
+            # KB + MaxiClimber records as two separate Garmin activities (strength_training
+            # + stair_climbing). The duration target is for the combined session, not each
+            # activity individually.
+            if stype == "strength" and activity.get("type_key") in {"strength_training", "stair_climbing"}:
+                plan_line += (
+                    "\nNote: this is one component of a combined session — "
+                    f"Strength Training (kettlebell) and Stair Stepper (MaxiClimber) are logged "
+                    f"separately by Garmin but together make up the {sdur}m target. "
+                    "Do not flag this activity for being under the duration target."
+                )
 
     lines = [
         f"Activity: {name}",
