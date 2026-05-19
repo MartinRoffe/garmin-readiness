@@ -144,7 +144,34 @@
     </div>
 
     <!-- HR zones -->
-    {% if a.hr_zones %}
+    {% if a.zone_sections %}
+    <div style="margin-bottom:18px">
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        {% for section in a.zone_sections %}
+        {% if section.zones %}
+        <div style="flex:1;min-width:180px">
+          <p class="eyebrow" style="margin-bottom:8px">{{ section.label }} — HR Zones</p>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            {% for z in section.zones %}
+            {% set zc = ['z1','z2','z3','z4','z5'][z.zone - 1] if z.zone <= 5 else 'z1' %}
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-family:var(--font-m);font-size:9px;color:var(--muted);width:16px;text-align:right;letter-spacing:0.05em">Z{{ z.zone }}</span>
+              <div style="flex:1;background:var(--border);border-radius:2px;height:3px;overflow:hidden">
+                <div class="zbar {{ zc }}" style="width:{{ [z.pct, 100]|min }}%"></div>
+              </div>
+              <span style="font-family:var(--font-m);font-size:10px;color:var(--text-dim);width:30px;text-align:right">{{ z.pct }}%</span>
+              <span style="font-family:var(--font-m);font-size:10px;color:var(--muted);width:44px;text-align:right">
+                {% set m = (z.secs // 60) %}{% set s = (z.secs % 60) %}{{ m }}m{% if s %}{{ "%02d"|format(s) }}s{% endif %}
+              </span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% elif a.hr_zones %}
     <div style="margin-bottom:18px">
       <p class="eyebrow" style="margin-bottom:10px">Heart Rate Zones</p>
       <div style="display:flex;flex-direction:column;gap:5px">

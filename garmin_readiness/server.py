@@ -17,7 +17,7 @@ from .analysis import load_analyses_for_activities, prefetch_nutrition_targets, 
 from .client import get_api
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
 from .plan import (PLAN_START as _PLAN_START, build_calendar_weeks, build_camp_weeks,
-                   build_charity_weeks, build_event_prep_weeks,
+                   build_charity_weeks, build_event_prep_weeks, COMPOUND_SESSIONS,
                    CAMP_GRID_WORKOUTS, EVENT_PREP_DAYS, session_for_date)
 from .report import generate_advice, generate_dashboard_explainer, generate_pmc_analysis, generate_pmc_explainer
 from .history import (
@@ -281,12 +281,66 @@ async def dashboard(request: Request, date: Optional[str] = None):
     return TEMPLATES.TemplateResponse(request=request, name="dashboard.html", context=ctx)
 
 
+def _merge_compound_activities(activities: list[dict]) -> list[dict]:
+    """Collapse compound session pairs (e.g. KB + MaxiClimber) into one card."""
+    # Build a reverse lookup: garmin type_key → compound session label
+    key_to_label: dict[str, str] = {}
+    for label, subs in COMPOUND_SESSIONS.items():
+        for sub in subs:
+            key_to_label[sub["garmin_key"]] = label
+
+    # Index activities by (date, compound_label) to find pairs
+    compound_groups: dict[tuple[str, str], list[dict]] = {}
+    non_compound: list[dict] = []
+    for act in activities:
+        label = key_to_label.get(act.get("type_key", ""))
+        if label:
+            key = (act.get("date", ""), label)
+            compound_groups.setdefault(key, []).append(act)
+        else:
+            non_compound.append(act)
+
+    merged: list[dict] = []
+    for (act_date, label), group in compound_groups.items():
+        if len(group) == 1:
+            non_compound.append(group[0])
+            continue
+        # Primary = the one with analysis_text (prefer strength_training)
+        subs = COMPOUND_SESSIONS[label]
+        primary_key = subs[0]["garmin_key"]
+        primary = next((a for a in group if a.get("type_key") == primary_key), group[0])
+        others = [a for a in group if a["activity_id"] != primary["activity_id"]]
+
+        combined = dict(primary)
+        combined["name"] = label
+        # Sum duration and calories
+        total_secs = sum(a.get("duration_seconds") or 0 for a in group)
+        combined["duration_seconds"] = total_secs
+        from .display import fmt_duration
+        combined["duration_fmt"] = fmt_duration(total_secs)
+        combined["calories"] = sum((a.get("calories") or 0) for a in group)
+        # Attach companion HR zones for template rendering
+        # Build ordered zone sections (one per sub-session) for the template
+        acts_by_key = {a["type_key"]: a for a in group}
+        combined["zone_sections"] = [
+            {"label": sub["label"], "zones": acts_by_key.get(sub["garmin_key"], {}).get("hr_zones", [])}
+            for sub in subs
+        ]
+        merged.append(combined)
+
+    # Restore original order (newest first)
+    all_acts = non_compound + merged
+    all_acts.sort(key=lambda a: a.get("start_time") or a.get("date", ""), reverse=True)
+    return all_acts
+
+
 @app.get("/analysis", response_class=HTMLResponse)
 async def analysis_view(request: Request):
     activities_raw = load_recent_activities(days=14)
     activities = load_analyses_for_activities(
         [enrich_activity(a) for a in activities_raw]
     )
+    activities = _merge_compound_activities(activities)
     return TEMPLATES.TemplateResponse(
         request=request,
         name="analysis.html",

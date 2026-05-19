@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from .history import DB_PATH, _conn
-from .plan import session_for_date
+from .plan import COMPOUND_SESSIONS, session_for_date
 
 # ── DB schema ────────────────────────────────────────────────────────────────
 
@@ -115,7 +115,7 @@ def _te_label(label: Optional[str]) -> str:
     return label.replace("_", " ").title()
 
 
-def generate_analysis(activity: dict, detail: dict) -> str:
+def generate_analysis(activity: dict, detail: dict, companion: Optional[dict] = None) -> str:
     """Call Claude Haiku to analyse the workout and return a short commentary."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -124,13 +124,13 @@ def generate_analysis(activity: dict, detail: dict) -> str:
     import anthropic
     client = anthropic.Anthropic(api_key=api_key)
 
-    prompt = _build_analysis_prompt(activity, detail)
+    prompt = _build_analysis_prompt(activity, detail, companion=companion)
     try:
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=500,
             system=(
-                "You are an experienced cycling coach reviewing a completed training session. "
+                "You are an experienced strength and conditioning coach reviewing a completed training session. "
                 "Be direct, specific, and evidence-based. Reference the numbers. "
                 "No bullet markdown — short paragraphs only. Address the athlete as 'you'."
             ),
@@ -141,11 +141,36 @@ def generate_analysis(activity: dict, detail: dict) -> str:
         return _rule_based_analysis(activity, detail)
 
 
-def _build_analysis_prompt(activity: dict, detail: dict) -> str:
+def _find_compound_companion(activity: dict, day_acts: list[dict]) -> Optional[dict]:
+    """Return the companion activity if this is one half of a compound plan session."""
+    act_date = activity.get("date", "")
+    if not act_date:
+        return None
+    d_obj = date.fromisoformat(act_date)
+    session = session_for_date(d_obj)
+    if not session:
+        return None
+    _, slabel, _ = session
+    compound = COMPOUND_SESSIONS.get(slabel)
+    if not compound:
+        return None
+    act_key = activity.get("type_key")
+    if not any(s["garmin_key"] == act_key for s in compound):
+        return None
+    companion_key = next(s["garmin_key"] for s in compound if s["garmin_key"] != act_key)
+    return next(
+        (a for a in day_acts if a["activity_id"] != activity["activity_id"]
+         and a["type_key"] == companion_key),
+        None,
+    )
+
+
+def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dict] = None) -> str:
     act_date = activity.get("date", "")
     d_obj = date.fromisoformat(act_date) if act_date else None
 
-    dur_fmt = _fmt_secs(int(activity.get("duration_seconds") or 0))
+    dur_secs = int(activity.get("duration_seconds") or 0)
+    dur_fmt = _fmt_secs(dur_secs)
     dist_km = round((activity.get("distance_meters") or 0) / 1000, 1)
     avg_hr = activity.get("avg_hr")
     max_hr = activity.get("max_hr")
@@ -167,13 +192,34 @@ def _build_analysis_prompt(activity: dict, detail: dict) -> str:
     resp = detail.get("avg_respiration")
     aerobic_msg = (detail.get("aerobic_te_message") or "").replace("_", " ")
 
-    # Planned session for comparison
+    # Planned session context
     plan_line = ""
+    compound_lines: list[str] = []
     if d_obj:
         session = session_for_date(d_obj)
         if session:
             stype, slabel, sdur = session
-            plan_line = f"\nPlanned workout for this day: {slabel} ({stype}, {sdur}m)"
+            plan_line = f"\nPlanned workout for this day: {slabel} ({stype}, {sdur}m total)"
+            if COMPOUND_SESSIONS.get(slabel):
+                if companion:
+                    comp_dur = int((companion.get("duration_seconds") or 0) / 60)
+                    comp_name = companion.get("name") or companion.get("type_key", "")
+                    comp_hr = companion.get("avg_hr")
+                    comp_cal = companion.get("calories")
+                    combined_min = int(dur_secs / 60) + comp_dur
+                    compound_lines = [
+                        "",
+                        "Combined session context: both components were completed today.",
+                        f"Companion activity — {comp_name}: {comp_dur}m, avg HR {comp_hr} bpm, {comp_cal} kcal",
+                        f"Combined duration: ~{combined_min}m (plan target: {sdur}m)",
+                        "Analyse this component in the context of the full combined session.",
+                    ]
+                else:
+                    compound_lines = [
+                        "",
+                        f"Note: the plan calls for a combined {slabel} session ({sdur}m total).",
+                        "Only this component was logged today. Do not flag the duration as short.",
+                    ]
 
     lines = [
         f"Activity: {name}",
@@ -188,6 +234,7 @@ def _build_analysis_prompt(activity: dict, detail: dict) -> str:
         "Heart rate zone distribution:",
         *zone_lines,
         plan_line,
+        *compound_lines,
         "",
         "Please provide:",
         "1. A one-sentence headline: how well was this session executed?",
@@ -230,13 +277,17 @@ def refresh_analyses(api: Any, days: int = 14) -> None:
     """Fetch detail + generate analysis for any unanalysed activities in the window."""
     from .history import load_recent_activities
     activities = load_recent_activities(days=days)
+    acts_by_date: dict[str, list[dict]] = {}
+    for act in activities:
+        acts_by_date.setdefault(act["date"], []).append(act)
     for act in activities:
         act_id = act["activity_id"]
         if load_analysis(act_id) is not None:
             continue  # already done
         try:
+            companion = _find_compound_companion(act, acts_by_date.get(act["date"], []))
             detail = fetch_activity_detail(api, act_id)
-            text = generate_analysis(act, detail)
+            text = generate_analysis(act, detail, companion=companion)
             save_detail(act_id, detail, text)
         except Exception as exc:
             import logging
