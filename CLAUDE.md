@@ -49,7 +49,11 @@ The app has two interfaces sharing the same data layer:
 
 **Training plan** (`plan.py`) — single source of truth for the 12-week plan (`PLAN_START = 2026-05-18`, `TRAINING_WEEKS`). `session_for_date()` returns `(type, label, duration_min)` for any date in the plan window. Consumed by both `report.py` (email) and `server.py` (calendar tab).
 
-**Post-training analysis** (`analysis.py`) — separate SQLite table `activity_analyses` in the same DB. `refresh_analyses()` fetches HR zone data + `summaryDTO` from Garmin for each unanalysed activity, calls Claude Haiku with a cycling-coach prompt, saves result. `load_analyses_for_activities()` enriches activity dicts for the Analysis tab.
+**Post-training analysis** (`analysis.py`) — separate SQLite table `activity_analyses` in the same DB. `refresh_analyses()` fetches HR zone data + `summaryDTO` from Garmin for each unanalysed activity, calls Claude Haiku with a strength-and-conditioning coach prompt, saves result. `load_analyses_for_activities()` enriches activity dicts for the Analysis tab. `_find_compound_companion()` detects when an activity is one half of a compound plan session and returns the paired activity so the prompt can reference both.
+
+**Compound sessions** (`plan.py` → `COMPOUND_SESSIONS`) — dict mapping plan label → list of sub-sessions with `garmin_key`. Example: `"KB + MaxiClimber"` maps to `strength_training` + `stair_climbing`. This is the single source of truth consumed by three places: calendar completion (tracks each sub-session independently), `_merge_compound_activities()` in `server.py` (collapses paired activities into one analysis card with side-by-side HR zones), and `_find_compound_companion()` in `analysis.py` (adds companion context to the coach prompt). Add new compound session types here first.
+
+**Garmin API client** (`client.py`) — wraps `garminconnect` session/token handling. All `get_api()` calls go through here.
 
 **Garmin workouts** (`workouts.py`) — builds `garminconnect.workout.CyclingWorkout` objects for all 27 distinct session types in the plan, uploads templates once, then schedules each on its plan dates via `upload_cycling_workout` + `schedule_workout`.
 
@@ -64,4 +68,15 @@ Key vars: `GARMIN_EMAIL`, `GARMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `GMAIL_ADDRESS
 - The composite readiness score is the mean z-score across all `SCORED_FIELDS` (excludes `training_load_chronic` and `vo2_max` which are context-only). Z-scores for lower-is-better fields (stress, ACWR, acute load) are sign-flipped so positive always means better.
 - `available_count()` checks how many non-null numeric fields exist — used to detect empty fetches.
 - All Garmin API calls are individually try/except'd; a failed endpoint logs at DEBUG and leaves the field `None` rather than crashing.
-- The `_advice_cache` dict in `server.py` is in-process only; restarts clear it.
+- Templates are package data — any change to a `.html` file requires `pip install --force-reinstall .` before the running server picks it up.
+
+## AI text caching
+
+There are four separate cache layers; know which to clear when regenerating AI output:
+
+| Cache | Location | What it holds | How to clear |
+|-------|----------|---------------|--------------|
+| `_advice_cache` | `server.py` in-process dict | Daily readiness advice | Restart server |
+| `daily_advice` | SQLite table | Per-date advice (survives restart) | `DELETE FROM daily_advice WHERE date = '...'` |
+| `text_cache` | SQLite table | Workout descriptions, metric explainers (arbitrary key) | `DELETE FROM text_cache WHERE key = '...'` |
+| `activity_analyses` | SQLite table | Per-activity coach analysis | `DELETE FROM activity_analyses WHERE activity_id IN (...)` then hit `/analysis-refresh` |
