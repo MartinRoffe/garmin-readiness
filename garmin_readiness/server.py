@@ -8,12 +8,12 @@ from typing import Any, Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 
-from .analysis import load_analyses_for_activities, prefetch_nutrition_targets, prefetch_workout_descriptions, refresh_analyses
+from .analysis import generate_recovery_suggestion, load_analyses_for_activities, prefetch_nutrition_targets, prefetch_workout_descriptions, refresh_analyses
 from .client import get_api
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
 from .plan import (PLAN_START as _PLAN_START, build_calendar_weeks, build_camp_weeks,
@@ -588,6 +588,28 @@ async def refresh(date: Optional[str] = None):
     _build_context(target, force_fetch=True)
     redirect_url = f"/?date={target.isoformat()}"
     return RedirectResponse(url=redirect_url, status_code=303)
+
+
+@app.get("/recovery-suggestion")
+async def recovery_suggestion_view(date: Optional[str] = None):
+    if not date:
+        raise HTTPException(status_code=400, detail="date parameter required")
+    target = date_fromisoformat_safe(date)
+    session = session_for_date(target)
+    if not session:
+        raise HTTPException(status_code=404, detail="no plan session for this date")
+
+    # Remaining non-rest sessions this week (after the missed day, up to Sunday)
+    upcoming: list[tuple] = []
+    for i in range(1, 7 - target.weekday()):
+        d = target + timedelta(days=i)
+        s = session_for_date(d)
+        if s and s[0] != "rest":
+            upcoming.append((d, s))
+
+    recent = raw_history(3)
+    text = generate_recovery_suggestion(target, session, upcoming, recent)
+    return JSONResponse({"suggestion": text})
 
 
 def _today() -> date:

@@ -9,7 +9,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
-from .history import DB_PATH, _conn
+from .history import DB_PATH, _conn, get_cached_text, set_cached_text
 from .plan import COMPOUND_SESSIONS, session_for_date
 
 # ── DB schema ────────────────────────────────────────────────────────────────
@@ -304,6 +304,126 @@ def load_analyses_for_activities(activities: list[dict]) -> list[dict]:
             a.update(analysis)
         result.append(a)
     return result
+
+
+# ── Missed session recovery suggestions ─────────────────────────────────────
+
+def generate_recovery_suggestion(
+    missed_date: date,
+    session: tuple,
+    upcoming: list[tuple],
+    recent_metrics: list[dict],
+) -> str:
+    """Return coach advice on whether to make up, skip, or adjust after a missed session.
+
+    Cached in text_cache with key 'recovery_{date}'; subsequent calls are instant.
+    """
+    cache_key = f"recovery_{missed_date.isoformat()}"
+    cached = get_cached_text(cache_key)
+    if cached:
+        return cached
+
+    stype, slabel, sdur = session
+    days_left_in_week = 6 - missed_date.weekday()  # Mon=0, Sun=6 → 0 on Sunday
+
+    prompt_lines = [
+        f"Missed session: {slabel} ({stype}, planned {sdur}m)",
+        f"Day missed: {missed_date.strftime('%A %-d %B %Y')}",
+        f"Days remaining in this week after today: {days_left_in_week}",
+        "",
+    ]
+
+    if upcoming:
+        prompt_lines.append("Remaining sessions planned this week:")
+        for d, (utype, ulabel, udur) in upcoming:
+            prompt_lines.append(f"  {d.strftime('%A')}: {ulabel} ({utype}, {udur}m)")
+        prompt_lines.append("")
+    else:
+        prompt_lines += ["No further sessions planned this week.", ""]
+
+    readiness_lines = []
+    for r in recent_metrics:
+        hrv = r.get("hrv_last_night")
+        sleep = r.get("sleep_score")
+        stress = r.get("avg_stress")
+        parts = []
+        if hrv is not None:
+            parts.append(f"HRV {hrv:.0f}ms")
+        if sleep is not None:
+            parts.append(f"sleep {sleep:.0f}/100")
+        if stress is not None:
+            parts.append(f"stress {stress:.0f}/100")
+        if parts:
+            readiness_lines.append(f"  {r['date'].strftime('%-d %b')}: {', '.join(parts)}")
+
+    if readiness_lines:
+        prompt_lines += ["Recent readiness (last 3 days):"] + readiness_lines + [""]
+
+    prompt_lines.append(
+        "Should the athlete make this session up, skip it, or adjust the rest of the week? "
+        "Give a clear recommendation with specific, actionable reasoning."
+    )
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return _rule_based_recovery(stype, days_left_in_week)
+
+    import anthropic
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=350,
+            system=(
+                "You are an experienced endurance and strength coach advising an athlete who missed "
+                "a planned training session. Give a clear recommendation: make it up, skip it, or "
+                "adjust the rest of the week. Be specific and practical. Two short paragraphs "
+                "maximum. No bullet points. Address the athlete as 'you'."
+            ),
+            messages=[{"role": "user", "content": "\n".join(prompt_lines)}],
+        )
+        text = msg.content[0].text
+        set_cached_text(cache_key, text)
+        return text
+    except Exception:
+        return _rule_based_recovery(stype, days_left_in_week)
+
+
+def _rule_based_recovery(stype: str, days_left: int) -> str:
+    if days_left >= 2:
+        if stype == "strength":
+            return (
+                "You still have time to fit this in. A shorter KB + MaxiClimber session — "
+                "even 30 minutes — is better than nothing. If fatigue is running high, skip it "
+                "and keep the rest of your week on track.\n\n"
+                "Consistency matters more than any single session at this stage of the plan."
+            )
+        elif stype in ("ftp",):
+            return (
+                "An FTP test requires you to be fresh — don't squeeze it in if you're tired. "
+                "Push it to the next day where you have at least one rest day beforehand.\n\n"
+                "If the week is too disrupted, skip this test cycle and catch it next scheduled opportunity."
+            )
+        elif stype in ("bike", "tempo", "long"):
+            return (
+                "You have days left to reschedule. If you feel good, slot this ride in soon — "
+                "consider shortening it slightly if time is tight. One missed aerobic session "
+                "won't derail your fitness.\n\n"
+                "If energy is low, skip it entirely. Protect the quality of your remaining sessions."
+            )
+        else:
+            return (
+                "With days still available, try to fit this in when energy allows. A shortened "
+                "version at 60–70% of planned duration still delivers training stimulus.\n\n"
+                "If you're run down, skip it and focus on executing the rest of the week well."
+            )
+    else:
+        return (
+            "With limited days left this week, it's better to skip this session rather than "
+            "cramming it in on a tired body. Forced make-up sessions near week's end often "
+            "compromise the next week's training.\n\n"
+            "Come back fresh on Monday and stay consistent from there."
+        )
 
 
 # ── Workout descriptions (calendar modal coaching notes) ─────────────────────

@@ -142,11 +142,17 @@
 
       {% for day in week.days %}
       {% set is_cycling = day.type in ['bike', 'tempo', 'ftp', 'long'] %}
+      {% set is_missed = day.completed == false and day.type != 'rest' %}
       <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
                   {% if day.is_today %}today-ring{% endif %}
                   {% if day.is_past %}is-past{% endif %}
-                  {% if is_cycling %}clickable-session{% endif %}"
-           {% if is_cycling %}
+                  {% if is_missed or (is_cycling and not is_missed) %}clickable-session{% endif %}"
+           {% if is_missed %}
+             data-date="{{ day.date.isoformat() }}"
+             data-label="{{ day.label }}"
+             data-dur-fmt="{{ day.dur_fmt }}"
+             onclick="openRecoveryModal(this)"
+           {% elif is_cycling %}
              data-label="{{ day.label }}"
              data-dur="{{ day.dur_min }}"
              data-dur-fmt="{{ day.dur_fmt }}"
@@ -162,7 +168,7 @@
           {% elif day.completed == true %}
             <span class="text-[13px] text-emerald-400 font-bold leading-none" title="Completed">✓</span>
           {% elif day.completed == false %}
-            <span class="text-[13px] text-red-500 font-bold leading-none" title="Missed">✗</span>
+            <span class="text-[13px] text-red-500 font-bold leading-none" title="Missed — click for recovery advice">✗</span>
           {% endif %}
         </div>
         {% if day.type != 'rest' %}
@@ -597,7 +603,61 @@
       document.getElementById('modal-overlay').classList.remove('flex');
     }
 
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeModal(); closeRecoveryModal(); } });
+
+    // ── Recovery Modal ────────────────────────────────────────────────────────
+    function openRecoveryModal(el) {
+      const label  = el.dataset.label  || 'Session';
+      const durFmt = el.dataset.durFmt || '';
+      const date   = el.dataset.date;
+
+      document.getElementById('recovery-modal-title').textContent = label;
+      document.getElementById('recovery-modal-dur').textContent   = durFmt ? 'Planned: ' + durFmt : '';
+      document.getElementById('recovery-body').textContent        = 'Generating suggestion…';
+
+      const overlay = document.getElementById('recovery-overlay');
+      overlay.classList.remove('hidden');
+      overlay.classList.add('flex');
+
+      fetch('/recovery-suggestion?date=' + encodeURIComponent(date))
+        .then(r => r.json())
+        .then(data => {
+          document.getElementById('recovery-body').textContent = data.suggestion || 'No suggestion available.';
+        })
+        .catch(() => {
+          document.getElementById('recovery-body').textContent = 'Unable to load suggestion. Please try again.';
+        });
+    }
+
+    function closeRecoveryModal() {
+      const overlay = document.getElementById('recovery-overlay');
+      overlay.classList.add('hidden');
+      overlay.classList.remove('flex');
+    }
   </script>
+
+  <!-- ── Recovery modal overlay ──────────────────────────────────────────────── -->
+  <div id="recovery-overlay"
+       class="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4"
+       onclick="if(event.target===this) closeRecoveryModal()">
+    <div style="background:#111114;border:1px solid #27272a;border-radius:2px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,0.7);z-index:50;overflow:hidden">
+      <div style="padding:20px 24px 16px;border-bottom:1px solid #18181b">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between">
+          <div>
+            <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#f87171;margin-bottom:5px">Session Recovery</p>
+            <h2 id="recovery-modal-title" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;color:#fafafa;line-height:1.1"></h2>
+            <p id="recovery-modal-dur" style="font-family:'DM Mono',monospace;font-size:12px;color:#71717a;margin-top:4px"></p>
+          </div>
+          <button onclick="closeRecoveryModal()" style="background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:14px;color:#71717a;margin-left:12px;margin-top:2px;line-height:1;transition:color 0.15s"
+                  onmouseover="this.style.color='#fafafa'" onmouseout="this.style.color='#71717a'">✕</button>
+        </div>
+      </div>
+      <div style="padding:20px 24px;border-left:3px solid #f87171">
+        <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#f87171;margin-bottom:10px">Coach Recommendation</p>
+        <p id="recovery-body" style="font-size:13px;color:#a1a1aa;line-height:1.75;white-space:pre-line"></p>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
