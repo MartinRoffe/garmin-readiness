@@ -42,6 +42,10 @@ load_dotenv()
 _advice_cache: dict[str, str] = {}
 _pmc_cache: dict[str, str] = {}
 
+_BIKE_TYPE_KEYS = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
+_HARD_LABELS = {"Tempo Intervals", "FTP Test", "FTP Re-test"}
+_HARD_SESSION_TYPES = {"tempo", "ftp", "long"}
+
 def _week_completion() -> dict[str, Any]:
     """Return week completion stats for the dashboard card."""
     today = date.today()
@@ -282,6 +286,30 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
     else:
         today_plan = None
 
+    # Readiness-adjusted swap suggestion
+    swap_suggestion = None
+    if (today_plan and today_plan["type"] in _HARD_SESSION_TYPES
+            and comp_z is not None and comp_z < -0.5):
+        days_left = 6 - target.weekday()
+        for offset in range(1, days_left + 1):
+            candidate = target + timedelta(days=offset)
+            csess = session_for_date(candidate)
+            if csess and csess[0] == "bike" and csess[1] not in _HARD_LABELS:
+                swap_suggestion = {
+                    "from_label": today_plan["label"],
+                    "to_date_str": candidate.strftime("%-d %b"),
+                    "to_label": csess[1],
+                    "severity": "high" if comp_z < -1.0 else "moderate",
+                }
+                break
+        if not swap_suggestion:
+            swap_suggestion = {
+                "from_label": today_plan["label"],
+                "to_date_str": None,
+                "to_label": None,
+                "severity": "high" if comp_z < -1.0 else "moderate",
+            }
+
     # Event readiness tracker
     _EVENT_DATE = date(2026, 9, 13)
     _PLAN_DAYS  = 84
@@ -326,6 +354,7 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
         "metric_explainer": generate_dashboard_explainer(),
         "sparklines": sparklines,
         "today_plan": today_plan,
+        "swap_suggestion": swap_suggestion,
         "event_tracker": event_tracker,
     }
 
@@ -432,6 +461,22 @@ async def performance_view(request: Request):
     date_key = date.today().isoformat()
     if date_key not in _pmc_cache:
         _pmc_cache[date_key] = generate_pmc_analysis(history)
+
+    plan_acts = load_activities_by_date(_PLAN_START, date.today())
+    z2_points: list[dict] = []
+    for date_str, acts in sorted(plan_acts.items()):
+        for act in acts:
+            if act["type_key"] in _BIKE_TYPE_KEYS and act.get("avg_hr"):
+                d = date.fromisoformat(date_str)
+                plan_sess = session_for_date(d)
+                sess_label = plan_sess[1] if plan_sess else (act.get("name") or "Bike")
+                z2_points.append({
+                    "date": date_str,
+                    "avg_hr": round(act["avg_hr"]),
+                    "label": sess_label,
+                    "hard": sess_label in _HARD_LABELS,
+                })
+
     return TEMPLATES.TemplateResponse(
         request=request,
         name="performance.html",
@@ -440,6 +485,7 @@ async def performance_view(request: Request):
             "today": today_entry,
             "pmc_analysis": _pmc_cache[date_key],
             "pmc_explainer": generate_pmc_explainer(),
+            "z2_points": z2_points,
         },
     )
 

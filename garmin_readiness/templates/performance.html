@@ -148,6 +148,24 @@
     <div style="height:130px;position:relative"><canvas id="tsbChart"></canvas></div>
   </div>
 
+  <!-- ── Z2 HR Drift ───────────────────────────────────────────────── -->
+  {% if z2_points and z2_points | length >= 2 %}
+  <div class="card" style="padding:20px 24px;margin-bottom:10px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <p class="eyebrow" style="margin-bottom:4px">Zone 2 HR Drift</p>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--border2)">Avg HR per bike session since plan start · declining = aerobic adaptation</p>
+      </div>
+      <div style="display:flex;gap:14px;font-family:var(--font-m);font-size:10px;letter-spacing:0.06em;flex-shrink:0;padding-top:2px">
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:5px;vertical-align:middle"></span>Easy / Z2</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fbbf24;margin-right:5px;vertical-align:middle"></span>Hard</span>
+      </div>
+    </div>
+    <div style="height:160px;position:relative"><canvas id="z2DriftChart"></canvas></div>
+    <p id="z2-trend-note" style="font-family:var(--font-m);font-size:10px;color:var(--border2);margin-top:8px;text-align:right"></p>
+  </div>
+  {% endif %}
+
   <!-- ── Note ──────────────────────────────────────────────────────── -->
   <p style="font-family:var(--font-m);font-size:10px;color:var(--border2);text-align:center;margin-bottom:28px">
     CTL = 28-day chronic · ATL = 7-day acute · TSB = CTL − ATL
@@ -223,6 +241,74 @@
       ctx.restore();
     }
   };
+
+  {% if z2_points and z2_points | length >= 2 %}
+  (function() {
+    const rawPts = {{ z2_points | tojson }};
+
+    function linReg(pts) {
+      const valid = pts.filter((_, i) => !rawPts[i].hard);
+      if (valid.length < 2) return null;
+      const idxs = rawPts.map((p, i) => p.hard ? null : i).filter(i => i !== null);
+      const vals = valid;
+      const n = idxs.length;
+      const mx = idxs.reduce((s, v) => s + v, 0) / n;
+      const my = vals.reduce((s, v) => s + v, 0) / n;
+      const num = idxs.reduce((s, v, i) => s + (v - mx) * (vals[i] - my), 0);
+      const den = idxs.reduce((s, v) => s + (v - mx) ** 2, 0);
+      const m = den ? num / den : 0;
+      return { m, b: my - m * mx };
+    }
+
+    const easyData = rawPts.map(p => p.hard ? null : p.avg_hr);
+    const hardData = rawPts.map(p => p.hard ? p.avg_hr : null);
+    const reg = linReg(easyData);
+    const trendData = reg ? rawPts.map((_, i) => +(reg.m * i + reg.b).toFixed(1)) : [];
+    const xLabels = rawPts.map(p => p.date.slice(5).replace('-', '/'));
+
+    const datasets = [
+      { label: 'Easy/Z2', data: easyData, borderColor: '#4ade80', backgroundColor: '#4ade80', pointRadius: 5, showLine: false, spanGaps: false },
+      { label: 'Hard', data: hardData, borderColor: '#fbbf24', backgroundColor: '#fbbf24', pointRadius: 5, showLine: false, spanGaps: false },
+    ];
+    if (reg) {
+      datasets.push({ label: 'Trend', data: trendData, borderColor: 'rgba(74,222,128,0.3)', borderWidth: 1.5, borderDash: [5, 4], pointRadius: 0, showLine: true, tension: 0 });
+    }
+
+    new Chart(document.getElementById('z2DriftChart'), {
+      type: 'line',
+      data: { labels: xLabels, datasets },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: ctx => rawPts[ctx[0].dataIndex]?.date ?? '',
+              label: ctx => {
+                if (ctx.raw === null) return null;
+                const p = rawPts[ctx.dataIndex];
+                return `${p.label}: ${p.avg_hr} bpm`;
+              }
+            },
+            filter: item => item.raw !== null,
+          }
+        },
+        scales: {
+          x: { grid: { color: G }, ticks: { ...T, maxTicksLimit: 8 } },
+          y: { grid: { color: G }, ticks: { ...T, callback: v => v + ' bpm' }, suggestedMin: 110, suggestedMax: 175 }
+        }
+      }
+    });
+
+    const noteEl = document.getElementById('z2-trend-note');
+    if (reg && reg.m < -0.5) {
+      noteEl.textContent = '↓ HR trending down — aerobic adaptation in progress';
+      noteEl.style.color = '#4ade80';
+    } else if (reg) {
+      noteEl.textContent = 'Keep training — trend will emerge over more sessions';
+    }
+  })();
+  {% endif %}
 
   new Chart(document.getElementById('tsbChart'), {
     type:'line', plugins:[tsbFillPlugin],

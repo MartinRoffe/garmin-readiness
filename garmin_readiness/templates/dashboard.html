@@ -187,6 +187,20 @@
         <p style="font-family:var(--font-m);font-size:18px;font-weight:500;color:var(--text-dim);flex-shrink:0">{{ today_plan.dur_fmt }}</p>
       </div>
     {% endif %}
+    {% if swap_suggestion %}
+    {% set _sw = swap_suggestion %}
+    <div style="margin-top:12px;padding:10px 14px;border-radius:2px;border:1px solid;
+      {% if _sw.severity == 'high' %}border-color:rgba(248,113,113,0.4);background:rgba(248,113,113,0.07)
+      {% else %}border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.07){% endif %}">
+      <p style="font-family:var(--font-m);font-size:9px;letter-spacing:0.18em;text-transform:uppercase;
+        {% if _sw.severity == 'high' %}color:#f87171{% else %}color:#fbbf24{% endif %};margin-bottom:5px">⚠ Readiness Low</p>
+      {% if _sw.to_date_str %}
+        <p style="font-size:12px;color:var(--text-dim);line-height:1.6">Consider swapping with <strong style="color:var(--text)">{{ _sw.to_label }}</strong> on {{ _sw.to_date_str }} — do today's {{ _sw.from_label }} on that day instead.</p>
+      {% else %}
+        <p style="font-size:12px;color:var(--text-dim);line-height:1.6">Consider reducing intensity or cutting this session short to protect recovery.</p>
+      {% endif %}
+    </div>
+    {% endif %}
   </div>
   {% endif %}
 
