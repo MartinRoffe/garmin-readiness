@@ -15,13 +15,13 @@ TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("strength", "KB + MaxiClimber",     45),
         ("bike",     "Easy Spin",            60),
         ("strength", "KB + MaxiClimber",     45),
+        ("rest",     "Rest",                  0),
         ("bike",     "Zone 2 Steady",        60),
         ("ruck",     "Ruck  8 kg",           60),
-        ("long",     "Long Ride",            90),
     ],
     # WK 02
     [
-        ("rest",     "Rest",                  0),
+        ("long",     "Long Ride",            90),
         ("strength", "KB + MaxiClimber",     45),
         ("bike",     "Zone 2 Steady",        60),
         ("strength", "KB + MaxiClimber",     45),
