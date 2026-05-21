@@ -67,14 +67,14 @@
     <div class="card" style="padding:28px 24px;border-top:2px solid #60a5fa">
       <p class="eyebrow" style="margin-bottom:14px">Fitness · CTL</p>
       <p class="pmc-num" style="color:#60a5fa">{% if ctl is not none %}{{ ctl | int }}{% else %}<span style="color:var(--border2)">—</span>{% endif %}</p>
-      <p class="pmc-sub" style="color:#3b6ea8">28-day chronic load</p>
+      <p class="pmc-sub" style="color:#7eb4f0">28-day chronic load</p>
     </div>
 
     <!-- ATL -->
     <div class="card" style="padding:28px 24px;border-top:2px solid #fb923c">
       <p class="eyebrow" style="margin-bottom:14px">Fatigue · ATL</p>
       <p class="pmc-num" style="color:#fb923c">{% if atl is not none %}{{ atl | int }}{% else %}<span style="color:var(--border2)">—</span>{% endif %}</p>
-      <p class="pmc-sub" style="color:#7c4d2a">7-day acute load</p>
+      <p class="pmc-sub" style="color:#c07840">7-day acute load</p>
     </div>
 
     <!-- TSB -->
@@ -89,16 +89,16 @@
       {% if tsb is not none %}
         {% if tsb >= 0 %}
           <p class="pmc-num" style="color:#a3e635">+{{ tsb | int }}</p>
-          <p class="pmc-sub" style="color:#5a7020">fresh · fitness > fatigue</p>
+          <p class="pmc-sub" style="color:#7ab030">fresh · fitness > fatigue</p>
         {% elif tsb >= -100 %}
           <p class="pmc-num" style="color:#fde047">{{ tsb | int }}</p>
-          <p class="pmc-sub" style="color:#7a6e20">moderate training load</p>
+          <p class="pmc-sub" style="color:#c0a830">moderate training load</p>
         {% elif tsb >= -200 %}
           <p class="pmc-num" style="color:#fb923c">{{ tsb | int }}</p>
-          <p class="pmc-sub" style="color:#7c4d2a">heavy training load</p>
+          <p class="pmc-sub" style="color:#c07840">heavy training load</p>
         {% else %}
           <p class="pmc-num" style="color:#f87171">{{ tsb | int }}</p>
-          <p class="pmc-sub" style="color:#7a2e2e">very high fatigue</p>
+          <p class="pmc-sub" style="color:#c05858">very high fatigue</p>
         {% endif %}
       {% else %}
         <p class="pmc-num" style="color:var(--border2)">—</p>
