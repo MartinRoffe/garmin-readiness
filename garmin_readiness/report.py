@@ -483,7 +483,7 @@ def run_report(m: DailyMetrics, dry_run: bool = False) -> None:
 
 # ── PMC analysis ─────────────────────────────────────────────────────────────
 
-def _build_pmc_prompt(history: list[dict]) -> str:
+def _build_pmc_prompt(history: list[dict], m=None, comp_z: Optional[float] = None) -> str:
     today = date.today()
     recent = [h for h in history if h["ctl"] is not None]
     if not recent:
@@ -508,6 +508,25 @@ def _build_pmc_prompt(history: list[dict]) -> str:
     for h in recent[-14:]:
         lines.append(f"  {h['date']}  CTL={h['ctl']}  ATL={h['atl']}  TSB={h['tsb']}")
 
+    # Include today's recovery context so this analysis doesn't contradict the daily readiness advice
+    if m is not None or comp_z is not None:
+        lines += ["", "Today's recovery context (from Garmin biometric data):"]
+        if comp_z is not None:
+            from .display import readiness_label
+            label, _ = readiness_label(comp_z)
+            lines.append(f"  Composite readiness score: {comp_z:+.2f}σ ({label})")
+        if m is not None:
+            if getattr(m, "hrv_last_night", None) is not None:
+                lines.append(f"  HRV last night: {m.hrv_last_night} ms")
+            if getattr(m, "hrv_status", None):
+                lines.append(f"  HRV status: {m.hrv_status}")
+            if getattr(m, "sleep_score", None) is not None:
+                lines.append(f"  Sleep score: {m.sleep_score}")
+            if getattr(m, "avg_stress", None) is not None:
+                lines.append(f"  Avg stress: {m.avg_stress}")
+            if getattr(m, "acwr", None) is not None:
+                lines.append(f"  ACWR: {m.acwr:.2f}" + (f" ({m.acwr_status.replace('_',' ').lower()})" if getattr(m, "acwr_status", None) else ""))
+
     lines += ["", "Upcoming 7 days (planned sessions):"]
     for i in range(7):
         d = today + timedelta(days=i)
@@ -523,12 +542,14 @@ def _build_pmc_prompt(history: list[dict]) -> str:
         "",
         "Note: CTL uses 28-day window (not classic 42-day), so it responds faster than TrainingPeaks.",
         "      TSB thresholds are relative to zero only — do not apply Coggan absolute zones.",
+        "      The daily train/rest recommendation is handled separately — do not repeat it here.",
         "",
         "Please provide a concise training-load analysis covering:",
         "1. Current form: is TSB in a sustainable zone or showing signs of overreaching?",
-        "2. Fitness trajectory: is CTL building as expected?",
-        "3. One specific recommendation for the next 7 days given the planned sessions.",
-        "Keep it under 120 words. Plain paragraphs, no headers or bullets. Address the athlete as 'you'.",
+        "2. Fitness trajectory: is CTL building as expected for this stage of the block?",
+        "3. One week-level or block-level suggestion (e.g. load distribution, recovery timing) "
+        "that accounts for both the PMC numbers AND today's recovery context if provided.",
+        "Keep it under 130 words. Plain paragraphs, no headers or bullets. Address the athlete as 'you'.",
     ]
     return "\n".join(lines)
 
@@ -552,12 +573,13 @@ def _rule_based_pmc(history: list[dict]) -> str:
     return f"{ctl_str} with TSB at {tsb:.0f}. {tone}"
 
 
-def generate_pmc_analysis(history: list[dict]) -> str:
+def generate_pmc_analysis(history: list[dict], m=None, comp_z: Optional[float] = None) -> str:
     """Return a short Claude Haiku commentary on the current PMC state.
 
     Cached in text_cache keyed by date so restarts don't produce a different answer.
+    Accepts today's DailyMetrics and comp_z so the analysis is consistent with readiness advice.
     """
-    cache_key = f"pmc_analysis_{date.today().isoformat()}"
+    cache_key = f"pmc_analysis_v2_{date.today().isoformat()}"
     cached = get_cached_text(cache_key)
     if cached:
         return cached
@@ -566,7 +588,7 @@ def generate_pmc_analysis(history: list[dict]) -> str:
     if not api_key:
         return _rule_based_pmc(history)
 
-    prompt = _build_pmc_prompt(history)
+    prompt = _build_pmc_prompt(history, m, comp_z)
     if not prompt:
         return _rule_based_pmc(history)
 
@@ -574,10 +596,12 @@ def generate_pmc_analysis(history: list[dict]) -> str:
     try:
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
-            max_tokens=300,
+            max_tokens=320,
             system=(
-                "You are an experienced cycling coach reviewing an athlete's training load data. "
+                "You are an experienced endurance coach reviewing an athlete's training load and recovery data. "
                 "Be direct, specific, and evidence-based. Reference the actual numbers. "
+                "Your role here is to assess the WEEKLY training load trajectory and block periodization — "
+                "not to repeat today's daily train/rest recommendation (that is handled separately). "
                 "No bullet markdown — short paragraphs only. Address the athlete as 'you'."
             ),
             messages=[{"role": "user", "content": prompt}],

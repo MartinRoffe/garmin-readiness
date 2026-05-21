@@ -460,7 +460,10 @@ async def performance_view(request: Request):
     today_entry = history[-1] if history else {}
     date_key = date.today().isoformat()
     if date_key not in _pmc_cache:
-        _pmc_cache[date_key] = generate_pmc_analysis(history)
+        m_today = load(date.today()) or DailyMetrics(date=date.today())
+        stats_today = baseline_stats(date.today())
+        comp_z_today = composite_score(m_today, stats_today)
+        _pmc_cache[date_key] = generate_pmc_analysis(history, m_today, comp_z_today)
 
     plan_acts = load_activities_by_date(_PLAN_START, date.today())
     z2_points: list[dict] = []
