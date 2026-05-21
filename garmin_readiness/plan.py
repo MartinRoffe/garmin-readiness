@@ -14,10 +14,10 @@ TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("rest",     "Rest",                  0),
         ("strength", "KB + MaxiClimber",     45),
         ("bike",     "Easy Spin",            60),
-        ("strength", "KB + MaxiClimber",     45),
+        ("rest",     "Rest",                  0),   # Thu 21 — KB moved to Sun
         ("rest",     "Rest",                  0),
         ("bike",     "Zone 2 Steady",        60),
-        ("ruck",     "Ruck  8 kg",           60),
+        ("ruck",     "Ruck + KB",           105),   # Sun 24 — Ruck 8 kg then KB
     ],
     # WK 02
     [
@@ -137,6 +137,10 @@ COMPOUND_SESSIONS: dict[str, list[dict]] = {
     "KB + MaxiClimber": [
         {"label": "Kettlebell",  "garmin_key": "strength_training"},
         {"label": "MaxiClimber", "garmin_key": "stair_climbing"},
+    ],
+    "Ruck + KB": [
+        {"label": "Ruck",        "garmin_key": "hiking"},
+        {"label": "Kettlebell",  "garmin_key": "strength_training"},
     ],
 }
 
