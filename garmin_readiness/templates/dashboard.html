@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
   <title>Readiness · {{ date }}</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -13,7 +14,7 @@
 
     .eyebrow {
       font-family: var(--font-m);
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--muted);
@@ -50,7 +51,7 @@
     /* Metric cards */
     .m-label {
       font-family: var(--font-m);
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 0.2em;
       text-transform: uppercase;
       color: var(--muted);
@@ -62,30 +63,30 @@
       line-height: 1;
     }
     .m-unit { font-size: 13px; color: var(--muted); font-weight: 400; }
-    .m-avg  { font-family: var(--font-m); font-size: 10px; color: var(--muted); }
+    .m-avg  { font-family: var(--font-m); font-size: 12px; color: var(--muted); }
 
     /* Z-bar */
     .z-track { background: var(--border); height: 3px; border-radius: 2px; position: relative; overflow: hidden; }
     .z-pos { background: #a3e635; position: absolute; left: 50%; top: 0; height: 100%; }
     .z-neg { background: #f87171; position: absolute; right: 50%; top: 0; height: 100%; }
     .z-mid { position: absolute; left: 50%; top: 0; width: 1px; height: 100%; background: var(--border2); }
-    .z-reading { font-family: var(--font-m); font-size: 10px; text-align: right; margin-top: 4px; }
+    .z-reading { font-family: var(--font-m); font-size: 12px; text-align: right; margin-top: 4px; }
 
     /* Activities */
     .act-row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--surface2); }
     .act-row:last-child { border-bottom: none; }
     .act-name { font-size: 13px; font-weight: 400; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .act-meta { font-family: var(--font-m); font-size: 10px; color: var(--muted); margin-top: 1px; }
+    .act-meta { font-family: var(--font-m); font-size: 12px; color: var(--muted); margin-top: 1px; }
     .act-stat { text-align: right; }
     .act-stat-val { font-family: var(--font-m); font-size: 12px; font-weight: 500; color: var(--text); }
-    .act-stat-lbl { font-family: var(--font-m); font-size: 9px; color: var(--muted); }
+    .act-stat-lbl { font-family: var(--font-m); font-size: 11px; color: var(--muted); }
 
     /* Fade in */
     @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .page { animation: fadeUp 0.3s ease both; }
 
     /* Badge */
-    .bdg { font-family: var(--font-m); font-size: 10px; letter-spacing: 0.06em; padding: 3px 10px; border-radius: 2px; border: 1px solid; white-space: nowrap; }
+    .bdg { font-family: var(--font-m); font-size: 11px; letter-spacing: 0.06em; padding: 3px 10px; border-radius: 2px; border: 1px solid; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -106,7 +107,7 @@
     </div>
     <div style="text-align:right;padding-top:2px">
       <p class="eyebrow">refreshes every 5 min</p>
-      <p style="font-family:var(--font-m);font-size:10px;color:var(--border2);margin-top:3px" id="last-updated">just now</p>
+      <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:3px" id="last-updated">just now</p>
     </div>
   </div>
 
@@ -120,7 +121,7 @@
         </div>
         <p class="score-label {{ comp_colour }}">{{ comp_label }}</p>
       {% else %}
-        <div class="score-num" style="color:var(--border2)">—</div>
+        <div class="score-num" style="color:var(--muted)">—</div>
         <p class="score-label" style="color:var(--muted)">no data</p>
       {% endif %}
     </div>
@@ -192,7 +193,7 @@
     <div style="margin-top:12px;padding:10px 14px;border-radius:2px;border:1px solid;
       {% if _sw.severity == 'high' %}border-color:rgba(248,113,113,0.4);background:rgba(248,113,113,0.07)
       {% else %}border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.07){% endif %}">
-      <p style="font-family:var(--font-m);font-size:9px;letter-spacing:0.18em;text-transform:uppercase;
+      <p style="font-family:var(--font-m);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
         {% if _sw.severity == 'high' %}color:#f87171{% else %}color:#fbbf24{% endif %};margin-bottom:5px">⚠ Readiness Low</p>
       {% if _sw.to_date_str %}
         <p style="font-size:12px;color:var(--text-dim);line-height:1.6">Consider swapping with <strong style="color:var(--text)">{{ _sw.to_label }}</strong> on {{ _sw.to_date_str }} — do today's {{ _sw.from_label }} on that day instead.</p>
@@ -227,7 +228,7 @@
   <div class="card" style="padding:16px 20px;margin-bottom:12px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <p class="eyebrow">Ghent–Amsterdam · 13–14 Sep 2026</p>
-      <span style="font-family:var(--font-m);font-size:10px;letter-spacing:0.06em;{{ 'color:#4ade80' if et.on_track_label == 'On track' else 'color:#facc15' if 'behind' in et.on_track_label.lower() else 'color:#f87171' }}">{{ et.on_track_label }}</span>
+      <span style="font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;{{ 'color:#4ade80' if et.on_track_label == 'On track' else 'color:#facc15' if 'behind' in et.on_track_label.lower() else 'color:#f87171' }}">{{ et.on_track_label }}</span>
     </div>
     <div style="display:flex;justify-content:space-between;margin-bottom:8px">
       <span style="font-family:var(--font-m);font-size:12px;color:var(--text)">Week {{ et.week_num }} / 12</span>
@@ -239,7 +240,7 @@
         {% elif 'Slightly' in et.on_track_label %}background:#facc15
         {% else %}background:#f87171{% endif %}"></div>
     </div>
-    <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:5px;text-align:right">{{ et.plan_pct }}% of training block complete</p>
+    <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:5px;text-align:right">{{ et.plan_pct }}% of training block complete</p>
   </div>
   {% endif %}
 
@@ -278,9 +279,9 @@
           {% if m.z_val >= 0 %}+{% endif %}{{ "%.2f"|format(m.z_val) }}σ
         </p>
       {% elif m.context_only %}
-        <p style="font-family:var(--font-m);font-size:10px;color:var(--border2);margin-top:4px">context only</p>
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:4px">context only</p>
       {% else %}
-        <p style="font-family:var(--font-m);font-size:10px;color:var(--border2);margin-top:4px">no baseline</p>
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:4px">no baseline</p>
       {% endif %}
     </div>
     {% endfor %}
@@ -292,15 +293,15 @@
     <p class="eyebrow" style="margin-bottom:16px">14-Day Recovery Trends</p>
     <div style="display:flex;gap:20px;flex-wrap:wrap">
       <div style="flex:1;min-width:120px">
-        <p style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">HRV (ms)</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">HRV (ms)</p>
         <div style="height:44px;position:relative"><canvas id="sparkHrv"></canvas></div>
       </div>
       <div style="flex:1;min-width:120px">
-        <p style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">Sleep Score</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">Sleep Score</p>
         <div style="height:44px;position:relative"><canvas id="sparkSleep"></canvas></div>
       </div>
       <div style="flex:1;min-width:120px">
-        <p style="font-family:var(--font-m);font-size:9px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">Avg Stress</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:7px">Avg Stress</p>
         <div style="height:44px;position:relative"><canvas id="sparkStress"></canvas></div>
       </div>
     </div>
@@ -343,7 +344,7 @@
       </div>
       {% endfor %}
     {% else %}
-      <p style="font-size:13px;color:var(--border2)">No workouts cached — <a href="/refresh" style="color:var(--accent);text-decoration:none">force refresh ↺</a></p>
+      <p style="font-size:13px;color:var(--muted)">No workouts cached — <a href="/refresh" style="color:var(--accent);text-decoration:none">force refresh ↺</a></p>
     {% endif %}
   </div>
 
@@ -352,7 +353,7 @@
   <div class="card" style="margin-bottom:12px">
     <button onclick="toggleHelp()" style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:none;border:none;cursor:pointer;text-align:left">
       <p class="eyebrow">Understanding Your Metrics</p>
-      <span id="help-chev" style="font-family:var(--font-m);font-size:10px;color:var(--muted);transition:transform 0.2s">▼</span>
+      <span id="help-chev" style="font-family:var(--font-m);font-size:12px;color:var(--muted);transition:transform 0.2s">▼</span>
     </button>
     <div id="help-body" style="display:none;padding:0 20px 20px">
       <div id="help-content" style="font-size:13px;color:var(--text-dim);line-height:1.75"></div>
@@ -380,10 +381,10 @@
   {% endif %}
 
   <!-- ── Footer ────────────────────────────────────────────────────── -->
-  <p style="font-family:var(--font-m);font-size:10px;color:var(--border2);text-align:center;padding-top:8px">
+  <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);text-align:center;padding-top:8px">
     30-day rolling baseline ·
     {% if baseline_count > 0 %}{{ baseline_count }} fields tracked{% else %}building baseline{% endif %}
-    · <a href="/refresh" style="color:var(--border2);text-decoration:none">↺ refresh</a>
+    · <a href="/refresh" style="color:var(--muted);text-decoration:none">↺ refresh</a>
   </p>
 
 </div>
@@ -405,8 +406,8 @@
         tooltip: { callbacks: { label: ctx => ctx.raw === null ? 'no data' : (ctx.raw >= 0 ? '+' : '') + ctx.raw.toFixed(2) + 'σ' } }
       },
       scales: {
-        x: { grid: { color: '#18181b' }, ticks: { color: '#3f3f46', font: { family: 'DM Mono', size: 10 } } },
-        y: { grid: { color: '#18181b' }, ticks: { color: '#3f3f46', font: { family: 'DM Mono', size: 10 }, callback: v => (v>=0?'+':'')+v.toFixed(1)+'σ' }, suggestedMin: -2, suggestedMax: 2 }
+        x: { grid: { color: '#18181b' }, ticks: { color: '#a1a1aa', font: { family: 'DM Mono', size: 11 } } },
+        y: { grid: { color: '#18181b' }, ticks: { color: '#a1a1aa', font: { family: 'DM Mono', size: 11 }, callback: v => (v>=0?'+':'')+v.toFixed(1)+'σ' }, suggestedMin: -2, suggestedMax: 2 }
       }
     }
   });

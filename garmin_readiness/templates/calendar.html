@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
   <title>Training Calendar · 12 Weeks</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -23,7 +24,7 @@
     a.no-underline    { text-decoration: none; }
     .today-ring    { outline: 2px solid #a3e635; outline-offset: 2px; }
     .is-past       { opacity: 0.4; }
-    .day-header    { color: #71717a; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
+    .day-header    { color: #c4c4cc; font-family: 'DM Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 500; }
     .clickable-session { cursor: pointer; }
     .clickable-session:hover { filter: brightness(1.18); }
   </style>
@@ -37,9 +38,9 @@
 
     <div style="margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px">
       <div>
-        <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:#71717a;margin-bottom:8px">12-Week Training Plan</p>
+        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#c4c4cc;margin-bottom:8px">12-Week Training Plan</p>
         <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:#fafafa;line-height:1">Calendar</h1>
-        <p style="font-family:'DM Mono',monospace;font-size:10px;color:#3f3f46;margin-top:6px">{{ plan_start.strftime("%-d %b %Y") }} → 9 Aug 2026</p>
+        <p style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc;margin-top:6px">{{ plan_start.strftime("%-d %b %Y") }} → 9 Aug 2026</p>
       </div>
       {% if current_streak > 0 %}
       <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;padding:6px 14px;border:1px solid #166534;color:#4ade80;background:#052e16/40;border-radius:2px;white-space:nowrap;align-self:flex-start;margin-top:4px">
@@ -57,16 +58,16 @@
       <span class="text-[11px] border rounded-sm px-2 py-0.5 sess-ruck" style="border-radius:2px">Ruck</span>
       <span class="text-[11px] border rounded-sm px-2 py-0.5 sess-long" style="border-radius:2px">Long Ride</span>
       <span class="text-[11px] border rounded-sm px-2 py-0.5 sess-rest" style="border-radius:2px">Rest</span>
-      <span style="font-family:'DM Mono',monospace;font-size:10px;color:#3f3f46;margin-left:6px">· click any cycling session for details</span>
+      <span style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc;margin-left:6px">· click any cycling session for details</span>
     </div>
 
     <!-- ── Pre-plan history ──────────────────────────────────────────────── -->
     {% if preplan_weeks %}
     <div class="mb-6">
-      <p class="text-[11px] text-slate-500 uppercase tracking-widest mb-2">Pre-plan history</p>
+      <p class="text-[12px] text-slate-300 uppercase tracking-widest mb-2">Pre-plan history</p>
 
       <div class="grid grid-cols-8 gap-1 mb-1">
-        <div class="text-[10px] text-slate-600 uppercase tracking-wider text-right pr-2 pt-1">Wk</div>
+        <div class="text-[12px] text-slate-400 uppercase tracking-wider text-right pr-2 pt-1">Wk</div>
         {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
           <div class="day-header text-center">{{ d }}</div>
         {% endfor %}
@@ -75,26 +76,26 @@
       {% for week in preplan_weeks %}
       <div class="grid grid-cols-8 gap-1 mb-1 opacity-70">
         <div class="flex flex-col items-end justify-center pr-2">
-          <span class="text-[10px] text-slate-700">{{ week.start.strftime("%-d %b") }}</span>
+          <span class="text-[12px] text-slate-400">{{ week.start.strftime("%-d %b") }}</span>
           {% if week.done_min_fmt and week.done_min_fmt != '—' %}
-            <span class="text-[10px] text-emerald-700 mt-0.5">{{ week.done_min_fmt }}</span>
+            <span class="text-[12px] text-emerald-400 mt-0.5">{{ week.done_min_fmt }}</span>
           {% endif %}
         </div>
         {% for day in week.days %}
         <div class="rounded border p-1.5 min-h-[56px] flex flex-col sess-{{ day.type }}
                     {% if day.is_today %}today-ring{% endif %}">
           <div class="flex items-start justify-between mb-0.5">
-            <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
-            {% if day.is_today %}<span class="text-[9px] text-sky-400 font-semibold">TODAY</span>{% endif %}
+            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+            {% if day.is_today %}<span class="text-[11px] text-sky-400 font-semibold">TODAY</span>{% endif %}
           </div>
           {% if day.label %}
-            <p class="text-[10px] font-semibold leading-tight flex-1 truncate">{{ day.label }}</p>
+            <p class="text-[12px] font-semibold leading-tight flex-1 truncate">{{ day.label }}</p>
             <div class="flex items-center gap-1 mt-auto">
-              {% if day.dur_fmt %}<span class="text-[10px] opacity-60">{{ day.dur_fmt }}</span>{% endif %}
-              {% if day.extra %}<span class="text-[9px] text-slate-500">+{{ day.extra }}</span>{% endif %}
+              {% if day.dur_fmt %}<span class="text-[12px] opacity-80">{{ day.dur_fmt }}</span>{% endif %}
+              {% if day.extra %}<span class="text-[11px] text-slate-300">+{{ day.extra }}</span>{% endif %}
             </div>
           {% else %}
-            <p class="text-[10px] opacity-30 mt-auto">—</p>
+            <p class="text-[12px] opacity-60 mt-auto">—</p>
           {% endif %}
         </div>
         {% endfor %}
@@ -121,9 +122,9 @@
     {% for week in weeks %}
     <div class="grid grid-cols-8 gap-1 mb-1">
       <div class="flex flex-col items-end justify-center pr-2">
-        <span class="text-[13px] font-bold text-slate-300">W{{ "%02d"|format(week.week_num) }}</span>
-        <span class="text-[11px] text-slate-500">{{ week.start.strftime("%-d %b") }}</span>
-        <span class="text-[11px] text-slate-500 mt-0.5">{{ week.plan_min_fmt }}</span>
+        <span class="text-[13px] font-bold text-slate-200">W{{ "%02d"|format(week.week_num) }}</span>
+        <span class="text-[12px] text-slate-400">{{ week.start.strftime("%-d %b") }}</span>
+        <span class="text-[12px] text-slate-400 mt-0.5">{{ week.plan_min_fmt }}</span>
         {% if week.done_min_fmt %}
           <span class="text-[11px] text-emerald-500">{{ week.done_min_fmt }}</span>
         {% endif %}
@@ -136,7 +137,7 @@
           </span>
         {% endif %}
         {% if week.days_total > 0 %}
-          <span class="text-[10px] text-slate-600 mt-0.5">{{ week.days_hit }}/{{ week.days_total }} days</span>
+          <span class="text-[12px] text-slate-400 mt-0.5">{{ week.days_hit }}/{{ week.days_total }} days</span>
         {% endif %}
       </div>
 
@@ -160,15 +161,15 @@
              onclick="openModal(this)"
            {% endif %}>
         <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
+          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
           {% if day.coach_note %}
-            <span class="text-[9px] text-amber-400 font-semibold leading-none" title="AI coach recommendation">✦</span>
+            <span class="text-[11px] text-amber-400 font-semibold leading-none" title="AI coach recommendation">✦</span>
           {% elif day.completed == true %}
             <span class="text-[13px] text-emerald-400 font-bold leading-none" title="Completed">✓</span>
           {% elif day.completed == false %}
             <span class="text-[13px] text-red-500 font-bold leading-none" title="Missed — click for recovery advice">✗</span>
           {% elif day.is_today %}
-            <span class="text-[9px] text-sky-400 font-semibold">TODAY</span>
+            <span class="text-[11px] text-sky-400 font-semibold">TODAY</span>
           {% endif %}
         </div>
         {% if day.type != 'rest' %}
@@ -176,7 +177,7 @@
             <div style="flex:1;display:flex;flex-direction:column;gap:4px;margin-bottom:2px">
               {% for sub in day.sub_sessions %}
               <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
-                <span class="text-[10px] font-semibold leading-tight">{{ sub.label }}</span>
+                <span class="text-[12px] font-semibold leading-tight">{{ sub.label }}</span>
                 {% if sub.completed == true %}
                   <span class="text-[11px] text-emerald-400 font-bold flex-shrink-0">✓</span>
                 {% elif sub.completed == false %}
@@ -186,16 +187,16 @@
               {% endfor %}
             </div>
             {% if day.dur_fmt %}
-              <p class="text-[10px] opacity-40 mt-auto">{{ day.dur_fmt }}</p>
+              <p class="text-[12px] opacity-70 mt-auto">{{ day.dur_fmt }}</p>
             {% endif %}
           {% else %}
-            <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+            <p class="text-[12px] font-semibold leading-tight flex-1">{{ day.label }}</p>
             {% if day.dur_fmt %}
-              <p class="text-[10px] opacity-60 mt-auto">{{ day.dur_fmt }}</p>
+              <p class="text-[12px] opacity-80 mt-auto">{{ day.dur_fmt }}</p>
             {% endif %}
           {% endif %}
         {% else %}
-          <p class="text-[11px] opacity-40 mt-auto">Rest</p>
+          <p class="text-[12px] opacity-65 mt-auto">Rest</p>
         {% endif %}
       </div>
       {% endfor %}
@@ -206,9 +207,9 @@
     <div class="border-t border-slate-800 mt-4 mb-5"></div>
 
     <div class="mb-4">
-      <p class="text-xs text-slate-500 uppercase tracking-widest mb-1">Cycling Camp · Los Gigantes, Tenerife</p>
+      <p class="text-xs text-slate-300 uppercase tracking-widest mb-1">Cycling Camp · Los Gigantes, Tenerife</p>
       <h2 class="text-lg font-bold text-amber-400">Tenerife Cycling Camp</h2>
-      <p class="text-xs text-slate-500 mt-1">13 Aug – 27 Aug 2026 · travel days 13 &amp; 27 · 12 riding days</p>
+      <p class="text-xs text-slate-300 mt-1">13 Aug – 27 Aug 2026 · travel days 13 &amp; 27 · 12 riding days</p>
     </div>
 
     <div class="flex flex-wrap gap-2 mb-4">
@@ -216,7 +217,7 @@
       <span class="px-2 py-0.5 rounded text-[11px] border sess-camp-medium">Medium</span>
       <span class="px-2 py-0.5 rounded text-[11px] border sess-camp-easy">Easy</span>
       <span class="px-2 py-0.5 rounded text-[11px] border sess-camp-rest">Rest / Travel</span>
-      <span class="text-[11px] text-slate-600 self-center ml-2">· click any riding day for full route</span>
+      <span class="text-[12px] text-slate-400 self-center ml-2">· click any riding day for full route</span>
     </div>
 
     <div class="grid grid-cols-8 gap-1 mb-1">
@@ -229,7 +230,7 @@
     {% for camp_week in camp_weeks %}
     <div class="grid grid-cols-8 gap-1 mb-1">
       <div class="flex flex-col items-end justify-center pr-2">
-        <span class="text-[10px] text-slate-700">{{ camp_week.week_label }}</span>
+        <span class="text-[12px] text-slate-400">{{ camp_week.week_label }}</span>
       </div>
       {% for day in camp_week.days %}
       {% if day.is_camp and day.intensity not in ('rest', 'travel') %}
@@ -238,20 +239,20 @@
                 {% if day.is_today %}today-ring{% endif %}
                 {% if day.is_past %}is-past{% endif %}">
         <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
-          <span class="text-[9px] text-amber-600 font-semibold">D{{ day.camp_day_num }}</span>
+          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+          <span class="text-[11px] text-amber-500 font-semibold">D{{ day.camp_day_num }}</span>
         </div>
         <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-        <p class="text-[10px] opacity-60 mt-auto">{{ day.km }}km · {{ day.elev_m }}m</p>
+        <p class="text-[12px] opacity-80 mt-auto">{{ day.km }}km · {{ day.elev_m }}m</p>
       </a>
       {% elif day.is_camp %}
       <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-camp-{{ day.intensity }}
                   {% if day.is_today %}today-ring{% endif %}
                   {% if day.is_past %}is-past{% endif %}">
         <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
+          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
         </div>
-        <p class="text-[11px] opacity-40 mt-auto">{{ day.label }}</p>
+        <p class="text-[12px] opacity-65 mt-auto">{{ day.label }}</p>
       </div>
       {% elif day.is_workout %}
       {% set is_cycling = day.type in ['bike', 'tempo', 'ftp', 'long'] %}
@@ -266,10 +267,10 @@
              onclick="openModal(this)"
            {% endif %}>
         <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
+          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
         </div>
         <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-        <p class="text-[10px] opacity-60 mt-auto">{{ day.dur_fmt }}</p>
+        <p class="text-[12px] opacity-80 mt-auto">{{ day.dur_fmt }}</p>
       </div>
       {% else %}
       <div class="min-h-[64px]"></div>
@@ -282,9 +283,9 @@
     <div class="border-t border-slate-800 mt-4 mb-5"></div>
 
     <div class="mb-4">
-      <p class="text-xs text-slate-500 uppercase tracking-widest mb-1">Event Prep · Cycling Only</p>
+      <p class="text-xs text-slate-300 uppercase tracking-widest mb-1">Event Prep · Cycling Only</p>
       <h2 class="text-lg font-bold text-violet-400">Ghent–Amsterdam Build</h2>
-      <p class="text-xs text-slate-500 mt-1">31 Aug – 12 Sep 2026 · recovery → back-to-back build → taper</p>
+      <p class="text-xs text-slate-300 mt-1">31 Aug – 12 Sep 2026 · recovery → back-to-back build → taper</p>
     </div>
 
     <div class="flex flex-wrap gap-2 mb-4">
@@ -292,7 +293,7 @@
       <span class="px-2 py-0.5 rounded text-[11px] border sess-long">Long Ride</span>
       <span class="px-2 py-0.5 rounded text-[11px] border sess-tempo">Sweetspot / Tempo</span>
       <span class="px-2 py-0.5 rounded text-[11px] border sess-rest">Rest</span>
-      <span class="text-[11px] text-slate-600 self-center ml-2">· click any session for details</span>
+      <span class="text-[12px] text-slate-400 self-center ml-2">· click any session for details</span>
     </div>
 
     <div class="grid grid-cols-8 gap-1 mb-1">
@@ -305,7 +306,7 @@
     {% for prep_week in event_prep_weeks %}
     <div class="grid grid-cols-8 gap-1 mb-1">
       <div class="flex flex-col items-end justify-center pr-2">
-        <span class="text-[10px] text-slate-700">{{ prep_week.week_label }}</span>
+        <span class="text-[12px] text-slate-400">{{ prep_week.week_label }}</span>
       </div>
       {% for day in prep_week.days %}
       {% set is_cycling = day.type in ['bike', 'tempo', 'ftp', 'long'] %}
@@ -320,14 +321,14 @@
              onclick="openModal(this)"
            {% endif %}>
         <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
+          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
           {% if day.is_today %}<span class="text-[9px] text-sky-400 font-semibold">TODAY</span>{% endif %}
         </div>
         {% if day.type != 'rest' and day.label %}
           <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-          {% if day.dur_fmt %}<p class="text-[10px] opacity-60 mt-auto">{{ day.dur_fmt }}</p>{% endif %}
+          {% if day.dur_fmt %}<p class="text-[12px] opacity-80 mt-auto">{{ day.dur_fmt }}</p>{% endif %}
         {% else %}
-          <p class="text-[11px] opacity-40 mt-auto">Rest</p>
+          <p class="text-[12px] opacity-65 mt-auto">Rest</p>
         {% endif %}
       </div>
       {% endfor %}
@@ -338,9 +339,9 @@
     <div class="border-t border-slate-800 mt-4 mb-5"></div>
 
     <div class="mb-4">
-      <p class="text-xs text-slate-500 uppercase tracking-widest mb-1">Charity Ride · Belgium → Netherlands</p>
+      <p class="text-xs text-slate-300 uppercase tracking-widest mb-1">Charity Ride · Belgium → Netherlands</p>
       <h2 class="text-lg font-bold text-sky-400">Ghent to Amsterdam</h2>
-      <p class="text-xs text-slate-500 mt-1">13–14 September 2026 · 2-day event · ~310km total</p>
+      <p class="text-xs text-slate-300 mt-1">13–14 September 2026 · 2-day event · ~310km total</p>
     </div>
 
     <div class="grid grid-cols-8 gap-1 mb-1">
@@ -353,7 +354,7 @@
     {% for charity_week in charity_weeks %}
     <div class="grid grid-cols-8 gap-1 mb-1">
       <div class="flex flex-col items-end justify-center pr-2">
-        <span class="text-[10px] text-slate-700">{{ charity_week.week_label }}</span>
+        <span class="text-[12px] text-slate-400">{{ charity_week.week_label }}</span>
       </div>
       {% for day in charity_week.days %}
       {% if day.is_event %}
@@ -361,11 +362,11 @@
                   {% if day.is_today %}today-ring{% endif %}
                   {% if day.is_past %}is-past{% endif %}">
         <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[10px] opacity-60">{{ day.month_abbr }} {{ day.day_num }}</span>
-          <span class="text-[9px] text-sky-500 font-semibold">D{{ day.day_num_ride }}</span>
+          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+          <span class="text-[11px] text-sky-400 font-semibold">D{{ day.day_num_ride }}</span>
         </div>
         <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-        <p class="text-[10px] opacity-60 mt-auto">~{{ day.km }}km</p>
+        <p class="text-[12px] opacity-80 mt-auto">~{{ day.km }}km</p>
       </div>
       {% else %}
       <div class="min-h-[64px]"></div>
@@ -386,9 +387,9 @@
       <div id="modal-header" style="padding:20px 24px 16px;border-bottom:1px solid #18181b">
         <div style="display:flex;align-items:flex-start;justify-content:space-between">
           <div>
-            <p id="modal-type" style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#71717a;margin-bottom:5px"></p>
+            <p id="modal-type" style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c4c4cc;margin-bottom:5px"></p>
             <h2 id="modal-title" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;color:#fafafa;line-height:1.1"></h2>
-            <p id="modal-dur" style="font-family:'DM Mono',monospace;font-size:12px;color:#71717a;margin-top:4px"></p>
+            <p id="modal-dur" style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc;margin-top:4px"></p>
           </div>
           <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:14px;color:#71717a;margin-left:12px;margin-top:2px;line-height:1;transition:color 0.15s"
                   onmouseover="this.style.color='#fafafa'" onmouseout="this.style.color='#71717a'">✕</button>
@@ -400,15 +401,15 @@
 
       <!-- AI coach recommendation -->
       <div id="modal-coach-note" class="hidden" style="padding:12px 24px;border-bottom:1px solid #18181b;background:rgba(163,230,53,0.04);border-left:3px solid #a3e635">
-        <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#a3e635;margin-bottom:6px">✦ AI Coach Recommendation</p>
+        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#a3e635;margin-bottom:6px">✦ AI Coach Recommendation</p>
         <p id="modal-coach-note-text" style="font-size:12px;color:#a1a1aa;line-height:1.7"></p>
-        <a href="/performance" style="display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.08em;color:#a3e635;text-decoration:none;opacity:0.8"
-           onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">View performance analysis →</a>
+        <a href="/performance" style="display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.08em;color:#a3e635;text-decoration:none;opacity:0.9"
+           onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.9'">View performance analysis →</a>
       </div>
 
       <!-- Steps -->
       <div style="padding:16px 24px">
-        <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#71717a;margin-bottom:12px">Session Structure</p>
+        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c4c4cc;margin-bottom:12px">Session Structure</p>
         <div id="modal-steps" style="display:flex;flex-direction:column;gap:8px"></div>
       </div>
 
@@ -585,11 +586,11 @@
         const row = document.createElement('div');
         row.style.cssText = 'display:flex;align-items:flex-start;gap:10px';
         row.innerHTML = `
-          <div style="font-family:'DM Mono',monospace;font-size:10px;color:#71717a;width:36px;text-align:right;flex-shrink:0;padding-top:1px">${fmtMins(s.mins)}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc;width:36px;text-align:right;flex-shrink:0;padding-top:1px">${fmtMins(s.mins)}</div>
           <div style="flex:1">
             <span style="font-size:13px;color:#fafafa">${s.name}</span>
-            ${s.repeat ? `<span style="font-family:'DM Mono',monospace;font-size:10px;color:#52525b;margin-left:6px">${s.repeat}</span>` : ''}
-            <div style="font-family:'DM Mono',monospace;font-size:10px;margin-top:2px" class="${zoneCls}">${s.zone}</div>
+            ${s.repeat ? `<span style="font-family:'DM Mono',monospace;font-size:11px;color:#71717a;margin-left:6px">${s.repeat}</span>` : ''}
+            <div style="font-family:'DM Mono',monospace;font-size:12px;margin-top:2px" class="${zoneCls}">${s.zone}</div>
           </div>`;
         stepsEl.appendChild(row);
       });
@@ -644,16 +645,16 @@
       <div style="padding:20px 24px 16px;border-bottom:1px solid #18181b">
         <div style="display:flex;align-items:flex-start;justify-content:space-between">
           <div>
-            <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:#f87171;margin-bottom:5px">Session Recovery</p>
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#f87171;margin-bottom:5px">Session Recovery</p>
             <h2 id="recovery-modal-title" style="font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:0.05em;color:#fafafa;line-height:1.1"></h2>
-            <p id="recovery-modal-dur" style="font-family:'DM Mono',monospace;font-size:12px;color:#71717a;margin-top:4px"></p>
+            <p id="recovery-modal-dur" style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc;margin-top:4px"></p>
           </div>
           <button onclick="closeRecoveryModal()" style="background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:14px;color:#71717a;margin-left:12px;margin-top:2px;line-height:1;transition:color 0.15s"
                   onmouseover="this.style.color='#fafafa'" onmouseout="this.style.color='#71717a'">✕</button>
         </div>
       </div>
       <div style="padding:20px 24px;border-left:3px solid #f87171">
-        <p style="font-family:'DM Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#f87171;margin-bottom:10px">Coach Recommendation</p>
+        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#f87171;margin-bottom:10px">Coach Recommendation</p>
         <p id="recovery-body" style="font-size:13px;color:#a1a1aa;line-height:1.75;white-space:pre-line"></p>
       </div>
     </div>

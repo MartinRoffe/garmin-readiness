@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
+  <title>Body Metrics</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: #09090b; }
+    .page { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    .eyebrow {
+      font-family: var(--font-m);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .page { animation: fadeUp 0.3s ease both; }
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'body' %}
+{% include 'nav.html' %}
+
+<div class="page">
+
+  <!-- Header -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:36px;flex-wrap:wrap;gap:12px">
+    <div>
+      <p class="eyebrow" style="margin-bottom:8px">Health Tracking</p>
+      <h1 style="font-family:var(--font-d);font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:var(--text);line-height:1">Body Metrics</h1>
+    </div>
+    <a href="/body-refresh"
+       style="font-family:var(--font-m);font-size:12px;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:9px 16px;border:1px solid var(--border2);color:var(--muted);background:var(--surface);transition:all 0.15s;border-radius:2px"
+       onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'"
+       onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border2)'">
+      Sync from Garmin ↺
+    </a>
+  </div>
+
+  {% if not has_body and not has_bp %}
+  <!-- Empty state -->
+  <div class="card" style="padding:56px 48px;text-align:center">
+    <p style="font-size:22px;margin-bottom:16px">⚖️</p>
+    <p style="font-size:15px;color:var(--text);margin-bottom:8px">No body metrics yet</p>
+    <p style="font-size:13px;color:var(--muted);max-width:380px;margin:0 auto 24px;line-height:1.7">
+      Connect your Withings scale to Garmin Connect via the Health Mate app, then sync here.
+    </p>
+    <div style="display:flex;align-items:center;justify-content:center;gap:24px;flex-wrap:wrap;margin-bottom:24px">
+      <div style="text-align:left;max-width:220px">
+        <p class="eyebrow" style="margin-bottom:8px">How to connect</p>
+        <ol style="font-size:12px;color:var(--muted);line-height:2;list-style:decimal inside">
+          <li>Open Withings Health Mate app</li>
+          <li>Profile → Partner Apps → Garmin</li>
+          <li>Authorize the connection</li>
+          <li>Weigh in once to confirm sync</li>
+          <li>Tap Sync from Garmin above</li>
+        </ol>
+      </div>
+    </div>
+    <a href="/body-refresh"
+       style="font-family:var(--font-m);font-size:11px;color:var(--accent);text-decoration:none;letter-spacing:0.08em">
+      Sync from Garmin ↺
+    </a>
+  </div>
+
+  {% else %}
+
+  <!-- Latest readings summary -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:24px">
+
+    {% if latest_body and latest_body.weight_kg %}
+    <div class="card" style="padding:20px 22px">
+      <p class="eyebrow" style="margin-bottom:6px">Weight</p>
+      <p style="font-family:var(--font-d);font-size:32px;letter-spacing:0.06em;color:var(--text);line-height:1">{{ "%.1f"|format(latest_body.weight_kg) }}</p>
+      <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:4px">kg · {{ latest_body.date[5:] | replace('-', ' ') }}</p>
+    </div>
+    {% endif %}
+
+    {% if latest_body and latest_body.fat_pct %}
+    <div class="card" style="padding:20px 22px">
+      <p class="eyebrow" style="margin-bottom:6px">Body Fat</p>
+      <p style="font-family:var(--font-d);font-size:32px;letter-spacing:0.06em;color:var(--text);line-height:1">{{ "%.1f"|format(latest_body.fat_pct) }}</p>
+      <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:4px">%</p>
+    </div>
+    {% endif %}
+
+    {% if latest_body and latest_body.visceral_fat %}
+    <div class="card" style="padding:20px 22px">
+      <p class="eyebrow" style="margin-bottom:6px">Visceral Fat</p>
+      <p style="font-family:var(--font-d);font-size:32px;letter-spacing:0.06em;color:var(--text);line-height:1">{{ latest_body.visceral_fat | int }}</p>
+      <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:4px">index · target &lt; 13</p>
+    </div>
+    {% endif %}
+
+    {% if latest_body and latest_body.muscle_mass_kg %}
+    <div class="card" style="padding:20px 22px">
+      <p class="eyebrow" style="margin-bottom:6px">Muscle Mass</p>
+      <p style="font-family:var(--font-d);font-size:32px;letter-spacing:0.06em;color:var(--text);line-height:1">{{ "%.1f"|format(latest_body.muscle_mass_kg) }}</p>
+      <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:4px">kg</p>
+    </div>
+    {% endif %}
+
+    {% if latest_bp and latest_bp.systolic and latest_bp.diastolic %}
+    <div class="card" style="padding:20px 22px">
+      <p class="eyebrow" style="margin-bottom:6px">Blood Pressure</p>
+      <p style="font-family:var(--font-d);font-size:32px;letter-spacing:0.06em;color:var(--text);line-height:1">{{ latest_bp.systolic }}<span style="font-size:18px;color:var(--muted)">/{{ latest_bp.diastolic }}</span></p>
+      <p style="font-family:var(--font-m);font-size:11px;margin-top:4px" style="color:{{ bp_class_colour }}">
+        <span style="color:{{ bp_class_colour }}">{{ bp_class_label }}</span>
+        {% if latest_bp.pulse %}<span style="color:var(--muted)"> · {{ latest_bp.pulse }} bpm</span>{% endif %}
+      </p>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Charts grid -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    {% if has_body %}
+    <!-- Weight chart -->
+    <div class="card" style="padding:28px">
+      <p class="eyebrow" style="margin-bottom:16px">Weight — 90 Day Trend</p>
+      <div style="position:relative;height:220px">
+        <canvas id="weightChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Body fat chart -->
+    {% if fat_values and fat_values | select | list %}
+    <div class="card" style="padding:28px">
+      <p class="eyebrow" style="margin-bottom:16px">Body Fat % — 90 Day Trend</p>
+      <div style="position:relative;height:200px">
+        <canvas id="fatChart"></canvas>
+      </div>
+    </div>
+    {% endif %}
+    {% endif %}
+
+    {% if has_bp %}
+    <!-- Blood pressure chart -->
+    <div class="card" style="padding:28px">
+      <p class="eyebrow" style="margin-bottom:16px">Blood Pressure — 90 Day Trend</p>
+      <div style="position:relative;height:220px">
+        <canvas id="bpChart"></canvas>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+const G = '#18181b';
+const TICK = { color: '#a1a1aa', font: { family: 'DM Mono, monospace', size: 11 } };
+const GRID = { color: '#27272a' };
+
+function baseOptions(yLabel) {
+  return {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#111114',
+        borderColor: '#3f3f46',
+        borderWidth: 1,
+        titleColor: '#fafafa',
+        bodyColor: '#a1a1aa',
+        titleFont: { family: 'DM Mono, monospace', size: 11 },
+        bodyFont: { family: 'DM Mono, monospace', size: 11 },
+      },
+    },
+    scales: {
+      x: {
+        ticks: { ...TICK, maxRotation: 0, maxTicksLimit: 10 },
+        grid: GRID,
+        border: { color: '#27272a' },
+      },
+      y: {
+        ticks: { ...TICK },
+        grid: GRID,
+        border: { color: '#27272a' },
+        title: yLabel ? { display: true, text: yLabel, color: '#a1a1aa', font: { family: 'DM Mono, monospace', size: 10 } } : undefined,
+      },
+    },
+    elements: { point: { radius: 3, hoverRadius: 5 } },
+  };
+}
+
+{% if has_body and weight_values %}
+const weightCtx = document.getElementById('weightChart');
+if (weightCtx) {
+  new Chart(weightCtx, {
+    type: 'line',
+    data: {
+      labels: {{ weight_dates | tojson }},
+      datasets: [{
+        data: {{ weight_values | tojson }},
+        borderColor: '#a3e635',
+        backgroundColor: 'rgba(163,230,53,0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        spanGaps: true,
+      }],
+    },
+    options: baseOptions('kg'),
+  });
+}
+{% endif %}
+
+{% if fat_values and fat_values | select | list %}
+const fatCtx = document.getElementById('fatChart');
+if (fatCtx) {
+  new Chart(fatCtx, {
+    type: 'line',
+    data: {
+      labels: {{ fat_dates | tojson }},
+      datasets: [{
+        data: {{ fat_values | tojson }},
+        borderColor: '#fb923c',
+        backgroundColor: 'rgba(251,146,60,0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        spanGaps: true,
+      }],
+    },
+    options: baseOptions('%'),
+  });
+}
+{% endif %}
+
+{% if has_bp %}
+const bpCtx = document.getElementById('bpChart');
+if (bpCtx) {
+  new Chart(bpCtx, {
+    type: 'line',
+    data: {
+      labels: {{ bp_dates | tojson }},
+      datasets: [
+        {
+          label: 'Systolic',
+          data: {{ bp_sys | tojson }},
+          borderColor: '#f87171',
+          backgroundColor: 'transparent',
+          borderWidth: 2,
+          tension: 0.2,
+          spanGaps: true,
+          pointBackgroundColor: '#f87171',
+        },
+        {
+          label: 'Diastolic',
+          data: {{ bp_dia | tojson }},
+          borderColor: '#60a5fa',
+          backgroundColor: 'rgba(96,165,250,0.07)',
+          borderWidth: 2,
+          fill: '-1',
+          tension: 0.2,
+          spanGaps: true,
+          pointBackgroundColor: '#60a5fa',
+        },
+      ],
+    },
+    options: {
+      ...baseOptions('mmHg'),
+      plugins: {
+        ...baseOptions('mmHg').plugins,
+        legend: {
+          display: true,
+          labels: {
+            color: '#a1a1aa',
+            font: { family: 'DM Mono, monospace', size: 11 },
+            boxWidth: 12,
+            padding: 16,
+          },
+        },
+      },
+    },
+  });
+}
+{% endif %}
+</script>
+
+</body>
+</html>

@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
   <title>Post-Training Analysis</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -11,7 +12,7 @@
 
     .eyebrow {
       font-family: var(--font-m);
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--muted);
@@ -29,7 +30,7 @@
     /* Training effect badges */
     .te-badge {
       font-family: var(--font-m);
-      font-size: 10px;
+      font-size: 11px;
       letter-spacing: 0.06em;
       padding: 3px 10px;
       border-radius: 2px;
@@ -55,7 +56,7 @@
       <h1 style="font-family:var(--font-d);font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:var(--text);line-height:1">Activity Analysis</h1>
     </div>
     <a href="/analysis-refresh"
-       style="font-family:var(--font-m);font-size:10px;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:9px 16px;border:1px solid var(--border2);color:var(--muted);background:var(--surface);transition:all 0.15s;border-radius:2px"
+       style="font-family:var(--font-m);font-size:12px;letter-spacing:0.1em;text-transform:uppercase;text-decoration:none;padding:9px 16px;border:1px solid var(--border2);color:var(--muted);background:var(--surface);transition:all 0.15s;border-radius:2px"
        onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'"
        onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border2)'">
       Fetch &amp; Analyse ↺
@@ -80,7 +81,7 @@
       <span style="font-size:22px;flex-shrink:0;margin-top:2px">{{ a.icon }}</span>
       <div style="flex:1;min-width:0">
         <p style="font-size:15px;font-weight:400;color:var(--text);line-height:1.3">{{ a.name or a.type_label }}</p>
-        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:0.06em">
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:4px;letter-spacing:0.06em">
           {{ a.type_label }}{% if a.date %} · {{ a.date[5:] | replace('-', ' ') }}{% endif %}
         </p>
       </div>
@@ -155,12 +156,12 @@
             {% for z in section.zones %}
             {% set zc = ['z1','z2','z3','z4','z5'][z.zone - 1] if z.zone <= 5 else 'z1' %}
             <div style="display:flex;align-items:center;gap:8px">
-              <span style="font-family:var(--font-m);font-size:9px;color:var(--muted);width:16px;text-align:right;letter-spacing:0.05em">Z{{ z.zone }}</span>
+              <span style="font-family:var(--font-m);font-size:11px;color:var(--muted);width:16px;text-align:right;letter-spacing:0.05em">Z{{ z.zone }}</span>
               <div style="flex:1;background:var(--border);border-radius:2px;height:3px;overflow:hidden">
                 <div class="zbar {{ zc }}" style="width:{{ [z.pct, 100]|min }}%"></div>
               </div>
-              <span style="font-family:var(--font-m);font-size:10px;color:var(--text-dim);width:30px;text-align:right">{{ z.pct }}%</span>
-              <span style="font-family:var(--font-m);font-size:10px;color:var(--muted);width:44px;text-align:right">
+              <span style="font-family:var(--font-m);font-size:12px;color:var(--text-dim);width:30px;text-align:right">{{ z.pct }}%</span>
+              <span style="font-family:var(--font-m);font-size:12px;color:var(--muted);width:44px;text-align:right">
                 {% set m = (z.secs // 60) %}{% set s = (z.secs % 60) %}{{ m }}m{% if s %}{{ "%02d"|format(s) }}s{% endif %}
               </span>
             </div>
@@ -178,12 +179,12 @@
         {% for z in a.hr_zones %}
         {% set zc = ['z1','z2','z3','z4','z5'][z.zone - 1] if z.zone <= 5 else 'z1' %}
         <div style="display:flex;align-items:center;gap:8px">
-          <span style="font-family:var(--font-m);font-size:9px;color:var(--muted);width:16px;text-align:right;letter-spacing:0.05em">Z{{ z.zone }}</span>
+          <span style="font-family:var(--font-m);font-size:11px;color:var(--muted);width:16px;text-align:right;letter-spacing:0.05em">Z{{ z.zone }}</span>
           <div style="flex:1;background:var(--border);border-radius:2px;height:3px;overflow:hidden">
             <div class="zbar {{ zc }}" style="width:{{ [z.pct, 100]|min }}%"></div>
           </div>
-          <span style="font-family:var(--font-m);font-size:10px;color:var(--text-dim);width:30px;text-align:right">{{ z.pct }}%</span>
-          <span style="font-family:var(--font-m);font-size:10px;color:var(--muted);width:44px;text-align:right">
+          <span style="font-family:var(--font-m);font-size:12px;color:var(--text-dim);width:30px;text-align:right">{{ z.pct }}%</span>
+          <span style="font-family:var(--font-m);font-size:12px;color:var(--muted);width:44px;text-align:right">
             {% set m = (z.secs // 60) %}{% set s = (z.secs % 60) %}{{ m }}m{% if s %}{{ "%02d"|format(s) }}s{% endif %}
           </span>
         </div>
@@ -204,7 +205,7 @@
     </div>
     {% else %}
     <div style="border-top:1px solid var(--surface2);padding-top:14px">
-      <p style="font-family:var(--font-m);font-size:10px;color:var(--border2)">
+      <p style="font-family:var(--font-m);font-size:12px;color:var(--muted)">
         No analysis yet —
         <a href="/analysis-refresh" style="color:var(--accent);text-decoration:none">fetch &amp; analyse ↺</a>
       </p>

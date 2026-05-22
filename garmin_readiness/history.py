@@ -337,6 +337,91 @@ def raw_history(days: int = 14) -> list[dict]:
     return result
 
 
+def _ensure_body_metrics_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS body_metrics (
+            date TEXT PRIMARY KEY,
+            weight_kg REAL,
+            fat_pct REAL,
+            muscle_mass_kg REAL,
+            bone_mass_kg REAL,
+            hydration_pct REAL,
+            visceral_fat REAL,
+            bmi REAL,
+            metabolic_age REAL,
+            recorded_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def _ensure_blood_pressure_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS blood_pressure (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            timestamp_local TEXT,
+            systolic INTEGER,
+            diastolic INTEGER,
+            pulse INTEGER,
+            recorded_at TEXT DEFAULT (datetime('now')),
+            UNIQUE(date, timestamp_local)
+        )
+    """)
+
+
+def save_body_metrics(readings: list[dict]) -> None:
+    with _conn() as con:
+        _ensure_body_metrics_schema(con)
+        for r in readings:
+            con.execute("""
+                INSERT OR REPLACE INTO body_metrics
+                    (date, weight_kg, fat_pct, muscle_mass_kg, bone_mass_kg,
+                     hydration_pct, visceral_fat, bmi, metabolic_age)
+                VALUES (?,?,?,?,?,?,?,?,?)
+            """, (
+                r["date"], r.get("weight_kg"), r.get("fat_pct"),
+                r.get("muscle_mass_kg"), r.get("bone_mass_kg"),
+                r.get("hydration_pct"), r.get("visceral_fat"),
+                r.get("bmi"), r.get("metabolic_age"),
+            ))
+
+
+def load_body_metrics(days: int = 90) -> list[dict]:
+    start = (date.today() - timedelta(days=days - 1)).isoformat()
+    with _conn() as con:
+        _ensure_body_metrics_schema(con)
+        rows = con.execute(
+            "SELECT * FROM body_metrics WHERE date >= ? ORDER BY date",
+            (start,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def save_blood_pressure(readings: list[dict]) -> None:
+    with _conn() as con:
+        _ensure_blood_pressure_schema(con)
+        for r in readings:
+            con.execute("""
+                INSERT OR IGNORE INTO blood_pressure
+                    (date, timestamp_local, systolic, diastolic, pulse)
+                VALUES (?,?,?,?,?)
+            """, (
+                r["date"], r.get("timestamp_local"),
+                r.get("systolic"), r.get("diastolic"), r.get("pulse"),
+            ))
+
+
+def load_blood_pressure(days: int = 90) -> list[dict]:
+    start = (date.today() - timedelta(days=days - 1)).isoformat()
+    with _conn() as con:
+        _ensure_blood_pressure_schema(con)
+        rows = con.execute(
+            "SELECT * FROM blood_pressure WHERE date >= ? ORDER BY timestamp_local",
+            (start,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
 def pmc_history(days: int = 90) -> list[dict]:
     """Return daily CTL/ATL/TSB for the last `days` days (oldest first).
 

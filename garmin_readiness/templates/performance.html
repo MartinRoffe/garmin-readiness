@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
   <title>Performance Management</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
@@ -12,7 +13,7 @@
 
     .eyebrow {
       font-family: var(--font-m);
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 0.22em;
       text-transform: uppercase;
       color: var(--muted);
@@ -27,7 +28,7 @@
     }
     .pmc-sub {
       font-family: var(--font-m);
-      font-size: 10px;
+      font-size: 12px;
       letter-spacing: 0.16em;
       text-transform: uppercase;
       margin-top: 10px;
@@ -53,7 +54,7 @@
   <div style="margin-bottom:40px">
     <p class="eyebrow" style="margin-bottom:8px">Training Load</p>
     <h1 style="font-family:var(--font-d);font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:var(--text);line-height:1">Performance Management</h1>
-    <p style="font-family:var(--font-m);font-size:10px;color:var(--border2);margin-top:6px">Garmin 7-day acute · 28-day chronic · values in Garmin training-load units</p>
+    <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:6px">Garmin 7-day acute · 28-day chronic · values in Garmin training-load units</p>
   </div>
 
   {% set ctl = today.ctl %}
@@ -66,14 +67,14 @@
     <!-- CTL -->
     <div class="card" style="padding:28px 24px;border-top:2px solid #60a5fa">
       <p class="eyebrow" style="margin-bottom:14px">Fitness · CTL</p>
-      <p class="pmc-num" style="color:#60a5fa">{% if ctl is not none %}{{ ctl | int }}{% else %}<span style="color:var(--border2)">—</span>{% endif %}</p>
+      <p class="pmc-num" style="color:#60a5fa">{% if ctl is not none %}{{ ctl | int }}{% else %}<span style="color:var(--muted)">—</span>{% endif %}</p>
       <p class="pmc-sub" style="color:#7eb4f0">28-day chronic load</p>
     </div>
 
     <!-- ATL -->
     <div class="card" style="padding:28px 24px;border-top:2px solid #fb923c">
       <p class="eyebrow" style="margin-bottom:14px">Fatigue · ATL</p>
-      <p class="pmc-num" style="color:#fb923c">{% if atl is not none %}{{ atl | int }}{% else %}<span style="color:var(--border2)">—</span>{% endif %}</p>
+      <p class="pmc-num" style="color:#fb923c">{% if atl is not none %}{{ atl | int }}{% else %}<span style="color:var(--muted)">—</span>{% endif %}</p>
       <p class="pmc-sub" style="color:#c07840">7-day acute load</p>
     </div>
 
@@ -101,8 +102,8 @@
           <p class="pmc-sub" style="color:#c05858">very high fatigue</p>
         {% endif %}
       {% else %}
-        <p class="pmc-num" style="color:var(--border2)">—</p>
-        <p class="pmc-sub" style="color:var(--border2)">no data</p>
+        <p class="pmc-num" style="color:var(--muted)">—</p>
+        <p class="pmc-sub" style="color:var(--muted)">no data</p>
       {% endif %}
     </div>
   </div>
@@ -128,7 +129,7 @@
   <div class="card" style="padding:20px 24px;margin-bottom:10px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <p class="eyebrow">Fitness vs Fatigue · 90 days</p>
-      <div style="display:flex;gap:16px;font-family:var(--font-m);font-size:10px;letter-spacing:0.06em">
+      <div style="display:flex;gap:16px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em">
         <span><span class="legend-dot" style="background:#60a5fa"></span>CTL fitness</span>
         <span><span class="legend-dot" style="background:#fb923c"></span>ATL fatigue</span>
       </div>
@@ -140,7 +141,7 @@
   <div class="card" style="padding:20px 24px;margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <p class="eyebrow">Form · TSB (CTL − ATL)</p>
-      <div style="font-family:var(--font-m);font-size:10px;letter-spacing:0.06em;display:flex;gap:12px">
+      <div style="font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;display:flex;gap:12px">
         <span style="color:#a3e635">▲ fresh</span>
         <span style="color:#f87171">▼ fatigued</span>
       </div>
@@ -154,20 +155,20 @@
     <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
       <div>
         <p class="eyebrow" style="margin-bottom:4px">Zone 2 HR Drift</p>
-        <p style="font-family:var(--font-m);font-size:10px;color:var(--border2)">Avg HR per bike session since plan start · declining = aerobic adaptation</p>
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted)">Avg HR per bike session since plan start · declining = aerobic adaptation</p>
       </div>
-      <div style="display:flex;gap:14px;font-family:var(--font-m);font-size:10px;letter-spacing:0.06em;flex-shrink:0;padding-top:2px">
+      <div style="display:flex;gap:14px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;flex-shrink:0;padding-top:2px">
         <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4ade80;margin-right:5px;vertical-align:middle"></span>Easy / Z2</span>
         <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#fbbf24;margin-right:5px;vertical-align:middle"></span>Hard</span>
       </div>
     </div>
     <div style="height:160px;position:relative"><canvas id="z2DriftChart"></canvas></div>
-    <p id="z2-trend-note" style="font-family:var(--font-m);font-size:10px;color:var(--border2);margin-top:8px;text-align:right"></p>
+    <p id="z2-trend-note" style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:8px;text-align:right"></p>
   </div>
   {% endif %}
 
   <!-- ── Note ──────────────────────────────────────────────────────── -->
-  <p style="font-family:var(--font-m);font-size:10px;color:var(--border2);text-align:center;margin-bottom:28px">
+  <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);text-align:center;margin-bottom:28px">
     CTL = 28-day chronic · ATL = 7-day acute · TSB = CTL − ATL
   </p>
 
@@ -200,7 +201,7 @@
   const atlData = {{ history | map(attribute='atl') | list | tojson }};
   const tsbData = {{ history | map(attribute='tsb') | list | tojson }};
 
-  const G = '#18181b', T = { color: '#3f3f46', font: { family: 'DM Mono', size: 10 } };
+  const G = '#18181b', T = { color: '#a1a1aa', font: { family: 'DM Mono', size: 11 } };
 
   new Chart(document.getElementById('ctlAtlChart'), {
     type: 'line',

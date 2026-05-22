@@ -20,6 +20,7 @@ from .plan import (PLAN_START as _PLAN_START, build_calendar_weeks, build_camp_w
                    build_charity_weeks, build_event_prep_weeks, COMPOUND_SESSIONS,
                    CAMP_GRID_WORKOUTS, EVENT_PREP_DAYS, session_for_date)
 from .report import generate_advice, generate_dashboard_explainer, generate_pmc_analysis, generate_pmc_explainer
+from .body import bp_classification, fetch_body_composition, fetch_blood_pressure
 from .history import (
     ACTIVITY_MATCH,
     baseline_stats,
@@ -27,11 +28,15 @@ from .history import (
     history_for_chart,
     load,
     load_activities_by_date,
+    load_body_metrics,
+    load_blood_pressure,
     load_recent_activities,
     pmc_history,
     raw_history,
     save,
     save_activities,
+    save_body_metrics,
+    save_blood_pressure,
     seven_day_composite_trend_csv,
     z_score,
 )
@@ -674,6 +679,94 @@ async def nutrition_plan(request: Request):
 @app.get("/tenerife", response_class=HTMLResponse)
 async def tenerife_view(request: Request):
     return TEMPLATES.TemplateResponse(request=request, name="tenerife.html", context={})
+
+
+def _body_context() -> dict[str, Any]:
+    body_rows = load_body_metrics(days=90)
+    bp_rows = load_blood_pressure(days=90)
+
+    # Latest body metrics
+    latest_body = body_rows[-1] if body_rows else None
+    # Latest BP (most recent timestamp)
+    latest_bp = bp_rows[-1] if bp_rows else None
+
+    bp_class_label, bp_class_colour = None, None
+    if latest_bp and latest_bp.get("systolic") and latest_bp.get("diastolic"):
+        bp_class_label, bp_class_colour = bp_classification(
+            latest_bp["systolic"], latest_bp["diastolic"]
+        )
+
+    # Weight chart: one point per day (latest reading if multiple)
+    weight_by_date: dict[str, Optional[float]] = {}
+    fat_by_date: dict[str, Optional[float]] = {}
+    for r in body_rows:
+        d = r["date"]
+        if r.get("weight_kg") is not None:
+            weight_by_date[d] = r["weight_kg"]
+        if r.get("fat_pct") is not None:
+            fat_by_date[d] = r["fat_pct"]
+
+    weight_dates = sorted(weight_by_date)
+    weight_values = [weight_by_date[d] for d in weight_dates]
+    fat_dates = sorted(fat_by_date)
+    fat_values = [fat_by_date[d] for d in fat_dates]
+
+    # BP chart: one point per reading
+    bp_dates = [r["date"] for r in bp_rows]
+    bp_sys = [r.get("systolic") for r in bp_rows]
+    bp_dia = [r.get("diastolic") for r in bp_rows]
+
+    # Tick labels — abbreviated dates
+    def _short(ds: list[str]) -> list[str]:
+        from datetime import date as _date
+        out = []
+        for s in ds:
+            try:
+                d = _date.fromisoformat(s)
+                out.append(d.strftime("%-d %b"))
+            except Exception:
+                out.append(s)
+        return out
+
+    return {
+        "latest_body": latest_body,
+        "latest_bp": latest_bp,
+        "bp_class_label": bp_class_label,
+        "bp_class_colour": bp_class_colour,
+        "weight_dates": _short(weight_dates),
+        "weight_values": weight_values,
+        "fat_dates": _short(fat_dates),
+        "fat_values": fat_values,
+        "bp_dates": _short(bp_dates),
+        "bp_sys": bp_sys,
+        "bp_dia": bp_dia,
+        "has_body": bool(body_rows),
+        "has_bp": bool(bp_rows),
+    }
+
+
+@app.get("/body", response_class=HTMLResponse)
+async def body_view(request: Request):
+    ctx = _body_context()
+    return TEMPLATES.TemplateResponse(request=request, name="body.html", context=ctx)
+
+
+@app.get("/body-refresh", response_class=RedirectResponse)
+async def body_refresh():
+    email_addr = os.getenv("GARMIN_EMAIL", "")
+    password = os.getenv("GARMIN_PASSWORD", "")
+    if email_addr and password:
+        try:
+            api = get_api(email_addr, password)
+            body_readings = fetch_body_composition(api, days=90)
+            if body_readings:
+                save_body_metrics(body_readings)
+            bp_readings = fetch_blood_pressure(api, days=90)
+            if bp_readings:
+                save_blood_pressure(bp_readings)
+        except Exception:
+            pass
+    return RedirectResponse(url="/body", status_code=303)
 
 
 @app.get("/refresh", response_class=RedirectResponse)
