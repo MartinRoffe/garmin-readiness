@@ -21,9 +21,9 @@ TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
     ],
     # WK 02
     [
-        ("long",     "Long Ride",            90),
-        ("rest",     "Rest",                  0),
-        ("bike",     "Zone 2 Steady",        60),
+        ("rest",     "Rest",                  0),   # Mon 25 — rest (recovery/sleep; long ride moved to Wed)
+        ("strength", "KB + MaxiClimber",     45),
+        ("long",     "Long Ride",            90),   # Wed 27 — moved from Mon
         ("strength", "KB + MaxiClimber",     45),
         ("bike",     "Zone 2 Steady",        60),
         ("ruck",     "Ruck  8–10 kg",        70),
