@@ -485,6 +485,11 @@ async def performance_view(request: Request):
                     "hard": sess_label in _HARD_LABELS,
                 })
 
+    proj_data: list[dict] = []
+    event_ctl: Optional[float] = None
+    if today_entry.get("ctl") is not None and today_entry.get("atl") is not None:
+        proj_data, event_ctl = _ctl_projection(today_entry["ctl"], today_entry["atl"])
+
     return TEMPLATES.TemplateResponse(
         request=request,
         name="performance.html",
@@ -494,8 +499,53 @@ async def performance_view(request: Request):
             "pmc_analysis": _pmc_cache[date_key],
             "pmc_explainer": generate_pmc_explainer(),
             "z2_points": z2_points,
+            "proj_data": proj_data,
+            "event_ctl": event_ctl,
+            "event_date_label": _PLAN_EVENT_DATE.strftime("%-d %b %Y"),
         },
     )
+
+
+_LOAD_PER_MIN: dict[str, float] = {
+    "rest":     0.0,
+    "bike":     1.0,
+    "tempo":    1.5,
+    "ftp":      2.0,
+    "long":     0.9,
+    "strength": 0.7,
+    "ruck":     0.9,
+}
+
+_PLAN_EVENT_DATE = date(2026, 9, 13)
+
+
+def _ctl_projection(current_ctl: float, current_atl: float) -> tuple[list[dict], float]:
+    """Project CTL/ATL from today to event day using remaining plan sessions."""
+    today = date.today()
+    days_ahead = (_PLAN_EVENT_DATE - today).days
+    if days_ahead <= 0:
+        return [], round(current_ctl, 1)
+
+    ctl = current_ctl
+    atl = current_atl
+    result = []
+    for i in range(1, days_ahead + 1):
+        d = today + timedelta(days=i)
+        sess = session_for_date(d)
+        if sess and sess[0] != "rest":
+            stype, _, dur_min = sess
+            load = _LOAD_PER_MIN.get(stype, 1.0) * (dur_min or 0)
+        else:
+            load = 0.0
+        ctl = ctl + (load - ctl) / 42
+        atl = atl + (load - atl) / 7
+        result.append({
+            "label": d.strftime("%-d %b"),
+            "ctl":   round(ctl, 1),
+            "atl":   round(atl, 1),
+            "tsb":   round(ctl - atl, 1),
+        })
+    return result, round(result[-1]["ctl"], 1) if result else round(current_ctl, 1)
 
 
 _BIKE_TYPES = {"bike", "tempo", "ftp", "long"}

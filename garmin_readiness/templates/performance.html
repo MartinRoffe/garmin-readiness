@@ -62,7 +62,7 @@
   {% set tsb = today.tsb %}
 
   <!-- ── PMC Hero: 3 numbers ────────────────────────────────────────── -->
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:{% if event_ctl %}10{% else %}16{% endif %}px">
 
     <!-- CTL -->
     <div class="card" style="padding:28px 24px;border-top:2px solid #60a5fa">
@@ -108,6 +108,22 @@
     </div>
   </div>
 
+  <!-- ── CTL projection callout ───────────────────────────────────── -->
+  {% if event_ctl %}
+  <div class="card" style="padding:14px 20px;margin-bottom:16px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;border-left:3px solid #60a5fa">
+    <div>
+      <p class="eyebrow" style="margin-bottom:2px">Projected CTL on {{ event_date_label }}</p>
+      <p style="font-family:var(--font-d);font-size:36px;letter-spacing:0.04em;color:#60a5fa;line-height:1">{{ event_ctl | int }}</p>
+    </div>
+    <div style="flex:1;min-width:180px">
+      <p style="font-size:12px;color:var(--muted);line-height:1.7">
+        Based on current fitness (CTL {{ today.ctl | int if today.ctl else '—' }}) and completing all remaining plan sessions.
+        Dashed lines on the chart show the projected trajectory.
+      </p>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── Coach analysis ────────────────────────────────────────────── -->
   {% if pmc_analysis %}
   <div class="card" style="padding:20px 24px;margin-bottom:16px;border-left:3px solid var(--accent)">
@@ -127,14 +143,15 @@
 
   <!-- ── CTL vs ATL chart ───────────────────────────────────────────── -->
   <div class="card" style="padding:20px 24px;margin-bottom:10px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
-      <p class="eyebrow">Fitness vs Fatigue · 90 days</p>
-      <div style="display:flex;gap:16px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em">
-        <span><span class="legend-dot" style="background:#60a5fa"></span>CTL fitness</span>
-        <span><span class="legend-dot" style="background:#fb923c"></span>ATL fatigue</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+      <p class="eyebrow">Fitness vs Fatigue · 90 days + projection</p>
+      <div style="display:flex;gap:16px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;flex-wrap:wrap">
+        <span><span class="legend-dot" style="background:#60a5fa"></span>CTL</span>
+        <span><span class="legend-dot" style="background:#fb923c"></span>ATL</span>
+        {% if proj_data %}<span><span class="legend-dot" style="background:#60a5fa;opacity:0.45"></span>Projected</span>{% endif %}
       </div>
     </div>
-    <div style="height:200px;position:relative"><canvas id="ctlAtlChart"></canvas></div>
+    <div style="height:220px;position:relative"><canvas id="ctlAtlChart"></canvas></div>
   </div>
 
   <!-- ── TSB chart ─────────────────────────────────────────────────── -->
@@ -196,27 +213,59 @@
 </div>
 
 <script>
-  const labels  = {{ history | map(attribute='label') | list | tojson }};
-  const ctlData = {{ history | map(attribute='ctl') | list | tojson }};
-  const atlData = {{ history | map(attribute='atl') | list | tojson }};
-  const tsbData = {{ history | map(attribute='tsb') | list | tojson }};
+  const histLabels = {{ history | map(attribute='label') | list | tojson }};
+  const ctlData   = {{ history | map(attribute='ctl')   | list | tojson }};
+  const atlData   = {{ history | map(attribute='atl')   | list | tojson }};
+  const tsbData   = {{ history | map(attribute='tsb')   | list | tojson }};
+
+  {% if proj_data %}
+  const projLabels = {{ proj_data | map(attribute='label') | list | tojson }};
+  const projCtl    = {{ proj_data | map(attribute='ctl')   | list | tojson }};
+  const projAtl    = {{ proj_data | map(attribute='atl')   | list | tojson }};
+  {% else %}
+  const projLabels = [], projCtl = [], projAtl = [];
+  {% endif %}
+
+  // Combine labels; pad historical datasets with null for future, projected with null for past
+  const allLabels  = [...histLabels, ...projLabels];
+  const nHist = histLabels.length, nProj = projLabels.length;
+  const ctlFull  = [...ctlData,  ...Array(nProj).fill(null)];
+  const atlFull  = [...atlData,  ...Array(nProj).fill(null)];
+  // Bridge: repeat last historical value as first projected point so lines connect
+  const lastCtl = ctlData.filter(v=>v!==null).at(-1) ?? null;
+  const lastAtl = atlData.filter(v=>v!==null).at(-1) ?? null;
+  const ctlProj  = [...Array(nHist).fill(null), lastCtl, ...projCtl.slice(1)];
+  const atlProj  = [...Array(nHist).fill(null), lastAtl, ...projAtl.slice(1)];
 
   const G = '#18181b', T = { color: '#a1a1aa', font: { family: 'DM Mono', size: 11 } };
 
   new Chart(document.getElementById('ctlAtlChart'), {
     type: 'line',
     data: {
-      labels,
+      labels: allLabels,
       datasets: [
-        { label:'CTL (fitness)', data:ctlData, borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.06)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, spanGaps:true },
-        { label:'ATL (fatigue)', data:atlData, borderColor:'#fb923c', backgroundColor:'rgba(251,146,60,0.06)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, spanGaps:true },
+        { label:'CTL', data:ctlFull, borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.06)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, spanGaps:true },
+        { label:'ATL', data:atlFull, borderColor:'#fb923c', backgroundColor:'rgba(251,146,60,0.06)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, spanGaps:true },
+        { label:'CTL projected', data:ctlProj, borderColor:'rgba(96,165,250,0.45)', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:0.3, fill:false, spanGaps:false },
+        { label:'ATL projected', data:atlProj, borderColor:'rgba(251,146,60,0.45)',  borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:0.3, fill:false, spanGaps:false },
       ]
     },
     options: {
       responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
-      plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${ctx.raw ?? '—'}` }}},
-      scales:{ x:{grid:{color:G},ticks:{...T,maxTicksLimit:10}}, y:{grid:{color:G},ticks:{...T},min:0} }
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label: ctx => {
+              if (ctx.raw === null) return null;
+              return `${ctx.dataset.label}: ${ctx.raw}`;
+            }
+          },
+          filter: item => item.raw !== null,
+        }
+      },
+      scales:{ x:{grid:{color:G},ticks:{...T,maxTicksLimit:12}}, y:{grid:{color:G},ticks:{...T},min:0} }
     }
   });
 
@@ -314,7 +363,7 @@
   new Chart(document.getElementById('tsbChart'), {
     type:'line', plugins:[tsbFillPlugin],
     data:{
-      labels,
+      labels: histLabels,
       datasets:[{ label:'TSB (form)', data:tsbData, borderWidth:0, pointRadius:0, tension:0.3, spanGaps:true,
         segment:{ borderColor: ctx => ctx.p1.parsed.y>=0 ? '#a3e635' : '#f87171' }
       }]
