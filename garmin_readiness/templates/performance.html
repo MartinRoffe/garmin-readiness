@@ -148,7 +148,7 @@
       <div style="display:flex;gap:16px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;flex-wrap:wrap">
         <span><span class="legend-dot" style="background:#60a5fa"></span>CTL</span>
         <span><span class="legend-dot" style="background:#fb923c"></span>ATL</span>
-        {% if proj_data %}<span><span class="legend-dot" style="background:#60a5fa;opacity:0.45"></span>Projected</span>{% endif %}
+        {% if proj_data %}<span><span class="legend-dot" style="background:#60a5fa;opacity:0.5;border-top:1px dashed #60a5fa"></span>CTL projected</span>{% endif %}
       </div>
     </div>
     <div style="height:220px;position:relative"><canvas id="ctlAtlChart"></canvas></div>
@@ -221,21 +221,18 @@
   {% if proj_data %}
   const projLabels = {{ proj_data | map(attribute='label') | list | tojson }};
   const projCtl    = {{ proj_data | map(attribute='ctl')   | list | tojson }};
-  const projAtl    = {{ proj_data | map(attribute='atl')   | list | tojson }};
   {% else %}
-  const projLabels = [], projCtl = [], projAtl = [];
+  const projLabels = [], projCtl = [];
   {% endif %}
 
   // Combine labels; pad historical datasets with null for future, projected with null for past
-  const allLabels  = [...histLabels, ...projLabels];
+  const allLabels = [...histLabels, ...projLabels];
   const nHist = histLabels.length, nProj = projLabels.length;
-  const ctlFull  = [...ctlData,  ...Array(nProj).fill(null)];
-  const atlFull  = [...atlData,  ...Array(nProj).fill(null)];
-  // Bridge: repeat last historical value as first projected point so lines connect
+  const ctlFull = [...ctlData, ...Array(nProj).fill(null)];
+  const atlFull = [...atlData, ...Array(nProj).fill(null)];
+  // Bridge: connect historical to projection at today's CTL value
   const lastCtl = ctlData.filter(v=>v!==null).at(-1) ?? null;
-  const lastAtl = atlData.filter(v=>v!==null).at(-1) ?? null;
-  const ctlProj  = [...Array(nHist).fill(null), lastCtl, ...projCtl.slice(1)];
-  const atlProj  = [...Array(nHist).fill(null), lastAtl, ...projAtl.slice(1)];
+  const ctlProj = [...Array(nHist).fill(null), lastCtl, ...projCtl.slice(1)];
 
   const G = '#18181b', T = { color: '#a1a1aa', font: { family: 'DM Mono', size: 11 } };
 
@@ -246,8 +243,7 @@
       datasets: [
         { label:'CTL', data:ctlFull, borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.06)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, spanGaps:true },
         { label:'ATL', data:atlFull, borderColor:'#fb923c', backgroundColor:'rgba(251,146,60,0.06)', borderWidth:1.5, pointRadius:0, tension:0.3, fill:false, spanGaps:true },
-        { label:'CTL projected', data:ctlProj, borderColor:'rgba(96,165,250,0.45)', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:0.3, fill:false, spanGaps:false },
-        { label:'ATL projected', data:atlProj, borderColor:'rgba(251,146,60,0.45)',  borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:0.3, fill:false, spanGaps:false },
+        { label:'CTL projected', data:ctlProj, borderColor:'rgba(96,165,250,0.5)', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:0.3, fill:false, spanGaps:false },
       ]
     },
     options: {

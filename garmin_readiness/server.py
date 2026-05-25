@@ -487,8 +487,10 @@ async def performance_view(request: Request):
 
     proj_data: list[dict] = []
     event_ctl: Optional[float] = None
-    if today_entry.get("ctl") is not None and today_entry.get("atl") is not None:
-        proj_data, event_ctl = _ctl_projection(today_entry["ctl"], today_entry["atl"])
+    _ctl_now = today_entry.get("ctl")
+    _atl_now = today_entry.get("atl")
+    if _ctl_now is not None and _atl_now is not None:
+        proj_data, event_ctl = _ctl_projection(_ctl_now, _atl_now)
 
     return TEMPLATES.TemplateResponse(
         request=request,
@@ -506,44 +508,53 @@ async def performance_view(request: Request):
     )
 
 
-_LOAD_PER_MIN: dict[str, float] = {
-    "rest":     0.0,
-    "bike":     1.0,
-    "tempo":    1.5,
-    "ftp":      2.0,
-    "long":     0.9,
-    "strength": 0.7,
-    "ruck":     0.9,
-}
-
 _PLAN_EVENT_DATE = date(2026, 9, 13)
+
+# CTL delta per training minute by session type.
+# Calibrated from week-1 observed data: Easy Spin 60min→+15, Zone2 60min→+26,
+# KB+MaxiClimber 45min→+33, Ruck+KB 105min→+33. Rest days average -3.
+_CTL_PER_MIN: dict[str, float] = {
+    "bike":     0.32,   # easy spin / Z2
+    "long":     0.40,   # Z2 long ride
+    "tempo":    0.58,   # tempo effort
+    "ftp":      0.78,   # threshold
+    "strength": 0.70,   # KB / strength (high EPOC)
+    "ruck":     0.30,   # hiking / ruck
+}
+_CTL_REST_DECLINE = -3.5
 
 
 def _ctl_projection(current_ctl: float, current_atl: float) -> tuple[list[dict], float]:
-    """Project CTL/ATL from today to event day using remaining plan sessions."""
+    """Project CTL from today to event day using remaining plan sessions.
+
+    Uses additive deltas calibrated against observed week-1 data rather than
+    the standard Coggan EMA, because Garmin's CTL units don't follow the
+    standard TSS-based scale. A soft ceiling (diminishing returns above CTL 500)
+    prevents runaway growth.
+    """
     today = date.today()
     days_ahead = (_PLAN_EVENT_DATE - today).days
     if days_ahead <= 0:
         return [], round(current_ctl, 1)
 
     ctl = current_ctl
-    atl = current_atl
     result = []
     for i in range(1, days_ahead + 1):
         d = today + timedelta(days=i)
         sess = session_for_date(d)
         if sess and sess[0] != "rest":
             stype, _, dur_min = sess
-            load = _LOAD_PER_MIN.get(stype, 1.0) * (dur_min or 0)
+            rate = _CTL_PER_MIN.get(stype, 0.35)
+            # Diminishing returns above CTL 300 (where rates were calibrated).
+            # (300/CTL)^2 curve: full rate at CTL≤300, ~72% at CTL=353, ~25% at CTL=600.
+            ceiling = (300 / max(ctl, 300)) ** 2
+            delta = rate * (dur_min or 0) * ceiling
         else:
-            load = 0.0
-        ctl = ctl + (load - ctl) / 42
-        atl = atl + (load - atl) / 7
+            delta = _CTL_REST_DECLINE
+        ctl = max(0.0, ctl + delta)
         result.append({
             "label": d.strftime("%-d %b"),
             "ctl":   round(ctl, 1),
-            "atl":   round(atl, 1),
-            "tsb":   round(ctl - atl, 1),
         })
     return result, round(result[-1]["ctl"], 1) if result else round(current_ctl, 1)
 
