@@ -713,7 +713,7 @@ async def calendar_view(request: Request):
                             int(sum(a.get("duration_seconds", 0) or 0 for a in sub_matched) / 60)
                             if sub_matched else None
                         )
-                    day["completed"] = all(s["completed"] for s in day["sub_sessions"])
+                    day["completed"] = any(s["completed"] for s in day["sub_sessions"])
                     actual = sum(s["actual_min"] or 0 for s in day["sub_sessions"])
                     day["actual_min"] = actual if actual else None
                     done_min += actual
@@ -745,9 +745,106 @@ async def calendar_view(request: Request):
     return TEMPLATES.TemplateResponse(request=request, name="calendar.html", context=ctx)
 
 
+def _plan_completion_stats() -> dict:
+    """Compute per-week plan vs actual completion stats for the training page."""
+    today = date.today()
+    weeks_data = build_calendar_weeks()
+    plan_end = weeks_data[-1]["days"][-1]["date"]
+    acts_by_date = load_activities_by_date(_PLAN_START, min(today, plan_end))
+
+    completion_weeks = []
+    total_plan_sessions = total_done_sessions = 0
+    total_plan_min = total_done_min = 0
+
+    for week in weeks_data:
+        wk_start: date = week["start"]
+        wk_end: date = wk_start + timedelta(days=6)
+
+        # Date range label
+        if wk_start.month == wk_end.month:
+            date_range = f"{wk_start.day}–{wk_end.day} {wk_start.strftime('%b')}"
+        else:
+            date_range = f"{wk_start.strftime('%-d %b')}–{wk_end.strftime('%-d %b')}"
+
+        plan_sessions = plan_min = done_sessions = done_min = 0
+        day_statuses = []
+
+        for day in week["days"]:
+            d: date = day["date"]
+            stype = day["type"]
+            is_future = d > today
+            is_rest = stype == "rest"
+
+            status = "rest" if is_rest else ("future" if is_future else "pending")
+            completed = None
+
+            if not is_rest and not is_future:
+                plan_sessions += 1
+                plan_min += day["dur_min"]
+                day_acts = acts_by_date.get(d.isoformat(), [])
+                if day.get("sub_sessions"):
+                    matched = any(
+                        any(a["type_key"] == sub["garmin_key"] for a in day_acts)
+                        for sub in day["sub_sessions"]
+                    )
+                    actual = int(sum(a.get("duration_seconds", 0) or 0 for a in day_acts) / 60)
+                else:
+                    valid_keys = ACTIVITY_MATCH.get(stype, set())
+                    matched_acts = [a for a in day_acts if a["type_key"] in valid_keys]
+                    matched = bool(matched_acts)
+                    actual = int(sum(a.get("duration_seconds", 0) or 0 for a in matched_acts) / 60)
+                completed = matched
+                if matched:
+                    done_sessions += 1
+                    done_min += actual
+                status = "done" if matched else "missed"
+
+            day_statuses.append({
+                "type": stype,
+                "date": d,
+                "status": status,
+                "is_today": d == today,
+            })
+
+        total_plan_sessions += plan_sessions
+        total_done_sessions += done_sessions
+        total_plan_min += plan_min
+        total_done_min += done_min
+
+        if wk_start > today:
+            wk_status = "future"
+        elif wk_end >= today:
+            wk_status = "current"
+        else:
+            wk_status = "past"
+
+        completion_weeks.append({
+            "week_num": week["week_num"],
+            "date_range": date_range,
+            "plan_sessions": plan_sessions,
+            "done_sessions": done_sessions,
+            "plan_min": plan_min,
+            "done_min": done_min,
+            "pct": int(done_min / plan_min * 100) if plan_min else 0,
+            "status": wk_status,
+            "days": day_statuses,
+        })
+
+    overall_pct = int(total_done_min / total_plan_min * 100) if total_plan_min else 0
+    return {
+        "completion_weeks": completion_weeks,
+        "total_plan_sessions": total_plan_sessions,
+        "total_done_sessions": total_done_sessions,
+        "total_plan_min": total_plan_min,
+        "total_done_min": total_done_min,
+        "overall_pct": overall_pct,
+    }
+
+
 @app.get("/training", response_class=HTMLResponse)
 async def training_plan(request: Request):
-    return TEMPLATES.TemplateResponse(request=request, name="training.html", context={})
+    ctx = _plan_completion_stats()
+    return TEMPLATES.TemplateResponse(request=request, name="training.html", context=ctx)
 
 
 @app.get("/nutrition", response_class=HTMLResponse)

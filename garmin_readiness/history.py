@@ -20,7 +20,7 @@ ACTIVITY_MATCH: dict[str, set[str]] = {
     "ftp":      {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
     "long":     {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"},
     "strength": {"strength_training", "stair_climbing", "fitness_equipment"},
-    "ruck":     {"hiking", "walking", "trail_running", "running"},
+    "ruck":     {"hiking", "walking", "trail_running", "running", "rucking"},
 }
 
 NUMERIC_FIELDS = [

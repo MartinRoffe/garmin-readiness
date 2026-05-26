@@ -139,7 +139,7 @@ COMPOUND_SESSIONS: dict[str, list[dict]] = {
         {"label": "MaxiClimber", "garmin_key": "stair_climbing"},
     ],
     "Ruck + KB": [
-        {"label": "Ruck",        "garmin_key": "hiking"},
+        {"label": "Ruck",        "garmin_key": "rucking"},
         {"label": "Kettlebell",  "garmin_key": "strength_training"},
     ],
 }
