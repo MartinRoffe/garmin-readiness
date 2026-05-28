@@ -103,7 +103,7 @@ def fetch_metrics(api, target_date: date) -> DailyMetrics:
                     if entry[1] is not None:
                         values.append(float(entry[1]))
             if values:
-                m.body_battery_morning = values[-1]  # most recent reading
+                m.body_battery_morning = max(values)
     except Exception as e:
         logger.debug("Body Battery fetch failed: %s", e)
 
