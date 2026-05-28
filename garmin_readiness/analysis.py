@@ -229,6 +229,17 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
         if type_key == "stair_climbing" else ""
     )
 
+    _ftp_labels = {"FTP Test", "FTP Re-test", "Final FTP Test"}
+    ftp_note = (
+        "Session structure note: this is an FTP test. The standard structure is "
+        "~15m warm-up (Z1–Z2), 3m priming effort, 5m Z1 recovery, then a 20-minute all-out effort (target Z4–Z5), "
+        "followed by ~17m cool-down (Z1–Z2). The HR zone distribution across the full activity will therefore "
+        "show significant Z1–Z2 time from the warm-up and cool-down — this is expected and correct. "
+        "Focus your analysis on whether the 20-minute test effort was well-executed: "
+        "was max HR high, did the athlete sustain effort into Z4–Z5, and how does the training load reflect the test demand?"
+        if (d_obj and session_for_date(d_obj) and session_for_date(d_obj)[1] in _ftp_labels) else ""
+    )
+
     lines = [
         f"Activity: {name}",
         f"Date: {act_date}",
@@ -239,6 +250,7 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
         f"Training load: {tl}",
         f"Avg respiration: {resp} breaths/min" if resp else "",
         equipment_note,
+        ftp_note,
         "",
         "Heart rate zone distribution:",
         *zone_lines,
