@@ -321,9 +321,9 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
     _EVENT_DATE = date(2026, 9, 13)
     _PLAN_DAYS  = 84
     _days_into  = (target - _PLAN_START).days
-    _wc = _week_completion()
+    _ws = _week_summary()
     if target >= _PLAN_START and (_EVENT_DATE - target).days > 0:
-        _week_pct = _wc.get("pct") if _wc else None
+        _week_pct = _ws.get("pct") if _ws else None
         if _week_pct is None:
             _on_label, _on_col = "No data yet", "text-zinc-500"
         elif _week_pct >= 80:
@@ -357,7 +357,7 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
         "trend_note": seven_day_composite_trend_csv(),
         "activity_blurb": _activity_context_blurb(activities),
         "advice": _advice_cache[date_key],
-        "week_completion": _wc,
+        "week_summary": _ws,
         "metric_explainer": generate_dashboard_explainer(),
         "sparklines": sparklines,
         "today_plan": today_plan,
@@ -882,6 +882,97 @@ async def tenerife_view(request: Request):
     return TEMPLATES.TemplateResponse(request=request, name="tenerife.html", context={})
 
 
+def _week_summary() -> Optional[dict]:
+    """Per-day training breakdown for the current Mon–Sun week."""
+    today = date.today()
+    mon = today - timedelta(days=today.weekday())
+    sun = mon + timedelta(days=6)
+
+    acts_by_date = load_activities_by_date(mon, min(sun, today))
+
+    plan_min_total = 0
+    done_min_total = 0
+    day_rows = []
+
+    for i in range(7):
+        d = mon + timedelta(days=i)
+        is_today = d == today
+        is_future = d > today
+
+        session = session_for_date(d)
+        stype = session[0] if session else "rest"
+        slabel = session[1] if session else "Rest"
+        sdur = session[2] if session else 0
+
+        if stype != "rest" and sdur:
+            plan_min_total += sdur
+
+        actual_min = None
+        completed = None
+        if not is_future and stype != "rest":
+            day_acts = acts_by_date.get(d.isoformat(), [])
+            compound = COMPOUND_SESSIONS.get(slabel)
+            if compound:
+                matched = [a for a in day_acts
+                           if any(a["type_key"] == s["garmin_key"] for s in compound)]
+            else:
+                valid_keys = ACTIVITY_MATCH.get(stype, set())
+                matched = [a for a in day_acts if a["type_key"] in valid_keys]
+            completed = bool(matched)
+            if matched:
+                actual_min = int(sum(a.get("duration_seconds", 0) or 0 for a in matched) / 60)
+                done_min_total += actual_min
+
+        readiness = None
+        if not is_future and not is_today:
+            m = load(d)
+            if m:
+                stats = baseline_stats(d)
+                readiness = composite_score(m, stats)
+
+        day_rows.append({
+            "date": d,
+            "day_name": d.strftime("%a"),
+            "type": stype,
+            "label": slabel,
+            "dur_min": sdur,
+            "actual_min": actual_min,
+            "completed": completed,
+            "is_today": is_today,
+            "is_future": is_future,
+            "readiness": readiness,
+        })
+
+    readiness_vals = [r["readiness"] for r in day_rows if r["readiness"] is not None]
+    avg_readiness = sum(readiness_vals) / len(readiness_vals) if readiness_vals else None
+
+    # Last week total training minutes for comparison
+    last_mon = mon - timedelta(weeks=1)
+    last_acts = load_activities_by_date(last_mon, mon - timedelta(days=1))
+    last_done_min = sum(
+        int((a.get("duration_seconds", 0) or 0) / 60)
+        for d_acts in last_acts.values()
+        for a in d_acts
+        if any(a["type_key"] in keys for keys in ACTIVITY_MATCH.values())
+    )
+
+    days_into = (today - _PLAN_START).days
+    week_num = max(1, days_into // 7 + 1) if today >= _PLAN_START else None
+    pct = int(done_min_total / plan_min_total * 100) if plan_min_total else 0
+
+    return {
+        "days": day_rows,
+        "plan_min_fmt": _fmt_min(plan_min_total),
+        "done_min_fmt": _fmt_min(done_min_total) if done_min_total else "0m",
+        "pct": pct,
+        "bar_filled": min(pct, 100),
+        "avg_readiness": avg_readiness,
+        "last_done_fmt": _fmt_min(last_done_min) if last_done_min else "0m",
+        "week_num": week_num,
+        "week_start": mon,
+    }
+
+
 def _body_context() -> dict[str, Any]:
     body_rows = load_body_metrics(days=90)
     bp_rows = load_blood_pressure(days=90)
@@ -897,20 +988,30 @@ def _body_context() -> dict[str, Any]:
             latest_bp["systolic"], latest_bp["diastolic"]
         )
 
-    # Weight chart: one point per day (latest reading if multiple)
+    # Chart series: one point per day (latest reading wins)
     weight_by_date: dict[str, Optional[float]] = {}
     fat_by_date: dict[str, Optional[float]] = {}
+    muscle_by_date: dict[str, Optional[float]] = {}
+    hydration_by_date: dict[str, Optional[float]] = {}
     for r in body_rows:
         d = r["date"]
         if r.get("weight_kg") is not None:
             weight_by_date[d] = r["weight_kg"]
         if r.get("fat_pct") is not None:
             fat_by_date[d] = r["fat_pct"]
+        if r.get("muscle_mass_kg") is not None:
+            muscle_by_date[d] = r["muscle_mass_kg"]
+        if r.get("hydration_pct") is not None:
+            hydration_by_date[d] = r["hydration_pct"]
 
     weight_dates = sorted(weight_by_date)
     weight_values = [weight_by_date[d] for d in weight_dates]
     fat_dates = sorted(fat_by_date)
     fat_values = [fat_by_date[d] for d in fat_dates]
+    muscle_dates = sorted(muscle_by_date)
+    muscle_values = [muscle_by_date[d] for d in muscle_dates]
+    hydration_dates = sorted(hydration_by_date)
+    hydration_values = [hydration_by_date[d] for d in hydration_dates]
 
     # BP chart: one point per reading
     bp_dates = [r["date"] for r in bp_rows]
@@ -938,6 +1039,10 @@ def _body_context() -> dict[str, Any]:
         "weight_values": weight_values,
         "fat_dates": _short(fat_dates),
         "fat_values": fat_values,
+        "muscle_dates": _short(muscle_dates),
+        "muscle_values": muscle_values,
+        "hydration_dates": _short(hydration_dates),
+        "hydration_values": hydration_values,
         "bp_dates": _short(bp_dates),
         "bp_sys": bp_sys,
         "bp_dia": bp_dia,

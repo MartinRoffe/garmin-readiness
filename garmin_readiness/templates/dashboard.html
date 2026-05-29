@@ -134,24 +134,79 @@
   </div>
 
   <!-- ── Week progress ─────────────────────────────────────────────── -->
-  {% if week_completion %}
-  {% set wc = week_completion %}
-  <div class="card" style="padding:16px 20px;margin-bottom:12px;display:flex;align-items:center;gap:20px">
-    <div style="flex-shrink:0;min-width:56px">
-      <p class="eyebrow" style="margin-bottom:4px">Week</p>
-      <p style="font-family:var(--font-d);font-size:36px;line-height:1;
-        {% if wc.pct >= 90 %}color:#a3e635{% elif wc.pct >= 60 %}color:#fb923c{% else %}color:#f87171{% endif %}">{{ wc.pct }}%</p>
+  {% if week_summary %}
+  {% set ws = week_summary %}
+  {% set type_col = {'bike':'#34d399','tempo':'#fbbf24','ftp':'#fb923c','long':'#f59e0b','strength':'#a78bfa','ruck':'#f472b6','rest':'#3f3f46'} %}
+  <div class="card" style="padding:16px 20px;margin-bottom:12px">
+
+    <!-- Header row -->
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+      <p class="eyebrow">{% if ws.week_num %}Week {{ ws.week_num }} of 12{% else %}This Week{% endif %}</p>
+      <span style="font-family:var(--font-m);font-size:11px;
+        {% if ws.pct >= 90 %}color:#a3e635{% elif ws.pct >= 60 %}color:#fb923c{% else %}color:#f87171{% endif %}">
+        {{ ws.pct }}% · {{ ws.done_min_fmt }} / {{ ws.plan_min_fmt }}
+      </span>
     </div>
-    <div style="flex:1">
-      <div style="display:flex;justify-content:space-between;margin-bottom:7px">
-        <span style="font-family:var(--font-m);font-size:11px;color:var(--text)">{{ wc.done_min_fmt }} done</span>
-        <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">of {{ wc.plan_min_fmt }} · day {{ wc.day_of_week }}/7</span>
-      </div>
-      <div style="background:var(--border);height:3px;border-radius:2px;overflow:hidden">
-        <div style="height:100%;border-radius:2px;width:{{ wc.bar_filled }}%;
-          {% if wc.pct >= 90 %}background:#a3e635{% elif wc.pct >= 60 %}background:#fb923c{% else %}background:#f87171{% endif %}"></div>
+
+    <!-- Day rows -->
+    {% for day in ws.days %}
+    <div style="display:grid;grid-template-columns:30px 1fr auto auto;align-items:center;gap:6px;padding:4px 0;
+      {% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}
+      {% if day.is_today %}opacity:1{% elif day.is_future %}opacity:0.45{% endif %}">
+
+      <!-- Day name -->
+      <span style="font-family:var(--font-m);font-size:10px;color:{% if day.is_today %}var(--text){% else %}var(--muted){% endif %};letter-spacing:0.1em">
+        {{ day.day_name | upper }}
+      </span>
+
+      <!-- Session label -->
+      <span style="font-size:12px;color:{{ type_col.get(day.type, '#a1a1aa') }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+        {% if day.type == 'rest' %}—{% else %}{{ day.label }}{% endif %}
+      </span>
+
+      <!-- Planned duration -->
+      <span style="font-family:var(--font-m);font-size:10px;color:var(--muted);text-align:right;white-space:nowrap">
+        {% if day.dur_min and day.type != 'rest' %}{{ day.dur_min }}m{% endif %}
+      </span>
+
+      <!-- Status indicator -->
+      <span style="font-family:var(--font-m);font-size:11px;text-align:right;white-space:nowrap;min-width:42px">
+        {% if day.type == 'rest' %}
+          <span style="color:var(--muted)">—</span>
+        {% elif day.is_future or day.is_today %}
+          <span style="color:var(--muted)">·</span>
+        {% elif day.completed %}
+          <span style="color:#a3e635">✓ {{ day.actual_min }}m</span>
+        {% else %}
+          <span style="color:#f87171">✗</span>
+        {% endif %}
+      </span>
+
+    </div>
+    {% endfor %}
+
+    <!-- Footer -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">
+      <span style="font-family:var(--font-m);font-size:10px;color:var(--muted)">
+        Last week: {{ ws.last_done_fmt }}
+      </span>
+      {% if ws.avg_readiness is not none %}
+      <span style="font-family:var(--font-m);font-size:10px;color:var(--muted)">
+        Avg readiness:
+        <span style="{% if ws.avg_readiness >= 0.5 %}color:#a3e635{% elif ws.avg_readiness >= -0.5 %}color:#fbbf24{% else %}color:#f87171{% endif %}">
+          {% if ws.avg_readiness >= 0 %}+{% endif %}{{ "%.2f"|format(ws.avg_readiness) }}σ
+        </span>
+      </span>
+      {% endif %}
+    </div>
+
+    <!-- Progress bar -->
+    <div style="margin-top:8px;background:var(--border);height:2px;border-radius:2px;overflow:hidden">
+      <div style="height:100%;border-radius:2px;width:{{ ws.bar_filled }}%;
+        {% if ws.pct >= 90 %}background:#a3e635{% elif ws.pct >= 60 %}background:#fb923c{% else %}background:#f87171{% endif %}">
       </div>
     </div>
+
   </div>
   {% endif %}
 

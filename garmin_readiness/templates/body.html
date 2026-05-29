@@ -158,6 +158,27 @@
       </div>
     </div>
     {% endif %}
+
+    <!-- Muscle mass chart -->
+    {% if muscle_values and muscle_values | select | list %}
+    <div class="card" style="padding:28px">
+      <p class="eyebrow" style="margin-bottom:16px">Muscle Mass — 90 Day Trend</p>
+      <div style="position:relative;height:200px">
+        <canvas id="muscleChart"></canvas>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Hydration chart -->
+    {% if hydration_values and hydration_values | select | list %}
+    <div class="card" style="padding:28px">
+      <p class="eyebrow" style="margin-bottom:16px">Hydration % — 90 Day Trend</p>
+      <div style="position:relative;height:200px">
+        <canvas id="hydrationChart"></canvas>
+      </div>
+    </div>
+    {% endif %}
+
     {% endif %}
 
     {% if has_bp %}
@@ -247,6 +268,50 @@ if (fatCtx) {
         data: {{ fat_values | tojson }},
         borderColor: '#fb923c',
         backgroundColor: 'rgba(251,146,60,0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        spanGaps: true,
+      }],
+    },
+    options: baseOptions('%'),
+  });
+}
+{% endif %}
+
+{% if muscle_values and muscle_values | select | list %}
+const muscleCtx = document.getElementById('muscleChart');
+if (muscleCtx) {
+  new Chart(muscleCtx, {
+    type: 'line',
+    data: {
+      labels: {{ muscle_dates | tojson }},
+      datasets: [{
+        data: {{ muscle_values | tojson }},
+        borderColor: '#a78bfa',
+        backgroundColor: 'rgba(167,139,250,0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        spanGaps: true,
+      }],
+    },
+    options: baseOptions('kg'),
+  });
+}
+{% endif %}
+
+{% if hydration_values and hydration_values | select | list %}
+const hydrationCtx = document.getElementById('hydrationChart');
+if (hydrationCtx) {
+  new Chart(hydrationCtx, {
+    type: 'line',
+    data: {
+      labels: {{ hydration_dates | tojson }},
+      datasets: [{
+        data: {{ hydration_values | tojson }},
+        borderColor: '#38bdf8',
+        backgroundColor: 'rgba(56,189,248,0.08)',
         borderWidth: 2,
         fill: true,
         tension: 0.3,
