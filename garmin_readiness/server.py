@@ -39,6 +39,7 @@ from .history import (
     save_blood_pressure,
     seven_day_composite_trend_csv,
     z_score,
+    get_cached_text,
 )
 from .metrics import DailyMetrics, available_count, fetch_metrics, fetch_activities, TEXT_FIELDS
 
@@ -287,6 +288,7 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
             "dur_fmt":  _fmt_min(_sdur),
             "icon":     _SESSION_ICONS.get(_stype, "📋"),
             "compound": COMPOUND_SESSIONS.get(_slabel),
+            "note":     get_cached_text(f"session_note_{target.isoformat()}"),
         }
     else:
         today_plan = None
