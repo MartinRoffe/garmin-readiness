@@ -108,6 +108,22 @@
     </div>
     {% endif %}
 
+    {% if latest_body and latest_body.bone_mass_kg %}
+    <div class="card" style="padding:20px 22px">
+      <p class="eyebrow" style="margin-bottom:6px">Bone Mass</p>
+      <p style="font-family:var(--font-d);font-size:32px;letter-spacing:0.06em;color:var(--text);line-height:1">{{ "%.2f"|format(latest_body.bone_mass_kg) }}</p>
+      <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:4px">kg</p>
+    </div>
+    {% endif %}
+
+    {% if latest_body and latest_body.hydration_pct %}
+    <div class="card" style="padding:20px 22px">
+      <p class="eyebrow" style="margin-bottom:6px">Hydration</p>
+      <p style="font-family:var(--font-d);font-size:32px;letter-spacing:0.06em;color:var(--text);line-height:1">{{ "%.1f"|format(latest_body.hydration_pct) }}</p>
+      <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:4px">%</p>
+    </div>
+    {% endif %}
+
     {% if latest_bp and latest_bp.systolic and latest_bp.diastolic %}
     <div class="card" style="padding:20px 22px">
       <p class="eyebrow" style="margin-bottom:6px">Blood Pressure</p>
