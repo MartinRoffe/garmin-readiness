@@ -248,6 +248,11 @@ def main() -> None:
         help="Upload training plan bike workouts to Garmin Connect and schedule them",
     )
     parser.add_argument(
+        "--withings-sync",
+        action="store_true",
+        help="Push recent Withings measurements to Garmin Connect before fetching",
+    )
+    parser.add_argument(
         "--setup-schedule",
         action="store_true",
         help="Install a launchd job to email daily at 7am",
@@ -315,6 +320,17 @@ def main() -> None:
         if not args.fetch and target == date.today():
             # Also fetch today after backfill
             pass
+
+    # Optionally push Withings data to Garmin before fetching
+    if args.withings_sync:
+        from .withings import sync_withings_to_garmin
+        _w_api = get_api(email, password)
+        with console.status("Syncing Withings → Garmin…"):
+            _synced = sync_withings_to_garmin(_w_api)
+        if _synced:
+            console.print("[green]Withings data synced to Garmin Connect.[/green]")
+        else:
+            console.print("[dim]No new Withings data to sync.[/dim]")
 
     # Fetch / load today's metrics
     needs_api = args.fetch or load(target) is None
