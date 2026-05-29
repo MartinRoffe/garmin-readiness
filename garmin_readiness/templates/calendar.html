@@ -143,7 +143,7 @@
 
       {% for day in week.days %}
       {% set is_cycling = day.type in ['bike', 'tempo', 'ftp', 'long'] %}
-      {% set is_missed = day.completed == false and day.type != 'rest' %}
+      {% set is_missed = day.completed == false and day.type != 'rest' and not day.is_today %}
       <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
                   {% if day.is_today %}today-ring{% endif %}
                   {% if day.is_past %}is-past{% endif %}
