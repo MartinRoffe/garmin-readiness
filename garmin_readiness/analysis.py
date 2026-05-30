@@ -226,7 +226,10 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
         "Equipment note: this 'stair_climbing' activity was performed on a MaxiClimber — "
         "a vertical climbing machine that works arms AND legs simultaneously (full-body). "
         "It is NOT a stair stepper or step machine (legs only). Treat it as a full-body cardio/strength effort."
-        if type_key == "stair_climbing" else ""
+        if type_key == "stair_climbing" else
+        "Activity note: 'load carry' and 'rucking' are the same activity — walking or hiking with a weighted pack. "
+        "Do not treat them as different session types. A planned ruck and a logged load carry are equivalent."
+        if "load carry" in name.lower() else ""
     )
 
     _ftp_labels = {"FTP Test", "FTP Re-test", "Final FTP Test"}
