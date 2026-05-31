@@ -68,16 +68,30 @@ def fmt_pace(seconds: Optional[float], meters: Optional[float], type_key: str) -
     return ""
 
 
+def fmt_speed(seconds: Optional[float], meters: Optional[float]) -> str:
+    """Return avg speed in km/h, or empty string if data missing."""
+    if not seconds or not meters or meters == 0:
+        return ""
+    return f"{(meters / 1000) / (seconds / 3600):.1f} km/h"
+
+
+_RUCK_TYPE_KEYS = {"hiking", "walking", "trail_running", "running", "load_carry"}
+
+
 def enrich_activity(a: dict) -> dict:
     from .metrics import _TYPE_ICONS, _TYPE_LABELS
     type_key = a.get("type_key", "")
+    secs = a.get("duration_seconds")
+    meters = a.get("distance_meters")
+    is_ruck = type_key in _RUCK_TYPE_KEYS or "load carry" in (a.get("name") or "").lower()
     return {
         **a,
-        "icon":         _TYPE_ICONS.get(type_key, "🏅"),
-        "type_label":   _TYPE_LABELS.get(type_key, type_key.replace("_", " ").title()),
-        "duration_fmt": fmt_duration(a.get("duration_seconds")),
-        "distance_fmt": fmt_distance(a.get("distance_meters")),
-        "pace_fmt":     fmt_pace(a.get("duration_seconds"), a.get("distance_meters"), type_key),
+        "icon":          _TYPE_ICONS.get(type_key, "🏅"),
+        "type_label":    _TYPE_LABELS.get(type_key, type_key.replace("_", " ").title()),
+        "duration_fmt":  fmt_duration(secs),
+        "distance_fmt":  fmt_distance(meters),
+        "pace_fmt":      fmt_pace(secs, meters, type_key),
+        "speed_fmt":     fmt_speed(secs, meters) if is_ruck else "",
     }
 
 

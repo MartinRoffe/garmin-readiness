@@ -118,6 +118,12 @@
         <p style="font-family:var(--font-m);font-size:15px;font-weight:500;color:var(--text)">{{ a.pace_fmt }}</p>
       </div>
       {% endif %}
+      {% if a.speed_fmt %}
+      <div>
+        <p class="eyebrow" style="margin-bottom:3px">Avg Speed</p>
+        <p style="font-family:var(--font-m);font-size:15px;font-weight:500;color:var(--text)">{{ a.speed_fmt }}</p>
+      </div>
+      {% endif %}
       {% if a.avg_hr %}
       <div>
         <p class="eyebrow" style="margin-bottom:3px">Avg HR</p>
