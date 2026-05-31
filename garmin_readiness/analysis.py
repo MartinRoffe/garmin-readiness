@@ -172,6 +172,13 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
     dur_secs = int(activity.get("duration_seconds") or 0)
     dur_fmt = _fmt_secs(dur_secs)
     dist_km = round((activity.get("distance_meters") or 0) / 1000, 1)
+    type_key = activity.get("type_key", "")
+    _CYCLING_TYPES = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
+    avg_speed_kmh = (
+        round(dist_km / (dur_secs / 3600), 1)
+        if type_key in _CYCLING_TYPES and dur_secs > 0 and dist_km > 0
+        else None
+    )
     avg_hr = activity.get("avg_hr")
     max_hr = activity.get("max_hr")
     calories = activity.get("calories")
@@ -227,7 +234,6 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
                         "Only this component was logged today. Do not flag the duration as short.",
                     ]
 
-    type_key = activity.get("type_key", "")
     equipment_note = (
         "Equipment note: this 'stair_climbing' activity was performed on a MaxiClimber — "
         "a vertical climbing machine that works arms AND legs simultaneously (full-body). "
@@ -252,7 +258,7 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
     lines = [
         f"Activity: {name}",
         f"Date: {act_date}",
-        f"Duration: {dur_fmt}  Distance: {dist_km} km",
+        f"Duration: {dur_fmt}  Distance: {dist_km} km" + (f"  Avg speed: {avg_speed_kmh} km/h" if avg_speed_kmh else ""),
         f"Avg HR: {avg_hr} bpm  Max HR: {max_hr} bpm",
         f"Calories: {calories}  Elevation gain: {elev} m",
         f"Aerobic training effect: {te} ({te_label}) — {aerobic_msg}",
