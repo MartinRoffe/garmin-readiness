@@ -330,10 +330,9 @@
           }
         }
       },
-      layout: { padding: { left: 8 } },
       scales: {
         x: { grid: { color: G }, ticks: { ...T, maxTicksLimit: 12 } },
-        y: { grid: { color: G }, ticks: { ...T, maxTicksLimit: 6 }, min: 0 }
+        y: { afterFit(s) { s.width = 52; }, grid: { color: G }, ticks: { ...T, maxTicksLimit: 6 }, min: 0 }
       }
     }
   });
