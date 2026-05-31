@@ -142,7 +142,7 @@
       </div>
 
       {% for day in week.days %}
-      {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength'] %}
+      {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength', 'ruck'] %}
       {% set is_missed = day.completed == false and day.type != 'rest' and not day.is_today %}
       <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
                   {% if day.is_today %}today-ring{% endif %}
@@ -159,6 +159,8 @@
              data-dur-fmt="{{ day.dur_fmt }}"
              data-coach-note="{{ day.coach_note }}"
              {% if day.maxi_intervals %}data-maxi-intervals='{{ day.maxi_intervals | tojson }}'{% endif %}
+             {% if day.ruck_spec %}data-ruck-spec='{{ day.ruck_spec | tojson }}'{% endif %}
+             {% if day.kb_spec %}data-kb-spec='{{ day.kb_spec | tojson }}'{% endif %}
              onclick="openModal(this)"
            {% endif %}>
         <div class="flex items-start justify-between mb-0.5">
@@ -550,6 +552,7 @@
       "90–110 rpm":             "text-blue-400",
       "60–70 rpm":              "text-purple-400",
       "Strength":               "text-violet-400",
+      "Ruck":                   "text-amber-400",
     };
 
     function fmtMins(m) {
@@ -593,6 +596,29 @@
       }
     }
 
+    function buildRuckSteps(dur, spec) {
+      const warmup = 10, cooldown = 5;
+      const ruckTotal = spec.ruck_min !== undefined ? spec.ruck_min : dur;
+      const main = Math.max(0, ruckTotal - warmup - cooldown);
+      const wStr = spec.weight_hi
+        ? spec.weight_lo + '–' + spec.weight_hi + ' kg'
+        : spec.weight_lo + ' kg';
+      return [
+        {fmt: warmup + 'm',   name: 'Warm-up walk (no pack)', zone: 'Z1'},
+        {fmt: main + 'm',     name: 'Ruck — ' + wStr,          zone: 'Ruck'},
+        {fmt: cooldown + 'm', name: 'Cool-down walk',           zone: 'Z1'},
+      ];
+    }
+
+    function buildKBSteps(spec) {
+      return spec.exercises.map(ex => ({
+        fmt:    ex.id,
+        name:   ex.name,
+        repeat: ex.sets_reps,
+        zone:   'Strength',
+      }));
+    }
+
     function openModal(el) {
       const label  = el.dataset.label;
       const dur    = parseInt(el.dataset.dur, 10);
@@ -602,29 +628,40 @@
                                                          : el.classList.contains('sess-tempo')    ? 'Tempo'
                                                          : el.classList.contains('sess-long')     ? 'Long Ride'
                                                          : el.classList.contains('sess-strength') ? 'Strength'
+                                                         : el.classList.contains('sess-ruck')     ? 'Ruck'
                                                          : 'Cycling';
       document.getElementById('modal-title').textContent = label;
       document.getElementById('modal-dur').textContent   = durFmt ? 'Duration: ' + durFmt : '';
 
-      // Coach description
-      const desc = WORKOUT_DESCS[label] || '';
-      document.getElementById('modal-desc').textContent = desc;
-      document.getElementById('modal-desc').classList.toggle('hidden', !desc);
-
-      // AI coach recommendation
+      // AI coach recommendation (always from data attribute)
       const coachNote = el.dataset.coachNote || '';
       document.getElementById('modal-coach-note-text').textContent = coachNote;
       document.getElementById('modal-coach-note').classList.toggle('hidden', !coachNote);
 
-      // Steps — MaxiClimber uses dynamic interval data; others use WORKOUT_STEPS
+      // Description and steps — ruck/KB specs override WORKOUT_DESCS
       const maxiRaw = el.dataset.maxiIntervals;
-      let steps;
+      const ruckRaw = el.dataset.ruckSpec;
+      const kbRaw   = el.dataset.kbSpec;
+      let desc, steps;
       if (maxiRaw) {
+        desc  = WORKOUT_DESCS[label] || '';
         steps = buildMaxiSteps(dur, JSON.parse(maxiRaw));
+      } else if (ruckRaw) {
+        const ruckSpec = JSON.parse(ruckRaw);
+        desc  = ruckSpec.note || '';
+        steps = buildRuckSteps(dur, ruckSpec);
+        if (kbRaw) steps = steps.concat(buildKBSteps(JSON.parse(kbRaw)));
+      } else if (kbRaw) {
+        const kbSpec = JSON.parse(kbRaw);
+        desc  = kbSpec.note || '';
+        steps = buildKBSteps(kbSpec);
       } else {
+        desc  = WORKOUT_DESCS[label] || '';
         const stepFn = WORKOUT_STEPS[label];
         steps = stepFn ? stepFn(dur) : [];
       }
+      document.getElementById('modal-desc').textContent = desc;
+      document.getElementById('modal-desc').classList.toggle('hidden', !desc);
       const stepsEl = document.getElementById('modal-steps');
       stepsEl.innerHTML = '';
       steps.forEach(s => {

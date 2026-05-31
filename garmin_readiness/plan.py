@@ -166,6 +166,84 @@ MAXI_INTERVALS: dict[int, dict] = {
     8:  {"sets": 5, "work_s": 120, "rest_s": 60, "kb": False},   # 20m
 }
 
+RUCK_SPECS: dict[int, dict] = {
+    1:  {"weight_lo": 8,  "weight_hi": None, "ruck_min": 75, "note": "Compound — ruck first (~75m at 8 kg), then KB block at home"},
+    2:  {"weight_lo": 8,  "weight_hi": 10,   "note": "Start at 8 kg; increase to 10 if the first half feels easy"},
+    3:  {"weight_lo": 10, "weight_hi": None, "note": "Hold 10 kg — FTP test week, preserve the legs"},
+    4:  {"weight_lo": 8,  "weight_hi": None, "note": "Deload week — easy effort at 8 kg"},
+    5:  {"weight_lo": 10, "weight_hi": None, "note": "Reload week — solid 10 kg effort"},
+    6:  {"weight_lo": 10, "weight_hi": 12,   "note": "Push to 12 kg if last week felt manageable"},
+    7:  {"weight_lo": 12, "weight_hi": None, "note": "Peak week — hold 12 kg for the full distance"},
+    8:  {"weight_lo": 10, "weight_hi": None, "note": "Deload — step back to 10 kg, easy effort"},
+    9:  {"weight_lo": 12, "weight_hi": 15,   "note": "Heaviest block — work up to 15 kg if form holds"},
+    10: {"weight_lo": 12, "weight_hi": 15,   "note": "Match or exceed last week's load"},
+    11: {"weight_lo": 8,  "weight_hi": None, "note": "Taper — 8 kg, focus on stride quality and pace"},
+    12: {"weight_lo": 8,  "weight_hi": None, "note": "Celebration ruck — any comfortable load, enjoy it"},
+}
+
+KB_SPECS: dict[int, dict] = {
+    1: {
+        "note": "After the ruck — abbreviated. Hip hinge quality over volume.",
+        "exercises": [
+            {"id": "A1", "name": "KB Deadlift",         "sets_reps": "3 × 5",  "target": "Posterior chain"},
+            {"id": "A2", "name": "KB Swing (Two-Hand)", "sets_reps": "3 × 10", "target": "Explosive hip extension"},
+            {"id": "B1", "name": "KB Goblet Squat",     "sets_reps": "2 × 8",  "target": "Quad + hip mobility"},
+        ]
+    },
+    3: {
+        "note": "FTP test week — light load, perfect form. A+B blocks only.",
+        "exercises": [
+            {"id": "A1", "name": "KB Deadlift",            "sets_reps": "3 × 5",  "target": "Posterior chain"},
+            {"id": "A2", "name": "KB Swing (Two-Hand)",    "sets_reps": "3 × 10", "target": "Explosive hip extension"},
+            {"id": "B1", "name": "KB Goblet Squat",        "sets_reps": "2 × 8",  "target": "Quad + hip mobility"},
+            {"id": "B2", "name": "Single-Leg KB Deadlift", "sets_reps": "2 × 6/s","target": "Balance + hip stability"},
+        ]
+    },
+    4: {
+        "note": "Deload week — minimal volume. Move well, flush the legs.",
+        "exercises": [
+            {"id": "A1", "name": "KB Deadlift",         "sets_reps": "2 × 5",  "target": "Posterior chain"},
+            {"id": "A2", "name": "KB Swing (Two-Hand)", "sets_reps": "2 × 10", "target": "Explosive hip extension"},
+            {"id": "B1", "name": "KB Goblet Squat",     "sets_reps": "2 × 8",  "target": "Quad + mobility"},
+        ]
+    },
+    7: {
+        "note": "FTP retest week — A+B blocks, moderate effort.",
+        "exercises": [
+            {"id": "A1", "name": "KB Deadlift",            "sets_reps": "3 × 5",  "target": "Posterior chain"},
+            {"id": "A2", "name": "KB Swing (Two-Hand)",    "sets_reps": "3 × 12", "target": "Explosive hip extension"},
+            {"id": "B1", "name": "KB Goblet Squat",        "sets_reps": "2 × 10", "target": "Quad + hip mobility"},
+            {"id": "B2", "name": "Single-Leg KB Deadlift", "sets_reps": "2 × 8/s","target": "Balance + hip stability"},
+        ]
+    },
+    8: {
+        "note": "Deload week — minimal volume. Active recovery.",
+        "exercises": [
+            {"id": "A1", "name": "KB Deadlift",         "sets_reps": "2 × 5",  "target": "Posterior chain"},
+            {"id": "A2", "name": "KB Swing (Two-Hand)", "sets_reps": "2 × 10", "target": "Explosive hip extension"},
+            {"id": "B1", "name": "KB Goblet Squat",     "sets_reps": "2 × 8",  "target": "Quad + mobility"},
+        ]
+    },
+    11: {
+        "note": "Taper — reduce volume, maintain intensity. A+B+C blocks.",
+        "exercises": [
+            {"id": "A1", "name": "KB Deadlift",            "sets_reps": "3 × 5",   "target": "Posterior chain"},
+            {"id": "A2", "name": "KB Swing (Two-Hand)",    "sets_reps": "3 × 12",  "target": "Explosive hip extension"},
+            {"id": "B1", "name": "KB Goblet Squat",        "sets_reps": "3 × 10",  "target": "Quad + hip mobility"},
+            {"id": "B2", "name": "Single-Leg KB Deadlift", "sets_reps": "3 × 8/s", "target": "Balance + hip stability"},
+            {"id": "C1", "name": "KB Suitcase Carry",      "sets_reps": "2 × 20m/s","target": "Lateral core"},
+        ]
+    },
+    12: {
+        "note": "Final strength session — stay fresh. Just the essentials.",
+        "exercises": [
+            {"id": "A1", "name": "KB Deadlift",         "sets_reps": "2 × 5",  "target": "Posterior chain"},
+            {"id": "A2", "name": "KB Swing (Two-Hand)", "sets_reps": "2 × 10", "target": "Explosive hip extension"},
+            {"id": "B1", "name": "KB Goblet Squat",     "sets_reps": "2 × 8",  "target": "Quad + mobility"},
+        ]
+    },
+}
+
 _PLAN_DAYS = len(TRAINING_WEEKS) * 7  # 84
 
 # AI coach recommendations keyed by ISO date; surfaced on the calendar card + modal.
@@ -206,6 +284,14 @@ def build_calendar_weeks() -> list[dict]:
             maxi_intervals = None
             if stype == "strength" and "MaxiClimber" in label:
                 maxi_intervals = MAXI_INTERVALS.get(wk_idx + 1)
+            ruck_spec = None
+            kb_spec = None
+            if stype == "ruck":
+                ruck_spec = RUCK_SPECS.get(wk_idx + 1)
+                if label == "Ruck + KB":
+                    kb_spec = KB_SPECS.get(wk_idx + 1)
+            elif stype == "strength" and "MaxiClimber" not in label:
+                kb_spec = KB_SPECS.get(wk_idx + 1)
             days.append({
                 "date": d,
                 "day_num": d.day,
@@ -219,6 +305,8 @@ def build_calendar_weeks() -> list[dict]:
                 "coach_note": COACH_NOTES.get(d.isoformat(), ""),
                 "sub_sessions": sub_sessions,
                 "maxi_intervals": maxi_intervals,
+                "ruck_spec": ruck_spec,
+                "kb_spec": kb_spec,
             })
         weeks.append({"week_num": wk_idx + 1, "start": wk_start, "days": days})
     return weeks
