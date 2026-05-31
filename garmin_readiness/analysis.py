@@ -208,11 +208,16 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
             stype, slabel, sdur = session
             plan_line = f"\nPlanned workout for this day: {slabel} ({stype}, {sdur}m total)"
             dur_min = int(dur_secs / 60)
-            if dur_min >= sdur * 0.95 and not COMPOUND_SESSIONS.get(slabel):
-                plan_line += (
-                    f"\nNote: actual duration ({dur_min}m) meets or exceeds the plan ({sdur}m). "
-                    "Do NOT flag this session as cut short — it was completed as planned."
-                )
+            if not COMPOUND_SESSIONS.get(slabel):
+                over_pct = (dur_min - sdur) / sdur * 100 if sdur else 0
+                if dur_min >= sdur * 0.95 and over_pct <= 25:
+                    plan_line += (
+                        f"\nNote: actual duration ({dur_min}m) is within normal range of the plan ({sdur}m). "
+                        "Do NOT flag this as significantly exceeding or cutting short the plan."
+                    )
+                elif dur_min < sdur * 0.95:
+                    pass  # genuinely short — Claude can comment
+                # over 25% is a genuine overrun — no note needed
             if COMPOUND_SESSIONS.get(slabel):
                 if companion:
                     comp_dur = int((companion.get("duration_seconds") or 0) / 60)
