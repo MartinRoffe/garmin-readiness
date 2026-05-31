@@ -182,7 +182,7 @@ RUCK_SPECS: dict[int, dict] = {
 }
 
 KB_VIDEO_URLS: dict[str, str] = {
-    "KB Deadlift":            "https://www.youtube.com/watch?v=-N4NjwW7bGA",
+    "KB Deadlift":            "https://youtu.be/G8wX8wwDJsM?si=vsgSzurbJu91MrBo",
     "KB Swing (Two-Hand)":    "https://www.youtube.com/watch?v=1Qi0NQW89Oc",
     "KB Goblet Squat":        "https://www.youtube.com/watch?v=aNDUbH_Uv4g",
     "Single-Leg KB Deadlift": "https://www.youtube.com/watch?v=0P0t3h7Qbns",
