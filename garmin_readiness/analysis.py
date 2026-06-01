@@ -115,6 +115,46 @@ def _te_label(label: Optional[str]) -> str:
     return label.replace("_", " ").title()
 
 
+_CYCLING_TYPES = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
+_RUNNING_TYPES = {"running", "trail_running", "treadmill_running"}
+_RUCK_TYPES    = {"hiking", "walking", "load_carry", "rucking"}
+
+
+def _coach_system_prompt(type_key: str, activity_name: str = "") -> str:
+    tail = (
+        "Be direct, specific, and evidence-based. Reference the numbers. "
+        "No bullet markdown — short paragraphs only. Address the athlete as 'you'."
+    )
+    is_ruck = type_key in _RUCK_TYPES or "load carry" in activity_name.lower()
+    if type_key in _CYCLING_TYPES:
+        return (
+            "You are an experienced cycling coach and endurance specialist reviewing a completed ride. " + tail
+        )
+    if type_key == "stair_climbing":
+        return (
+            "You are an experienced strength and conditioning coach specialising in climbing "
+            "and full-body functional fitness, reviewing a completed MaxiClimber session. " + tail
+        )
+    if type_key == "strength_training":
+        return (
+            "You are an experienced strength and conditioning coach reviewing a completed "
+            "kettlebell and strength session. " + tail
+        )
+    if is_ruck:
+        return (
+            "You are an experienced military fitness and load-carrying coach reviewing a "
+            "completed ruck session. " + tail
+        )
+    if type_key in _RUNNING_TYPES:
+        return (
+            "You are an experienced running coach reviewing a completed run. " + tail
+        )
+    return (
+        "You are an experienced endurance and conditioning coach reviewing a completed "
+        "training session. " + tail
+    )
+
+
 def generate_analysis(activity: dict, detail: dict, companion: Optional[dict] = None) -> str:
     """Call Claude Haiku to analyse the workout and return a short commentary."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -125,15 +165,13 @@ def generate_analysis(activity: dict, detail: dict, companion: Optional[dict] = 
     client = anthropic.Anthropic(api_key=api_key)
 
     prompt = _build_analysis_prompt(activity, detail, companion=companion)
+    type_key = activity.get("type_key", "")
+    name = activity.get("name") or ""
     try:
         msg = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=500,
-            system=(
-                "You are an experienced strength and conditioning coach reviewing a completed training session. "
-                "Be direct, specific, and evidence-based. Reference the numbers. "
-                "No bullet markdown — short paragraphs only. Address the athlete as 'you'."
-            ),
+            system=_coach_system_prompt(type_key, name),
             messages=[{"role": "user", "content": prompt}],
         )
         return msg.content[0].text
@@ -173,7 +211,6 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
     dur_fmt = _fmt_secs(dur_secs)
     dist_km = round((activity.get("distance_meters") or 0) / 1000, 1)
     type_key = activity.get("type_key", "")
-    _CYCLING_TYPES = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
     avg_speed_kmh = (
         round(dist_km / (dur_secs / 3600), 1)
         if type_key in _CYCLING_TYPES and dur_secs > 0 and dist_km > 0
