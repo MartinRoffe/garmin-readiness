@@ -471,6 +471,22 @@
         {name:"Z2 steady",    mins:10,       zone:"Z2"},
         {name:"Cool-down",    mins:10,       zone:"Z1"},
       ],
+      "Low Cadence Ride": _  => [
+        {name:"Warm-up",      mins:10,       zone:"Z1–2"},
+        {name:"Low cadence",  mins:4,        zone:"60–70 rpm Z3", repeat:"× 6  (2m Z1 between each)"},
+        {name:"Z2 steady",    mins:20,       zone:"Z2"},
+        {name:"Cool-down",    mins:10,       zone:"Z1"},
+      ],
+      "Z2 Ride":          dur => [
+        {name:"Warm-up",      mins:10,       zone:"Z1–2"},
+        {name:"Z2 steady",    mins:dur-20,   zone:"Z2"},
+        {name:"Cool-down",    mins:10,       zone:"Z1"},
+      ],
+      "Easy Ride":        dur => [
+        {name:"Warm-up",      mins:10,       zone:"Z1–2"},
+        {name:"Easy riding",  mins:dur-20,   zone:"Z1–2"},
+        {name:"Cool-down",    mins:10,       zone:"Z1"},
+      ],
       "Easy Prep Ride":   dur => [
         {name:"Warm-up",      mins:10,       zone:"Z1–2"},
         {name:"Easy riding",  mins:dur-20,   zone:"Z1–2"},
