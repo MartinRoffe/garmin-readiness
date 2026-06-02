@@ -36,7 +36,7 @@ TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("ftp",      "FTP Test",             60),
         ("strength", "Easy MaxiClimber",     20),
         ("bike",     "Recovery Spin",        60),
-        ("ruck",     "Ruck  10 kg",          80),
+        ("ruck",     "Mersea Coastal Spur",  210),
         ("long",     "Long Ride",           120),
     ],
     # WK 04 (deload)
@@ -168,7 +168,7 @@ MAXI_INTERVALS: dict[int, dict] = {
 RUCK_SPECS: dict[int, dict] = {
     1:  {"weight_lo": 8,  "weight_hi": None, "ruck_min": 75, "note": "Compound — ruck first (~75m at 8 kg), then KB block at home"},
     2:  {"weight_lo": 8,  "weight_hi": 10,   "note": "Start at 8 kg; increase to 10 if the first half feels easy"},
-    3:  {"weight_lo": 10, "weight_hi": None, "note": "Hold 10 kg — FTP test week, preserve the legs"},
+    3:  {"weight_lo": 10, "weight_hi": None, "mersea_build": True, "note": "Mersea build — do the Coastal Spur (13 km, ~3.5 hr) at light load (10 kg) to begin building duration for the Sep 20 circuit. Keep effort easy — this is a distance day, not a load day."},
     4:  {"weight_lo": 8,  "weight_hi": None, "note": "Deload week — easy effort at 8 kg"},
     5:  {"weight_lo": 10, "weight_hi": None, "note": "Reload week — solid 10 kg effort"},
     6:  {"weight_lo": 10, "weight_hi": 12,   "note": "Push to 12 kg if last week felt manageable"},
