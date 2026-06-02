@@ -223,6 +223,94 @@ def _long_ride(name: str, dur_min: int) -> CyclingWorkout:
     ], dur_min)
 
 
+def _easy_ride(dur_min: int) -> CyclingWorkout:
+    # 10m warmup + easy Z1-2 + 10m cooldown
+    return _make(f"Easy Ride {dur_min}m", [
+        create_warmup_step(600.0, step_order=1),
+        _interval(2, (dur_min - 20) * 60, _hr_zone_target(), 1, 2),
+        create_cooldown_step(600.0, step_order=3),
+    ], dur_min)
+
+
+def _z2_ride(dur_min: int) -> CyclingWorkout:
+    # 10m warmup + Z2 block + 10m cooldown
+    return _make(f"Z2 Ride {dur_min}m", [
+        create_warmup_step(600.0, step_order=1),
+        _interval(2, (dur_min - 20) * 60, _hr_zone_target(), 2, 2),
+        create_cooldown_step(600.0, step_order=3),
+    ], dur_min)
+
+
+def _low_cadence_ride(dur_min: int) -> CyclingWorkout:
+    # 10m warmup + 5×(6m 60-70rpm Z3 + 3m Z1) + 25m Z2 + 10m cooldown = 90m
+    steps: list = [create_warmup_step(600.0, step_order=1)]
+    o = 2
+    for _ in range(5):
+        steps.append(_interval(o, 360, _cadence_target(), 60, 70))
+        o += 1
+        steps.append(_recovery(o, 180, _hr_zone_target(), 1, 1))
+        o += 1
+    steps.append(_interval(o, 1500, _hr_zone_target(), 2, 2))
+    o += 1
+    steps.append(create_cooldown_step(600.0, step_order=o))
+    return _make(f"Low Cadence Ride {dur_min}m", steps, dur_min)
+
+
+def _sweetspot_ride(dur_min: int) -> CyclingWorkout:
+    # 15m warmup + 3×(15m Z3-4 sweetspot + 5m Z1) + 15m cooldown = 90m
+    return _make(f"Sweetspot Ride {dur_min}m", [
+        create_warmup_step(900.0, step_order=1),
+        _interval(2, 900, _hr_zone_target(), 3, 4),
+        _recovery(3, 300, _hr_zone_target(), 1, 1),
+        _interval(4, 900, _hr_zone_target(), 3, 4),
+        _recovery(5, 300, _hr_zone_target(), 1, 1),
+        _interval(6, 900, _hr_zone_target(), 3, 4),
+        create_cooldown_step(900.0, step_order=7),
+    ], dur_min)
+
+
+def _over_unders(dur_min: int) -> CyclingWorkout:
+    # 15m warmup + 3×(8m Z4 under + 2m Z5 over + 5m Z1 recovery) + 15m cooldown = 75m
+    return _make(f"Over-Unders {dur_min}m", [
+        create_warmup_step(900.0, step_order=1),
+        _interval(2, 480, _hr_zone_target(), 4, 4),
+        _interval(3, 120, _hr_zone_target(), 5, 5),
+        _recovery(4, 300, _hr_zone_target(), 1, 1),
+        _interval(5, 480, _hr_zone_target(), 4, 4),
+        _interval(6, 120, _hr_zone_target(), 5, 5),
+        _recovery(7, 300, _hr_zone_target(), 1, 1),
+        _interval(8, 480, _hr_zone_target(), 4, 4),
+        _interval(9, 120, _hr_zone_target(), 5, 5),
+        create_cooldown_step(900.0, step_order=10),
+    ], dur_min)
+
+
+def _threshold_ride(dur_min: int) -> CyclingWorkout:
+    # 15m warmup + 3×(15m Z4 + 5m Z1) + 15m cooldown = 90m
+    return _make(f"Threshold Ride {dur_min}m", [
+        create_warmup_step(900.0, step_order=1),
+        _interval(2, 900, _hr_zone_target(), 4, 4),
+        _recovery(3, 300, _hr_zone_target(), 1, 1),
+        _interval(4, 900, _hr_zone_target(), 4, 4),
+        _recovery(5, 300, _hr_zone_target(), 1, 1),
+        _interval(6, 900, _hr_zone_target(), 4, 4),
+        create_cooldown_step(900.0, step_order=7),
+    ], dur_min)
+
+
+def _hill_repeats(dur_min: int) -> CyclingWorkout:
+    # 15m warmup + 5×(3m Z4-5 effort + 3m Z1 recovery) + 15m cooldown = 60m
+    steps: list = [create_warmup_step(900.0, step_order=1)]
+    o = 2
+    for _ in range(5):
+        steps.append(_interval(o, 180, _hr_zone_target(), 4, 5))
+        o += 1
+        steps.append(_recovery(o, 180, _hr_zone_target(), 1, 1))
+        o += 1
+    steps.append(create_cooldown_step(900.0, step_order=o))
+    return _make(f"Hill Repeats {dur_min}m", steps, dur_min)
+
+
 # ── Label → builder dispatch ─────────────────────────────────────────────────
 
 _BUILDERS: dict[str, Any] = {
@@ -242,7 +330,23 @@ _BUILDERS: dict[str, Any] = {
     "Tempo Intervals":  lambda d: _tempo_intervals(d),
     "Long Ride":        lambda d: _long_ride("Long Ride", d),
     "Long Ride (Easy)": lambda d: _long_ride("Long Ride Easy", d),
+    "Easy Ride":        lambda d: _easy_ride(d),
+    "Z2 Ride":          lambda d: _z2_ride(d),
+    "Low Cadence Ride": lambda d: _low_cadence_ride(d),
+    "Sweetspot Ride":   lambda d: _sweetspot_ride(d),
+    "Over-Unders":      lambda d: _over_unders(d),
+    "Threshold Ride":   lambda d: _threshold_ride(d),
+    "Hill Repeats":     lambda d: _hill_repeats(d),
 }
+
+# Name prefixes used when generating workout names — used to find and delete stale uploads
+_NAME_PREFIXES: tuple[str, ...] = (
+    "Easy Spin ", "Zone 2 Steady ", "Recovery Spin ", "Structured Z2 ", "Z2 + Hills ",
+    "Cadence Drills ", "Hilly Z2 ", "Z2 Endurance ", "Low Cadence ", "Easy Prep Ride ",
+    "FTP Test", "FTP Re-test", "Final FTP Test", "Tempo Intervals ", "Long Ride ",
+    "Long Ride Easy ", "Easy Ride ", "Z2 Ride ", "Low Cadence Ride ", "Sweetspot Ride ",
+    "Over-Unders ", "Threshold Ride ", "Hill Repeats ",
+)
 
 
 def _workout_schedule() -> dict[tuple[str, int], list[str]]:
@@ -266,11 +370,45 @@ def _extract_id(response: Any) -> int | None:
     return None
 
 
+def _delete_existing_plan_workouts(api: Any, dry_run: bool = False) -> None:
+    """Delete any Garmin workout whose name matches a plan-generated name prefix."""
+    print("Scanning Garmin Connect for existing plan workouts to replace...")
+    start = 0
+    deleted = 0
+    while True:
+        try:
+            batch = api.get_workouts(start=start, limit=100)
+        except Exception as exc:
+            print(f"  [warn] could not fetch workouts: {exc}")
+            break
+        if not batch:
+            break
+        for w in batch:
+            wname = w.get("workoutName", "")
+            if any(wname.startswith(p) for p in _NAME_PREFIXES):
+                wid = w.get("workoutId")
+                if dry_run:
+                    print(f"  [dry]  would delete '{wname}' (id={wid})")
+                else:
+                    try:
+                        api.delete_workout(wid)
+                        print(f"  [deleted] '{wname}' (id={wid})")
+                        deleted += 1
+                    except Exception as exc:
+                        print(f"  [warn] could not delete '{wname}' (id={wid}): {exc}")
+        if len(batch) < 100:
+            break
+        start += 100
+    if not dry_run:
+        print(f"  {deleted} existing plan workout(s) removed")
+
+
 def upload_and_schedule(api: Any, dry_run: bool = False) -> None:
-    """Upload each unique bike/tempo/ftp/long workout to Garmin Connect and schedule it."""
+    """Delete stale plan workouts, upload fresh ones, and schedule them."""
+    _delete_existing_plan_workouts(api, dry_run=dry_run)
     schedule = _workout_schedule()
     total_sessions = sum(len(v) for v in schedule.values())
-    print(f"Plan has {len(schedule)} unique session templates covering {total_sessions} sessions")
+    print(f"\nPlan has {len(schedule)} unique session templates covering {total_sessions} sessions")
 
     for (label, dur), dates in sorted(schedule.items()):
         builder = _BUILDERS.get(label)
