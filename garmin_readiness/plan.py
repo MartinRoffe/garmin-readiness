@@ -74,10 +74,10 @@ TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("rest",     "Rest",                  0),
         ("strength", "Light KB",             35),
         ("ftp",      "FTP Re-test",          60),
-        ("strength", "Easy MaxiClimber",     25),
-        ("tempo",    "Tempo Intervals",      60),
+        ("bike",     "Z2 Ride",              60),   # freed from Easy MaxiClimber → 1 strength/week from here
+        ("tempo",    "Tempo Intervals",      75),   # extended from 60m
         ("ruck",     "Ruck  12 kg",          95),
-        ("long",     "Long Ride",           150),
+        ("long",     "Long Ride",           180),   # extended from 150m
     ],
     # WK 08 (deload)
     [
@@ -93,35 +93,35 @@ TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
     [
         ("rest",     "Rest",                  0),
         ("strength", "KB + MaxiClimber",     45),
-        ("bike",     "Z2 Endurance",         60),
-        ("strength", "KB + MaxiClimber",     45),
-        ("tempo",    "Tempo Intervals",      60),
+        ("bike",     "Sweetspot Ride",       90),   # extended from Z2 60m, add structure
+        ("tempo",    "Over-Unders",          75),   # freed from KB+MaxiClimber — threshold intervals
+        ("tempo",    "Tempo Intervals",      75),   # extended from 60m
         ("ruck",     "Ruck  12–15 kg",      105),
-        ("long",     "Long Ride",           165),
+        ("long",     "Long Ride",           210),   # extended from 165m
     ],
     # WK 10
     [
         ("rest",     "Rest",                  0),
         ("strength", "KB + MaxiClimber",     45),
-        ("bike",     "Low Cadence",          60),
-        ("strength", "KB + MaxiClimber",     45),
-        ("tempo",    "Tempo Intervals",      60),
+        ("bike",     "Low Cadence Ride",     90),   # extended from 60m
+        ("tempo",    "Threshold Ride",       90),   # freed from KB+MaxiClimber — sustained threshold
+        ("tempo",    "Tempo Intervals",      90),   # extended from 60m
         ("ruck",     "Ruck  12–15 kg",      110),
-        ("long",     "Long Ride",           180),
+        ("long",     "Long Ride",           255),   # extended from 180m
     ],
     # WK 11
     [
-        ("rest",     "Rest",                  0),
+        ("bike",     "Recovery Spin",        60),   # back-to-back day 2 after Wk10 Sun 255m long ride
         ("strength", "KB + MaxiClimber",     45),
-        ("bike",     "Z2 Endurance",         60),
-        ("strength", "Light KB",             35),
+        ("bike",     "Z2 Endurance",         90),   # extended from 60m
+        ("bike",     "Easy Ride",            45),   # freed from Light KB — 1 strength/week
         ("bike",     "Easy Prep Ride",       60),
         ("ruck",     "Easy Ruck  8 kg",      60),
-        ("long",     "Long Ride",           210),
+        ("long",     "Long Ride",           300),   # extended from 210m — 5 hr event simulation
     ],
     # WK 12
     [
-        ("rest",     "Rest",                  0),
+        ("bike",     "Recovery Spin",        60),   # event sim: day 2 tired legs after Wk11 Sun 300m ride
         ("strength", "Light KB",             30),
         ("ftp",      "Final FTP Test",       60),
         ("strength", "Easy MaxiClimber",     20),
@@ -159,7 +159,6 @@ MAXI_INTERVALS: dict[int, dict] = {
     11: {"sets":  4, "work_s": 240, "rest_s": 180, "kb": True, "norwegian": True},
     # Easy MaxiClimber — standalone, no KB, easy aerobic (kb: False, easy: True)
     3:  {"sets": 5, "work_s":  90, "rest_s": 60, "kb": False, "easy": True},   # 20m
-    7:  {"sets": 5, "work_s": 120, "rest_s": 60, "kb": False, "easy": True},   # 25m
     12: {"sets": 5, "work_s":  90, "rest_s": 60, "kb": False, "easy": True},   # 20m
     # Standalone MaxiClimber — deload weeks, no KB, steady aerobic (kb: False)
     4:  {"sets": 5, "work_s": 120, "rest_s": 60, "kb": False},   # 20m
