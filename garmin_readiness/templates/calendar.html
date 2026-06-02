@@ -449,21 +449,15 @@
         {name:"Z2 block",     mins:12,       zone:"Z2",  repeat:"× 3  (2m Z1 between each)"},
         {name:"Cool-down",    mins:10,       zone:"Z1"},
       ],
-      "Z2 + Hills":       _  => [
+      "Hill Repeats":      _  => [
         {name:"Warm-up",      mins:10,       zone:"Z1–2"},
-        {name:"Z2 steady",    mins:20,       zone:"Z2"},
-        {name:"Hill effort",  mins:3,        zone:"Z3–4", repeat:"× 4  (3m Z1 recovery between)"},
-        {name:"Cool-down",    mins:6,        zone:"Z1"},
+        {name:"Hill effort",  mins:3,        zone:"Z4–5", repeat:"× 5  (3m Z1 descent between each)"},
+        {name:"Cool-down",    mins:10,       zone:"Z1"},
       ],
       "Cadence Drills":   _  => [
         {name:"Warm-up",      mins:10,       zone:"Z1–2"},
         {name:"High cadence", mins:3,        zone:"90–110 rpm", repeat:"× 5  (2m Z2 between each)"},
         {name:"Z2 steady",    mins:15,       zone:"Z2"},
-        {name:"Cool-down",    mins:10,       zone:"Z1"},
-      ],
-      "Hilly Z2":         dur => [
-        {name:"Warm-up",      mins:10,       zone:"Z1–2"},
-        {name:"Hilly riding", mins:dur-20,   zone:"Z2 (Z3 on climbs)"},
         {name:"Cool-down",    mins:10,       zone:"Z1"},
       ],
       "Z2 Endurance":     dur => [
