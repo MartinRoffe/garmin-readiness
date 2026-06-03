@@ -51,10 +51,17 @@ def _step(
     hi: int | None = None,
 ) -> ExecutableStep:
     extra: dict[str, Any] = {}
-    if lo is not None:
-        extra["targetValueOne"] = lo
-    if hi is not None:
-        extra["targetValueTwo"] = hi
+    target_key = target.get("workoutTargetTypeKey", "")
+    if target_key == "heart.rate.zone":
+        # Garmin Connect expects zoneNumber (1–5), not targetValueOne/Two (those are
+        # for speed/cadence absolute ranges and leave zoneNumber null in Connect).
+        if lo is not None:
+            extra["zoneNumber"] = lo if hi is None or lo == hi else hi
+    elif lo is not None or hi is not None:
+        if lo is not None:
+            extra["targetValueOne"] = lo
+        if hi is not None:
+            extra["targetValueTwo"] = hi
     return ExecutableStep(
         stepOrder=step_order,
         stepType={"stepTypeId": stype_id, "stepTypeKey": stype_key, "displayOrder": stype_display},
