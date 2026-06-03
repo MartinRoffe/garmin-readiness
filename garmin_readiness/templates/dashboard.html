@@ -448,6 +448,14 @@
         <div style="flex:1;min-width:0">
           <p class="act-name">{{ a.name or a.type_label }}</p>
           <p class="act-meta">{{ a.type_label }}{% if a.date %} · {{ a.date[5:] | replace('-', ' ') }}{% endif %}</p>
+          {% if a.aerobic_te %}
+            {% if a.aerobic_te >= 4 %}{% set te_col = '#fb923c' %}
+            {% elif a.aerobic_te >= 3 %}{% set te_col = '#fde047' %}
+            {% elif a.aerobic_te >= 2 %}{% set te_col = '#4ade80' %}
+            {% else %}{% set te_col = '#71717a' %}{% endif %}
+            {% set te_lbl = a.training_effect_label | replace('_', ' ') | title if a.training_effect_label and a.training_effect_label not in ('NO_AEROBIC_BENEFIT', 'RECOVERY') else '' %}
+            <p style="font-family:var(--font-m);font-size:10px;letter-spacing:0.06em;margin-top:2px;color:{{ te_col }}">TE {{ a.aerobic_te | round(1) }}{% if te_lbl %} · {{ te_lbl }}{% endif %}</p>
+          {% endif %}
         </div>
         <div style="display:flex;gap:14px;flex-shrink:0">
           {% if a.duration_fmt %}
@@ -458,6 +466,9 @@
           {% endif %}
           {% if a.avg_hr %}
           <div class="act-stat"><p class="act-stat-val">{{ a.avg_hr | int }}</p><p class="act-stat-lbl">hr</p></div>
+          {% endif %}
+          {% if a.training_load %}
+          <div class="act-stat"><p class="act-stat-val">{{ a.training_load | int }}</p><p class="act-stat-lbl">load</p></div>
           {% endif %}
           {% if a.calories %}
           <div class="act-stat"><p class="act-stat-val">{{ a.calories | int }}</p><p class="act-stat-lbl">kcal</p></div>

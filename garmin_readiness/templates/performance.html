@@ -168,6 +168,22 @@
     <div style="height:130px;position:relative"><canvas id="tsbChart"></canvas></div>
   </div>
 
+  <!-- ── Session Training Load ─────────────────────────────────────── -->
+  {% if load_chart_data %}
+  <div class="card" style="padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+      <p class="eyebrow">Session Training Load · 60 days</p>
+      <div style="display:flex;gap:14px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;flex-wrap:wrap">
+        <span><span class="legend-dot" style="background:#60a5fa"></span>Bike</span>
+        <span><span class="legend-dot" style="background:#a3e635"></span>Ruck</span>
+        <span><span class="legend-dot" style="background:#a78bfa"></span>Strength</span>
+        <span><span class="legend-dot" style="background:#fb923c"></span>Other</span>
+      </div>
+    </div>
+    <div style="height:160px;position:relative"><canvas id="loadChart"></canvas></div>
+  </div>
+  {% endif %}
+
   <!-- ── Z2 HR Drift ───────────────────────────────────────────────── -->
   {% if z2_points and z2_points | length >= 2 %}
   <div class="card" style="padding:20px 24px;margin-bottom:10px">
@@ -465,6 +481,40 @@
       }
     }
   });
+
+  {% if load_chart_data %}
+  (function() {
+    const loadData = {{ load_chart_data | tojson }};
+    new Chart(document.getElementById('loadChart'), {
+      type: 'bar',
+      data: {
+        labels: loadData.map(d => d.label),
+        datasets: [{
+          data:            loadData.map(d => d.load),
+          backgroundColor: loadData.map(d => d.colour),
+          borderRadius: 2,
+          borderSkipped: false,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: {display: false},
+          tooltip: {
+            callbacks: {
+              title: ctx => loadData[ctx[0].dataIndex]?.name ?? '',
+              label: ctx => `Load: ${ctx.raw}`,
+            }
+          }
+        },
+        scales: {
+          x: {grid: {color: G}, ticks: {...T, maxTicksLimit: 14}},
+          y: {grid: {color: G}, ticks: {...T}, min: 0},
+        }
+      }
+    });
+  })();
+  {% endif %}
 </script>
 </body>
 </html>

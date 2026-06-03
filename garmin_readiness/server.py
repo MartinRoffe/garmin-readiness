@@ -571,6 +571,30 @@ async def performance_view(request: Request):
     if _ctl_now is not None and _atl_now is not None:
         proj_data, event_ctl = _ctl_projection(_ctl_now, _atl_now)
 
+    # Per-activity training load for bar chart (last 60 days)
+    load_acts = load_activities_by_date(date.today() - timedelta(days=60), date.today())
+    load_chart_data = []
+    _BIKE_KEYS = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
+    _RUCK_KEYS = {"hiking", "walking", "rucking", "load_carry"}
+    _STR_KEYS  = {"strength_training", "stair_climbing", "fitness_equipment"}
+    for date_str in sorted(load_acts.keys()):
+        for a in load_acts[date_str]:
+            if not a.get("training_load"):
+                continue
+            tk = a.get("type_key", "")
+            colour = (
+                "rgba(96,165,250,0.75)"  if tk in _BIKE_KEYS else
+                "rgba(163,230,53,0.75)"  if tk in _RUCK_KEYS else
+                "rgba(167,139,250,0.75)" if tk in _STR_KEYS  else
+                "rgba(251,146,60,0.75)"
+            )
+            load_chart_data.append({
+                "label":  date.fromisoformat(date_str).strftime("%-d %b"),
+                "load":   round(a["training_load"], 1),
+                "name":   a.get("name") or a.get("type_key", ""),
+                "colour": colour,
+            })
+
     return TEMPLATES.TemplateResponse(
         request=request,
         name="performance.html",
@@ -582,6 +606,7 @@ async def performance_view(request: Request):
             "z2_points": z2_points,
             "proj_data": proj_data,
             "event_ctl": event_ctl,
+            "load_chart_data": load_chart_data,
             "event_date_label": _PLAN_EVENT_DATE.strftime("%-d %b %Y"),
             "camp_start_label": date(2026, 8, 13).strftime("%-d %b"),
             "camp_end_label":   date(2026, 8, 27).strftime("%-d %b"),
@@ -1351,17 +1376,22 @@ def _build_coach_context() -> str:
     stats = baseline_stats(today)
     comp_z = composite_score(m, stats)
 
+    # Show all remaining plan sessions (up to 90 days ahead) so the coach
+    # can reason about the full training block, not just the current week.
     upcoming_lines = []
-    for i in range(14):
+    for i in range(90):
         d = today + timedelta(days=i)
         sess = session_for_date(d)
-        if sess:
-            stype, label, dur = sess
-            ov = get_plan_override(d.isoformat())
-            if ov:
-                dur = ov["duration_min"]
-                label = f"{label} [MODIFIED]"
-            upcoming_lines.append(f"  {d.strftime('%a %d %b')} ({d.isoformat()}): {label} ({dur}min) [{stype}]")
+        if sess is None:
+            break  # past the end of the plan
+        stype, label, dur = sess
+        if stype == "rest":
+            continue
+        ov = get_plan_override(d.isoformat())
+        if ov:
+            dur = ov["duration_min"]
+            label = f"{label} [MODIFIED]"
+        upcoming_lines.append(f"  {d.strftime('%a %d %b')} ({d.isoformat()}): {label} ({dur}min) [{stype}]")
 
     recent_acts = load_recent_activities(days=14)
     act_lines = []
@@ -1393,7 +1423,7 @@ def _build_coach_context() -> str:
         f"Composite z-score: {f'{comp_z:+.2f}σ' if comp_z is not None else 'n/a'}",
         f"HRV: {m.hrv_last_night}  |  Sleep score: {m.sleep_score}  |  Body battery (AM): {m.body_battery_morning}  |  Avg stress: {m.avg_stress}",
         "",
-        "## Upcoming Plan Sessions (next 14 days)",
+        "## Upcoming Plan Sessions (full remaining plan)",
         *upcoming_lines,
         "",
         "## Recent Activities (last 14 days)",
