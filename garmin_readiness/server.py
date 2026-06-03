@@ -305,8 +305,8 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
 
     date_key = target.isoformat()
     if force_fetch:
-        # Evict stale advice so it's regenerated with the freshly synced metrics
-        delete_advice(target)
+        # Pop in-process cache so advice is re-read from SQLite, but keep the
+        # SQLite row — re-generating advice on every refresh causes inconsistency.
         _advice_cache.pop(date_key, None)
     if date_key not in _advice_cache:
         _advice_cache[date_key] = generate_advice(m, stats, comp_z)

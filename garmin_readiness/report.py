@@ -101,6 +101,7 @@ def generate_advice(m: DailyMetrics, stats: dict, comp_z: Optional[float]) -> st
         message = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=400,
+            temperature=0,
             messages=[{"role": "user", "content": prompt}],
             system=(
                 "You are a knowledgeable fitness coach who helps athletes decide whether to train or rest "
