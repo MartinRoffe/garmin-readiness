@@ -141,6 +141,42 @@
   </script>
   {% endif %}
 
+  <!-- ── AI Coach Chat ──────────────────────────────────────────────── -->
+  <div class="card" style="padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <p class="eyebrow" style="margin-bottom:2px">AI Coach</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted)">Ask about your training load, sessions, or request plan adjustments</p>
+      </div>
+      <button onclick="clearChatHistory()" style="font-family:var(--font-m);font-size:11px;letter-spacing:0.1em;color:var(--muted);background:none;border:1px solid var(--border);padding:4px 10px;cursor:pointer;border-radius:2px">CLEAR</button>
+    </div>
+
+    <!-- Message list -->
+    <div id="chat-messages" style="min-height:100px;max-height:480px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;margin-bottom:12px;padding-right:2px">
+      <p id="chat-empty" style="font-family:var(--font-m);font-size:12px;color:var(--muted);text-align:center;padding:32px 0">Ask your coach anything about your training...</p>
+    </div>
+
+    <!-- Proposal card (hidden until coach proposes a change) -->
+    <div id="proposal-card" style="display:none;background:rgba(96,165,250,0.05);border:1px solid rgba(96,165,250,0.2);border-left:3px solid #60a5fa;padding:14px 16px;margin-bottom:12px;border-radius:2px">
+      <p style="font-family:var(--font-m);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:#60a5fa;margin-bottom:8px">Proposed Change</p>
+      <p id="proposal-text" style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:12px"></p>
+      <div style="display:flex;gap:8px">
+        <button id="apply-btn" onclick="applyProposal()" style="font-family:var(--font-m);font-size:11px;letter-spacing:0.1em;background:#60a5fa;color:#09090b;border:none;padding:7px 16px;cursor:pointer;border-radius:2px;font-weight:600">APPLY CHANGE</button>
+        <button onclick="dismissProposal()" style="font-family:var(--font-m);font-size:11px;letter-spacing:0.1em;background:none;color:var(--muted);border:1px solid var(--border);padding:7px 14px;cursor:pointer;border-radius:2px">DISMISS</button>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div style="display:flex;gap:8px">
+      <input id="coach-input" type="text" placeholder="e.g. Should I reduce Saturday's ruck given my fatigue?"
+        style="flex:1;background:#111113;border:1px solid var(--border);color:var(--text);font-family:var(--font-m);font-size:13px;padding:10px 14px;outline:none;border-radius:2px"
+        onfocus="this.style.borderColor='rgba(99,102,241,0.5)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoachMessage()}">
+      <button id="send-btn" onclick="sendCoachMessage()"
+        style="font-family:var(--font-m);font-size:11px;letter-spacing:0.12em;background:var(--accent);color:var(--text);border:none;padding:10px 20px;cursor:pointer;border-radius:2px;white-space:nowrap">SEND</button>
+    </div>
+  </div>
+
   <!-- ── CTL vs ATL chart ───────────────────────────────────────────── -->
   <div class="card" style="padding:20px 24px;margin-bottom:10px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
@@ -210,7 +246,137 @@
   </script>
   {% endif %}
 
+
 </div>
+
+<script>
+(function() {
+  let _proposal = null;
+
+  function mdToHtml(text) {
+    return text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<strong style="color:var(--text);font-weight:500">$1</strong>');
+  }
+
+  function renderMessage(role, text) {
+    const empty = document.getElementById('chat-empty');
+    if (empty) empty.remove();
+    const wrap = document.createElement('div');
+    wrap.style.cssText = role === 'user' ? 'display:flex;justify-content:flex-end' : 'display:flex;justify-content:flex-start';
+    const bubble = document.createElement('div');
+    if (role === 'user') {
+      bubble.style.cssText = 'max-width:72%;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.2);padding:10px 14px;border-radius:2px;font-size:13px;color:var(--text);line-height:1.6;white-space:pre-wrap';
+      bubble.textContent = text;
+    } else {
+      bubble.style.cssText = 'max-width:85%;background:var(--surface);border:1px solid var(--border);border-left:2px solid var(--accent);padding:10px 14px;border-radius:2px;font-size:13px;color:var(--text-dim);line-height:1.75';
+      const paras = text.split(/\n\n+/);
+      paras.forEach((para, i) => {
+        const p = document.createElement('p');
+        if (i > 0) p.style.marginTop = '8px';
+        p.innerHTML = mdToHtml(para.trim());
+        bubble.appendChild(p);
+      });
+    }
+    wrap.appendChild(bubble);
+    document.getElementById('chat-messages').appendChild(wrap);
+    document.getElementById('chat-messages').scrollTop = 99999;
+  }
+
+  function renderProposal(proposal) {
+    _proposal = proposal;
+    const card = document.getElementById('proposal-card');
+    const pt = document.getElementById('proposal-text');
+    const curr = proposal.current_duration_min ? `${proposal.current_duration_min} min` : 'current duration';
+    const label = proposal.session_label || 'Session';
+    pt.innerHTML = `<strong>${label}</strong> on <strong>${proposal.date}</strong>: ${curr} → <strong>${proposal.duration_min} min</strong><br><span style="color:var(--muted);font-size:12px;margin-top:4px;display:inline-block">${mdToHtml(proposal.reason)}</span>`;
+    card.style.display = 'block';
+  }
+
+  window.dismissProposal = function() {
+    _proposal = null;
+    document.getElementById('proposal-card').style.display = 'none';
+  };
+
+  window.applyProposal = async function() {
+    if (!_proposal || !_proposal.session_type) return;
+    const btn = document.getElementById('apply-btn');
+    btn.textContent = 'APPLYING…';
+    btn.disabled = true;
+    try {
+      const res = await fetch('/apply-plan-change', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({date: _proposal.date, duration_min: _proposal.duration_min, reason: _proposal.reason}),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        dismissProposal();
+        renderMessage('assistant', `✓ Applied: **${data.label}** on ${data.date} updated to **${data.duration_min} min**.`);
+      }
+    } catch(e) {
+      btn.textContent = 'APPLY CHANGE';
+      btn.disabled = false;
+    }
+  };
+
+  window.sendCoachMessage = async function() {
+    const input = document.getElementById('coach-input');
+    const btn = document.getElementById('send-btn');
+    const text = input.value.trim();
+    if (!text || btn.disabled) return;
+    input.value = '';
+    btn.disabled = true;
+    btn.textContent = '…';
+    dismissProposal();
+    renderMessage('user', text);
+
+    const loader = document.createElement('div');
+    loader.id = 'coach-loader';
+    loader.style.cssText = 'display:flex;padding:6px 0';
+    loader.innerHTML = '<span style="font-family:var(--font-m);font-size:12px;color:var(--muted)">Coach thinking…</span>';
+    document.getElementById('chat-messages').appendChild(loader);
+    document.getElementById('chat-messages').scrollTop = 99999;
+
+    try {
+      const res = await fetch('/coach-chat', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({message: text}),
+      });
+      const data = await res.json();
+      loader.remove();
+      if (data.reply) renderMessage('assistant', data.reply);
+      if (data.proposal && data.proposal.session_type) renderProposal(data.proposal);
+    } catch(e) {
+      loader.remove();
+      renderMessage('assistant', 'Sorry, something went wrong. Please try again.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'SEND';
+      input.focus();
+    }
+  };
+
+  window.clearChatHistory = async function() {
+    if (!confirm('Clear the conversation history?')) return;
+    await fetch('/coach-history', {method: 'DELETE'});
+    const c = document.getElementById('chat-messages');
+    c.innerHTML = '<p id="chat-empty" style="font-family:var(--font-m);font-size:12px;color:var(--muted);text-align:center;padding:32px 0">Ask your coach anything about your training...</p>';
+    dismissProposal();
+  };
+
+  async function loadHistory() {
+    try {
+      const res = await fetch('/coach-history');
+      const history = await res.json();
+      history.forEach(m => renderMessage(m.role, m.content));
+    } catch(e) {}
+  }
+
+  loadHistory();
+})();
+</script>
 
 <script>
   const histLabels = {{ history | map(attribute='label') | list | tojson }};

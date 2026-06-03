@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+import json
 import os
 import secrets
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Optional
 
+import anthropic as _anthropic
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
+from pydantic import BaseModel
 
 from .analysis import generate_recovery_suggestion, load_analyses_for_activities, prefetch_nutrition_targets, prefetch_workout_descriptions, refresh_analyses
 from .client import get_api
@@ -28,13 +31,18 @@ from .body import bp_classification, fetch_body_composition, fetch_blood_pressur
 from .history import (
     ACTIVITY_MATCH,
     baseline_stats,
+    clear_coach_history,
     composite_score,
     delete_advice,
+    delete_plan_override,
+    get_plan_override,
     history_for_chart,
+    list_plan_overrides,
     load,
     load_activities_by_date,
     load_body_metrics,
     load_blood_pressure,
+    load_coach_history,
     load_recent_activities,
     pmc_history,
     raw_history,
@@ -42,6 +50,8 @@ from .history import (
     save_activities,
     save_body_metrics,
     save_blood_pressure,
+    save_coach_message,
+    set_plan_override,
     seven_day_composite_trend_csv,
     z_score,
     get_cached_text,
@@ -1250,6 +1260,216 @@ def date_fromisoformat_safe(s: str) -> date:
         return date.fromisoformat(s)
     except (ValueError, TypeError):
         return _today()
+
+
+# ── AI Coach chat ─────────────────────────────────────────────────────────────
+
+_COACH_SYSTEM = (
+    "You are an experienced endurance coach working with an amateur athlete preparing for "
+    "a 5-day charity cycling event (Lap the Map, ~170 km total, 6 Sep 2026). "
+    "The athlete is 50+, training 6+ hours/week mixing cycling, kettlebells, rucking, and MaxiClimber. "
+    "They also have a longer-term goal: Haute Route Alpes 2027 (7 stages, ~900 km, ~25,000 m elevation).\n\n"
+    "You have access to their live Garmin data in the context block below. "
+    "Use it to give specific, evidence-based advice referencing actual numbers.\n\n"
+    "Response style: direct and concise (2–4 short paragraphs). Use **bold** for key numbers/points.\n\n"
+    "When you recommend modifying a planned session's duration, call the propose_plan_change tool so the "
+    "athlete sees a confirmation card before any change is applied. After the tool call, briefly explain "
+    "the proposed change in your text.\n\n"
+    "Training plan context: 12-week plan runs 18 May – 9 Aug 2026. Builds from Zone 2 base to a 5-hour "
+    "event simulation. Key sessions: Zone 2 rides, FTP tests (wks 3/7/12), hill repeats and tempo from "
+    "wk 5, progressive rucking (Mersea Coastal Spur build in wks 9–10), KB + MaxiClimber strength.\n\n"
+    "PMC note: Garmin TSB units differ from Coggan TSS. Rough bands: "
+    "fresh > −50, moderate load −50 to −150, heavy load −150 to −250, very high fatigue < −250."
+)
+
+_COACH_TOOL = {
+    "name": "propose_plan_change",
+    "description": (
+        "Propose changing a planned session's duration. The athlete must confirm before "
+        "the change is applied. Only use this when recommending a specific duration change."
+    ),
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "date": {"type": "string", "description": "Session date (YYYY-MM-DD)"},
+            "duration_min": {"type": "integer", "description": "New duration in minutes"},
+            "reason": {"type": "string", "description": "Why this change is recommended (1–2 sentences)"},
+        },
+        "required": ["date", "duration_min", "reason"],
+    },
+}
+
+
+def _build_coach_context() -> str:
+    today = date.today()
+    history = pmc_history(days=7)
+    today_pmc = history[-1] if history else {}
+    m = load(today) or DailyMetrics(date=today)
+    stats = baseline_stats(today)
+    comp_z = composite_score(m, stats)
+
+    upcoming_lines = []
+    for i in range(14):
+        d = today + timedelta(days=i)
+        sess = session_for_date(d)
+        if sess:
+            stype, label, dur = sess
+            ov = get_plan_override(d.isoformat())
+            if ov:
+                dur = ov["duration_min"]
+                label = f"{label} [MODIFIED]"
+            upcoming_lines.append(f"  {d.strftime('%a %d %b')} ({d.isoformat()}): {label} ({dur}min) [{stype}]")
+
+    recent_acts = load_recent_activities(days=14)
+    act_lines = []
+    for a in recent_acts[:12]:
+        dur_min = int((a.get("duration_seconds") or 0) / 60)
+        act_lines.append(f"  {a['date']}: {a.get('name') or a.get('type_key')} — {dur_min}min, avg HR: {a.get('avg_hr')}")
+
+    overrides = list_plan_overrides()
+    ov_lines = [f"  {o['date']}: {o['label']} → {o['duration_min']}min ({o['note']})" for o in overrides]
+
+    parts = [
+        f"Today: {today.strftime('%A %d %B %Y')}",
+        "",
+        "## Training Load (PMC)",
+        f"CTL (fitness): {today_pmc.get('ctl')}  |  ATL (fatigue): {today_pmc.get('atl')}  |  TSB (form): {today_pmc.get('tsb')}",
+        "",
+        "## Today's Readiness",
+        f"Composite z-score: {f'{comp_z:+.2f}σ' if comp_z is not None else 'n/a'}",
+        f"HRV: {m.hrv_last_night}  |  Sleep score: {m.sleep_score}  |  Body battery (AM): {m.body_battery_morning}  |  Avg stress: {m.avg_stress}",
+        "",
+        "## Upcoming Plan Sessions (next 14 days)",
+        *upcoming_lines,
+        "",
+        "## Recent Activities (last 14 days)",
+        *(act_lines or ["  None recorded"]),
+    ]
+    if ov_lines:
+        parts += ["", "## Active Plan Overrides", *ov_lines]
+
+    return "\n".join(parts)
+
+
+def _call_coach(messages: list[dict], api_key: str) -> tuple[str, Optional[dict]]:
+    context = _build_coach_context()
+    system = _COACH_SYSTEM + f"\n\n## Current Context\n{context}"
+
+    client = _anthropic.Anthropic(api_key=api_key)
+    response = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=800,
+        system=system,
+        tools=[_COACH_TOOL],
+        messages=messages,
+    )
+
+    text_parts: list[str] = []
+    proposal: Optional[dict] = None
+    tool_call = None
+
+    for block in response.content:
+        if block.type == "text":
+            text_parts.append(block.text)
+        elif block.type == "tool_use" and block.name == "propose_plan_change":
+            tool_call = block
+            proposal = dict(block.input)
+
+    if tool_call and response.stop_reason == "tool_use":
+        followup_messages = messages + [
+            {"role": "assistant", "content": response.content},
+            {
+                "role": "user",
+                "content": [{
+                    "type": "tool_result",
+                    "tool_use_id": tool_call.id,
+                    "content": "Proposal ready for athlete confirmation.",
+                }],
+            },
+        ]
+        response2 = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=300,
+            system=system,
+            tools=[_COACH_TOOL],
+            messages=followup_messages,
+        )
+        for block in response2.content:
+            if block.type == "text":
+                text_parts.append(block.text)
+
+    if proposal:
+        try:
+            d = date.fromisoformat(proposal["date"])
+            sess = session_for_date(d)
+            ov = get_plan_override(proposal["date"])
+            current_dur = ov["duration_min"] if ov else (sess[2] if sess else None)
+            proposal["session_label"] = sess[1] if sess else None
+            proposal["session_type"] = sess[0] if sess else None
+            proposal["current_duration_min"] = current_dur
+        except Exception:
+            proposal["session_label"] = None
+
+    return "\n\n".join(filter(None, text_parts)), proposal
+
+
+class _CoachChatRequest(BaseModel):
+    message: str
+
+
+@app.post("/coach-chat")
+async def coach_chat(body: _CoachChatRequest):
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return JSONResponse({"reply": "No API key configured.", "proposal": None})
+
+    user_message = body.message.strip()
+    if not user_message:
+        return JSONResponse({"reply": "", "proposal": None})
+
+    history = load_coach_history(limit=20)
+    messages = [{"role": m["role"], "content": m["content"]} for m in history]
+    messages.append({"role": "user", "content": user_message})
+
+    reply, proposal = _call_coach(messages, api_key)
+
+    save_coach_message("user", user_message)
+    save_coach_message("assistant", reply, json.dumps(proposal) if proposal else None)
+
+    return JSONResponse({"reply": reply, "proposal": proposal})
+
+
+@app.get("/coach-history")
+async def get_coach_history():
+    return JSONResponse(load_coach_history(limit=30))
+
+
+@app.delete("/coach-history")
+async def delete_coach_history_endpoint():
+    clear_coach_history()
+    return JSONResponse({"ok": True})
+
+
+class _ApplyChangeRequest(BaseModel):
+    date: str
+    duration_min: int
+    reason: str = ""
+
+
+@app.post("/apply-plan-change")
+async def apply_plan_change(body: _ApplyChangeRequest):
+    try:
+        d = date.fromisoformat(body.date)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date format")
+
+    sess = session_for_date(d)
+    if not sess:
+        raise HTTPException(status_code=404, detail="No plan session on that date")
+
+    stype, label, _ = sess
+    set_plan_override(body.date, stype, label, body.duration_min, body.reason)
+    return JSONResponse({"ok": True, "date": body.date, "label": label, "duration_min": body.duration_min})
 
 
 def run(host: str = "0.0.0.0", port: int = 8743) -> None:

@@ -462,3 +462,84 @@ def pmc_history(days: int = 90) -> list[dict]:
             "tsb": tsb,
         })
     return result
+
+
+# ── Coach chat & plan overrides ──────────────────────────────────────────────
+
+def _ensure_coach_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS coach_conversations (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            proposal TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS plan_overrides (
+            date TEXT PRIMARY KEY,
+            session_type TEXT,
+            label TEXT,
+            duration_min INTEGER NOT NULL,
+            note TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def save_coach_message(role: str, content: str, proposal_json: Optional[str] = None) -> None:
+    with _conn() as con:
+        _ensure_coach_schema(con)
+        con.execute(
+            "INSERT INTO coach_conversations (role, content, proposal) VALUES (?, ?, ?)",
+            (role, content, proposal_json),
+        )
+
+
+def load_coach_history(limit: int = 30) -> list[dict]:
+    with _conn() as con:
+        _ensure_coach_schema(con)
+        rows = con.execute(
+            "SELECT id, role, content, proposal, created_at FROM coach_conversations ORDER BY id DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [dict(r) for r in reversed(rows)]
+
+
+def clear_coach_history() -> None:
+    with _conn() as con:
+        _ensure_coach_schema(con)
+        con.execute("DELETE FROM coach_conversations")
+
+
+def set_plan_override(date_str: str, session_type: str, label: str, duration_min: int, note: str = "") -> None:
+    with _conn() as con:
+        _ensure_coach_schema(con)
+        con.execute(
+            """INSERT OR REPLACE INTO plan_overrides (date, session_type, label, duration_min, note)
+               VALUES (?, ?, ?, ?, ?)""",
+            (date_str, session_type, label, duration_min, note),
+        )
+
+
+def get_plan_override(date_str: str) -> Optional[dict]:
+    with _conn() as con:
+        _ensure_coach_schema(con)
+        row = con.execute(
+            "SELECT * FROM plan_overrides WHERE date = ?", (date_str,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def list_plan_overrides() -> list[dict]:
+    with _conn() as con:
+        _ensure_coach_schema(con)
+        rows = con.execute("SELECT * FROM plan_overrides ORDER BY date").fetchall()
+    return [dict(r) for r in rows]
+
+
+def delete_plan_override(date_str: str) -> None:
+    with _conn() as con:
+        _ensure_coach_schema(con)
+        con.execute("DELETE FROM plan_overrides WHERE date = ?", (date_str,))
