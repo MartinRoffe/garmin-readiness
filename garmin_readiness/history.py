@@ -543,3 +543,31 @@ def delete_plan_override(date_str: str) -> None:
     with _conn() as con:
         _ensure_coach_schema(con)
         con.execute("DELETE FROM plan_overrides WHERE date = ?", (date_str,))
+
+
+# ── Coach memory ──────────────────────────────────────────────────────────────
+
+def _ensure_coach_memory_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS coach_memory (
+            id INTEGER PRIMARY KEY,
+            memo TEXT NOT NULL,
+            updated_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def get_coach_memory() -> Optional[dict]:
+    with _conn() as con:
+        _ensure_coach_memory_schema(con)
+        row = con.execute("SELECT memo, updated_at FROM coach_memory WHERE id = 1").fetchone()
+    return dict(row) if row else None
+
+
+def set_coach_memory(memo: str) -> None:
+    with _conn() as con:
+        _ensure_coach_memory_schema(con)
+        con.execute(
+            "INSERT OR REPLACE INTO coach_memory (id, memo) VALUES (1, ?)",
+            (memo,),
+        )

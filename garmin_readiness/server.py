@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import threading
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Optional
@@ -35,6 +36,7 @@ from .history import (
     composite_score,
     delete_advice,
     delete_plan_override,
+    get_coach_memory,
     get_plan_override,
     history_for_chart,
     list_plan_overrides,
@@ -51,6 +53,7 @@ from .history import (
     save_body_metrics,
     save_blood_pressure,
     save_coach_message,
+    set_coach_memory,
     set_plan_override,
     seven_day_composite_trend_csv,
     z_score,
@@ -1367,6 +1370,10 @@ def _build_coach_context() -> str:
     if ov_lines:
         parts += ["", "## Active Plan Overrides", *ov_lines]
 
+    memo = get_coach_memory()
+    if memo:
+        parts += ["", "## Coach Memory (cross-session context)", memo["memo"]]
+
     return "\n".join(parts)
 
 
@@ -1458,6 +1465,70 @@ async def coach_chat(body: _CoachChatRequest):
     return JSONResponse({"reply": reply, "proposal": proposal})
 
 
+_MEMO_MIN_MESSAGES = 3
+_MEMO_STALE_HOURS = 4
+
+
+def _should_update_memo() -> bool:
+    from datetime import datetime as _dt
+    memo = get_coach_memory()
+    if memo is None:
+        return len(load_coach_history(limit=_MEMO_MIN_MESSAGES)) >= _MEMO_MIN_MESSAGES
+    try:
+        age_h = (_dt.utcnow() - _dt.fromisoformat(memo["updated_at"])).total_seconds() / 3600
+        return age_h >= _MEMO_STALE_HOURS
+    except Exception:
+        return False
+
+
+def _regenerate_coach_memory(api_key: str) -> None:
+    history = load_coach_history(limit=40)
+    if len(history) < _MEMO_MIN_MESSAGES:
+        return
+    current = get_coach_memory()
+    current_memo = current["memo"] if current else ""
+    context = _build_coach_context()
+    recent = history[-20:]
+    conv_text = "\n\n".join(
+        f"{'Coach' if m['role'] == 'assistant' else 'Athlete'}: {m['content'][:300]}"
+        for m in recent
+    )
+    prompt = (
+        "Update the coaching memo with DURABLE cross-session information — goals, tendencies, past decisions, "
+        "long-term patterns. Omit anything visible in live session data (current CTL/ATL, today's readiness, "
+        "upcoming sessions) since the coach already receives that every turn.\n\n"
+        f"Current memo:\n{current_memo if current_memo else '(none)'}\n\n"
+        f"Recent conversations:\n{conv_text}\n\n"
+        f"Live context summary (for reference only — don't repeat this):\n{context[:600]}\n\n"
+        "Write a replacement memo (150–250 words) covering:\n"
+        "- Goals and timeline (Lap the Map, Haute Route)\n"
+        "- Tendencies (e.g. pushes through fatigue, HRV baseline, training response)\n"
+        "- Plan decisions made via coach chat\n"
+        "- Long-term patterns worth watching\n"
+        "Third person (athlete/they). Specific, not generic. Replace the previous memo entirely."
+    )
+    try:
+        client = _anthropic.Anthropic(api_key=api_key)
+        resp = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=400,
+            system="You are maintaining a compact coaching notes file. Be specific and concise.",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        set_coach_memory(resp.content[0].text)
+    except Exception:
+        pass
+
+
+def _maybe_update_memo_bg(api_key: str) -> None:
+    if _should_update_memo():
+        threading.Thread(
+            target=_regenerate_coach_memory,
+            args=(api_key,),
+            daemon=True,
+        ).start()
+
+
 def _stream_coach_sse(messages: list[dict], user_message: str, api_key: str):
     """Sync generator yielding SSE events for the coach chat stream."""
     context = _build_coach_context()
@@ -1518,6 +1589,7 @@ def _stream_coach_sse(messages: list[dict], user_message: str, api_key: str):
         full_reply = "".join(full_text)
         save_coach_message("user", user_message)
         save_coach_message("assistant", full_reply, json.dumps(proposal) if proposal else None)
+        _maybe_update_memo_bg(api_key)
 
     except Exception as exc:
         yield f"data: {json.dumps({'type': 'error', 'message': str(exc)})}\n\n"
@@ -1577,6 +1649,30 @@ async def apply_plan_change(body: _ApplyChangeRequest):
     stype, label, _ = sess
     set_plan_override(body.date, stype, label, body.duration_min, body.reason)
     return JSONResponse({"ok": True, "date": body.date, "label": label, "duration_min": body.duration_min})
+
+
+@app.post("/regenerate-advice")
+async def regenerate_advice_endpoint():
+    today = _today()
+    delete_advice(today)
+    ctx = _build_context(today, force_fetch=True)
+    return JSONResponse({"advice": ctx["advice"]})
+
+
+@app.get("/coach-memory")
+async def coach_memory_get():
+    memo = get_coach_memory()
+    return JSONResponse({"memo": memo["memo"] if memo else "", "updated_at": memo.get("updated_at") if memo else None})
+
+
+@app.post("/coach-memory/update")
+async def coach_memory_update():
+    api_key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        return JSONResponse({"error": "No API key"}, status_code=503)
+    _regenerate_coach_memory(api_key)
+    memo = get_coach_memory()
+    return JSONResponse({"memo": memo["memo"] if memo else ""})
 
 
 def run(host: str = "0.0.0.0", port: int = 8743) -> None:

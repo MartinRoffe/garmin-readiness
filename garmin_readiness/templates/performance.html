@@ -191,6 +191,53 @@
     CTL = 28-day chronic · ATL = 7-day acute · TSB = CTL − ATL
   </p>
 
+  <!-- ── Coach Memory ──────────────────────────────────────────────── -->
+  <div class="card" style="padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <p class="eyebrow">Coach Memory</p>
+      <button id="memo-update-btn" onclick="updateMemo()" style="font-family:var(--font-m);font-size:11px;letter-spacing:0.1em;color:var(--muted);background:none;border:1px solid var(--border);padding:3px 10px;cursor:pointer;border-radius:2px">↺ update now</button>
+    </div>
+    <div id="memo-body" style="font-size:13px;color:var(--text-dim);line-height:1.75">
+      <p style="color:var(--muted)">Loading…</p>
+    </div>
+    <p id="memo-updated" style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:10px"></p>
+  </div>
+  <script>
+  (function() {
+    function renderMemo(memo, updatedAt) {
+      const body = document.getElementById('memo-body');
+      if (!memo) { body.innerHTML = '<p style="color:var(--muted)">No memory yet — start chatting with the coach to build it.</p>'; return; }
+      body.innerHTML = '';
+      memo.trim().split(/\n\n+/).forEach((para, i, arr) => {
+        if (!para.trim()) return;
+        const p = document.createElement('p');
+        if (i > 0) p.style.marginTop = '8px';
+        p.innerHTML = para.trim().replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:500">$1</strong>');
+        body.appendChild(p);
+      });
+      if (updatedAt) {
+        const d = new Date(updatedAt + 'Z');
+        document.getElementById('memo-updated').textContent = 'Last updated: ' + d.toLocaleString();
+      }
+    }
+    fetch('/coach-memory').then(r => r.json()).then(d => renderMemo(d.memo, d.updated_at)).catch(() => {});
+    window.updateMemo = async function() {
+      const btn = document.getElementById('memo-update-btn');
+      btn.textContent = 'Updating…';
+      btn.disabled = true;
+      try {
+        const res = await fetch('/coach-memory/update', {method: 'POST'});
+        const data = await res.json();
+        renderMemo(data.memo, null);
+        document.getElementById('memo-updated').textContent = 'Updated just now';
+      } finally {
+        btn.textContent = '↺ update now';
+        btn.disabled = false;
+      }
+    };
+  })();
+  </script>
+
   <!-- ── Explainer ─────────────────────────────────────────────────── -->
   {% if pmc_explainer %}
   <div class="card" style="padding:20px 24px">

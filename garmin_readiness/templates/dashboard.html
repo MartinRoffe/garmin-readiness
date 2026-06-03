@@ -299,17 +299,46 @@
   <!-- ── AI Advice ─────────────────────────────────────────────────── -->
   {% if advice %}
   <div class="card" style="padding:20px 24px;margin-bottom:12px;border-left:3px solid var(--accent)">
-    <p class="eyebrow" style="margin-bottom:12px;color:var(--accent)">Today's Advice</p>
-    {% for para in advice.strip().split('\n\n') %}
-      {% if para.strip() %}
-        <p class="advice-para" style="font-size:13px;color:var(--text-dim);line-height:1.75{% if not loop.last %};margin-bottom:10px{% endif %}">{{ para.strip() }}</p>
-      {% endif %}
-    {% endfor %}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <p class="eyebrow" style="color:var(--accent)">Today's Advice</p>
+      <button id="regen-btn" onclick="regenAdvice()" style="font-family:var(--font-m);font-size:11px;letter-spacing:0.1em;color:var(--muted);background:none;border:1px solid var(--border);padding:3px 10px;cursor:pointer;border-radius:2px" title="Force-fetch latest Garmin data and regenerate">↺ rethink</button>
+    </div>
+    <div id="advice-body">
+      {% for para in advice.strip().split('\n\n') %}
+        {% if para.strip() %}
+          <p class="advice-para" style="font-size:13px;color:var(--text-dim);line-height:1.75{% if not loop.last %};margin-bottom:10px{% endif %}">{{ para.strip() }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
   </div>
   <script>
     document.querySelectorAll('.advice-para').forEach(p => {
       p.innerHTML = p.innerHTML.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:500">$1</strong>');
     });
+
+    async function regenAdvice() {
+      const btn = document.getElementById('regen-btn');
+      btn.textContent = '…';
+      btn.disabled = true;
+      try {
+        const res = await fetch('/regenerate-advice', {method: 'POST'});
+        const data = await res.json();
+        if (data.advice) {
+          const body = document.getElementById('advice-body');
+          body.innerHTML = '';
+          data.advice.trim().split(/\n\n+/).forEach((para, i, arr) => {
+            if (!para.trim()) return;
+            const p = document.createElement('p');
+            p.style.cssText = 'font-size:13px;color:var(--text-dim);line-height:1.75' + (i < arr.length - 1 ? ';margin-bottom:10px' : '');
+            p.innerHTML = para.trim().replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:500">$1</strong>');
+            body.appendChild(p);
+          });
+        }
+      } finally {
+        btn.textContent = '↺ rethink';
+        btn.disabled = false;
+      }
+    }
   </script>
   {% endif %}
 
