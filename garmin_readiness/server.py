@@ -96,9 +96,28 @@ def _week_completion() -> dict[str, Any]:
     }
 
 
+def _apply_overrides(weeks: list[dict]) -> list[dict]:
+    """Patch dur_min / dur_fmt for any day that has a plan override in the DB."""
+    overrides = {o["date"]: o for o in list_plan_overrides()}
+    if not overrides:
+        return weeks
+    for week in weeks:
+        for day in week["days"]:
+            key = day["date"].isoformat()
+            if key in overrides:
+                dur = overrides[key]["duration_min"]
+                day["dur_min"] = dur
+                day["dur_fmt"] = _fmt_min(dur)
+    return weeks
+
+
+def _calendar_weeks() -> list[dict]:
+    return _apply_overrides(build_calendar_weeks())
+
+
 def _build_calendar_ctx() -> dict[str, Any]:
     return {
-        "weeks": build_calendar_weeks(),
+        "weeks": _calendar_weeks(),
         "today": date.today(),
         "plan_start": _PLAN_START,
         "camp_weeks": build_camp_weeks(),
@@ -842,7 +861,7 @@ async def calendar_view(request: Request):
 def _plan_completion_stats() -> dict:
     """Compute per-week plan vs actual completion stats for the training page."""
     today = date.today()
-    weeks_data = build_calendar_weeks()
+    weeks_data = _calendar_weeks()
     plan_end = weeks_data[-1]["days"][-1]["date"]
     acts_by_date = load_activities_by_date(_PLAN_START, min(today, plan_end))
 
@@ -943,7 +962,7 @@ async def training_plan(request: Request):
 
 @app.get("/nutrition", response_class=HTMLResponse)
 async def nutrition_plan(request: Request):
-    weeks = build_calendar_weeks()
+    weeks = _calendar_weeks()
     unique_sessions = list({(d["type"], d["dur_min"]) for w in weeks for d in w["days"]})
     nut_targets = prefetch_nutrition_targets(unique_sessions)
     today = date.today()
@@ -1272,9 +1291,9 @@ _COACH_SYSTEM = (
     "You have access to their live Garmin data in the context block below. "
     "Use it to give specific, evidence-based advice referencing actual numbers.\n\n"
     "Response style: direct and concise (2–4 short paragraphs). Use **bold** for key numbers/points.\n\n"
-    "When you recommend modifying a planned session's duration, call the propose_plan_change tool so the "
-    "athlete sees a confirmation card before any change is applied. After the tool call, briefly explain "
-    "the proposed change in your text.\n\n"
+    "When you recommend modifying a planned session's duration, call the propose_plan_change tool — "
+    "a confirmation card will appear for the athlete to review. After the tool call, briefly explain "
+    "the proposed change in your text (do not say 'above' or 'below' — just refer to 'the proposal card').\n\n"
     "Training plan context: 12-week plan runs 18 May – 9 Aug 2026. Builds from Zone 2 base to a 5-hour "
     "event simulation. Key sessions: Zone 2 rides, FTP tests (wks 3/7/12), hill repeats and tempo from "
     "wk 5, progressive rucking (Mersea Coastal Spur build in wks 9–10), KB + MaxiClimber strength.\n\n"
