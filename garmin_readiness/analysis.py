@@ -33,8 +33,33 @@ def _ensure_analysis_schema(con: sqlite3.Connection) -> None:
 
 # ── Fetch detail from Garmin API ─────────────────────────────────────────────
 
-def fetch_activity_detail(api: Any, activity_id: int) -> dict:
-    """Return a merged dict of activity summary + HR zones."""
+def fetch_activity_detail(api: Any, activity_id: int, activity: Optional[dict] = None) -> dict:
+    """Return a merged dict of activity summary + HR zones.
+
+    Uses inline fields from the activity row when available (avoids two extra
+    API calls). Falls back to API for activities saved before the new columns.
+    """
+    if activity and activity.get("hr_zone_1_sec") is not None:
+        total_secs = sum(activity.get(f"hr_zone_{z}_sec") or 0 for z in range(1, 6)) or 1
+        hr_zones = [
+            {
+                "zone": z,
+                "secs": round(activity.get(f"hr_zone_{z}_sec") or 0),
+                "pct": round((activity.get(f"hr_zone_{z}_sec") or 0) / total_secs * 100),
+                "low_bpm": None,
+            }
+            for z in range(1, 6)
+        ]
+        return {
+            "training_effect":       activity.get("aerobic_te"),
+            "training_effect_label": activity.get("training_effect_label"),
+            "aerobic_te_message":    None,
+            "anaerobic_te":          activity.get("anaerobic_te"),
+            "training_load":         activity.get("training_load"),
+            "avg_respiration":       activity.get("avg_respiration"),
+            "hr_zones":              hr_zones,
+        }
+
     summary_raw = api.get_activity(activity_id)
     s = summary_raw.get("summaryDTO", {})
 
@@ -51,13 +76,13 @@ def fetch_activity_detail(api: Any, activity_id: int) -> dict:
     ]
 
     return {
-        "training_effect": s.get("trainingEffect"),
+        "training_effect":       s.get("trainingEffect"),
         "training_effect_label": s.get("trainingEffectLabel"),
-        "aerobic_te_message": s.get("aerobicTrainingEffectMessage"),
-        "anaerobic_te": s.get("anaerobicTrainingEffect"),
-        "training_load": s.get("activityTrainingLoad"),
-        "avg_respiration": s.get("avgRespirationRate"),
-        "hr_zones": hr_zones,
+        "aerobic_te_message":    s.get("aerobicTrainingEffectMessage"),
+        "anaerobic_te":          s.get("anaerobicTrainingEffect"),
+        "training_load":         s.get("activityTrainingLoad"),
+        "avg_respiration":       s.get("avgRespirationRate"),
+        "hr_zones":              hr_zones,
     }
 
 
@@ -226,9 +251,8 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
     zone_lines = []
     for z in hr_zones:
         bar = "█" * max(1, z["pct"] // 5)
-        zone_lines.append(
-            f"  Z{z['zone']} (≥{z['low_bpm']}bpm): {bar} {z['pct']}%  {_fmt_secs(z['secs'])}"
-        )
+        bpm_str = f"≥{z['low_bpm']}bpm" if z.get("low_bpm") else f"Zone {z['zone']}"
+        zone_lines.append(f"  Z{z['zone']} ({bpm_str}): {bar} {z['pct']}%  {_fmt_secs(z['secs'])}")
 
     te = detail.get("training_effect")
     te_label = _te_label(detail.get("training_effect_label"))
@@ -364,7 +388,7 @@ def refresh_analyses(api: Any, days: int = 14) -> None:
             continue  # already done
         try:
             companion = _find_compound_companion(act, acts_by_date.get(act["date"], []))
-            detail = fetch_activity_detail(api, act_id)
+            detail = fetch_activity_detail(api, act_id, activity=act)
             text = generate_analysis(act, detail, companion=companion)
             save_detail(act_id, detail, text)
         except Exception as exc:

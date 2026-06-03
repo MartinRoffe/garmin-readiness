@@ -1346,7 +1346,18 @@ def _build_coach_context() -> str:
     act_lines = []
     for a in recent_acts[:12]:
         dur_min = int((a.get("duration_seconds") or 0) / 60)
-        act_lines.append(f"  {a['date']}: {a.get('name') or a.get('type_key')} — {dur_min}min, avg HR: {a.get('avg_hr')}")
+        parts = [f"{a['date']}: {a.get('name') or a.get('type_key')} — {dur_min}min"]
+        if a.get("avg_hr"):
+            parts.append(f"avg HR {int(a['avg_hr'])}bpm")
+        if a.get("aerobic_te") is not None:
+            te_label = (a.get("training_effect_label") or "").replace("_", " ").title()
+            parts.append(f"TE {a['aerobic_te']:.1f} {te_label}".strip())
+        if a.get("training_load") is not None:
+            parts.append(f"load {int(a['training_load'])}")
+        z45 = int(((a.get("hr_zone_4_sec") or 0) + (a.get("hr_zone_5_sec") or 0)) / 60)
+        if z45 > 0:
+            parts.append(f"Z4+5 {z45}min")
+        act_lines.append("  " + ", ".join(parts))
 
     overrides = list_plan_overrides()
     ov_lines = [f"  {o['date']}: {o['label']} → {o['duration_min']}min ({o['note']})" for o in overrides]

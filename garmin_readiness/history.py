@@ -79,23 +79,48 @@ def _ensure_schema(con: sqlite3.Connection) -> None:
             con.execute(f"ALTER TABLE daily_metrics ADD COLUMN {name} TEXT")
 
 
+_ACTIVITY_COLS: list[tuple[str, str]] = [
+    ("activity_id",            "INTEGER PRIMARY KEY"),
+    ("date",                   "TEXT NOT NULL"),
+    ("start_time",             "TEXT"),
+    ("name",                   "TEXT"),
+    ("type_key",               "TEXT"),
+    ("duration_seconds",       "REAL"),
+    ("distance_meters",        "REAL"),
+    ("elevation_gain",         "REAL"),
+    ("elevation_loss",         "REAL"),
+    ("avg_hr",                 "REAL"),
+    ("max_hr",                 "REAL"),
+    ("calories",               "REAL"),
+    ("avg_speed_ms",           "REAL"),
+    ("max_speed_ms",           "REAL"),
+    ("moving_duration",        "REAL"),
+    ("aerobic_te",             "REAL"),
+    ("anaerobic_te",           "REAL"),
+    ("training_load",          "REAL"),
+    ("training_effect_label",  "TEXT"),
+    ("avg_respiration",        "REAL"),
+    ("min_temperature",        "REAL"),
+    ("max_temperature",        "REAL"),
+    ("location_name",          "TEXT"),
+    ("vigorous_intensity_min", "INTEGER"),
+    ("moderate_intensity_min", "INTEGER"),
+    ("hr_zone_1_sec",          "REAL"),
+    ("hr_zone_2_sec",          "REAL"),
+    ("hr_zone_3_sec",          "REAL"),
+    ("hr_zone_4_sec",          "REAL"),
+    ("hr_zone_5_sec",          "REAL"),
+]
+
+
 def _ensure_activities_schema(con: sqlite3.Connection) -> None:
-    con.execute("""
-        CREATE TABLE IF NOT EXISTS activities (
-            activity_id INTEGER PRIMARY KEY,
-            date TEXT NOT NULL,
-            start_time TEXT,
-            name TEXT,
-            type_key TEXT,
-            duration_seconds REAL,
-            distance_meters REAL,
-            elevation_gain REAL,
-            avg_hr REAL,
-            max_hr REAL,
-            calories REAL,
-            avg_speed_ms REAL
-        )
-    """)
+    col_defs = ", ".join(f"{name} {typ}" for name, typ in _ACTIVITY_COLS)
+    con.execute(f"CREATE TABLE IF NOT EXISTS activities ({col_defs})")
+    existing = {row[1] for row in con.execute("PRAGMA table_info(activities)")}
+    for name, typ in _ACTIVITY_COLS:
+        if name not in existing and name != "activity_id":
+            base_type = typ.split()[0]
+            con.execute(f"ALTER TABLE activities ADD COLUMN {name} {base_type}")
 
 
 def get_cached_text(key: str) -> Optional[str]:
@@ -160,29 +185,16 @@ def load_advice(target_date: date) -> Optional[str]:
 
 
 def save_activities(activities: list[dict]) -> None:
+    cols = [name for name, _ in _ACTIVITY_COLS]
+    placeholders = ", ".join("?" for _ in cols)
+    col_list = ", ".join(cols)
     with _conn() as con:
         _ensure_activities_schema(con)
         for a in activities:
+            values = [a.get(name) for name in cols]
             con.execute(
-                """INSERT OR REPLACE INTO activities
-                   (activity_id, date, start_time, name, type_key,
-                    duration_seconds, distance_meters, elevation_gain,
-                    avg_hr, max_hr, calories, avg_speed_ms)
-                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (
-                    a["activity_id"],
-                    a["date"],
-                    a["start_time"],
-                    a["name"],
-                    a["type_key"],
-                    a["duration_seconds"],
-                    a["distance_meters"],
-                    a["elevation_gain"],
-                    a["avg_hr"],
-                    a["max_hr"],
-                    a["calories"],
-                    a["avg_speed_ms"],
-                ),
+                f"INSERT OR REPLACE INTO activities ({col_list}) VALUES ({placeholders})",
+                values,
             )
 
 
