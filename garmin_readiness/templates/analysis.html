@@ -156,6 +156,63 @@
       {% endif %}
     </div>
 
+    <!-- FTP test effort highlight -->
+    {% if a.ftp_effort_avg_hr %}
+    <div style="background:rgba(251,146,60,0.07);border:1px solid rgba(251,146,60,0.25);border-left:3px solid #fb923c;padding:12px 16px;margin-bottom:18px;border-radius:2px">
+      <p class="eyebrow" style="margin-bottom:8px;color:#fb923c;letter-spacing:0.15em">⚡ FTP Test — 20-min Effort</p>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end">
+        <div>
+          <p class="eyebrow" style="margin-bottom:3px">Effort Avg HR</p>
+          <p style="font-family:var(--font-m);font-size:18px;font-weight:600;color:var(--text)">{{ a.ftp_effort_avg_hr | int }} <span style="font-size:11px;color:var(--muted)">bpm</span></p>
+        </div>
+        {% if a.ftp_effort_max_hr %}
+        <div>
+          <p class="eyebrow" style="margin-bottom:3px">Effort Max HR</p>
+          <p style="font-family:var(--font-m);font-size:18px;font-weight:600;color:var(--text)">{{ a.ftp_effort_max_hr | int }} <span style="font-size:11px;color:var(--muted)">bpm</span></p>
+        </div>
+        {% endif %}
+        <p style="font-size:12px;color:var(--muted);line-height:1.5;padding-bottom:2px">Threshold HR ≈ effort avg HR · update Z4 targets accordingly</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Interval rep breakdown -->
+    {% if a.interval_reps %}
+    <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);border-left:3px solid #818cf8;padding:12px 16px;margin-bottom:18px;border-radius:2px">
+      <p class="eyebrow" style="margin-bottom:10px;color:#818cf8;letter-spacing:0.15em">📊 Interval Reps — HR by Lap</p>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        {% for rep in a.interval_reps %}
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-family:var(--font-m);font-size:11px;color:var(--muted);width:110px;flex-shrink:0">{{ rep.name }} {{ rep.rep }}</span>
+          {% if rep.avg_hr %}
+          <div style="flex:1;background:var(--surface2);border-radius:2px;height:6px;max-width:160px">
+            <div style="height:6px;border-radius:2px;background:#818cf8;width:{{ [(rep.avg_hr - 100) / 100 * 100, 100] | min | int }}%"></div>
+          </div>
+          <span style="font-family:var(--font-m);font-size:13px;font-weight:500;color:var(--text);width:52px">{{ rep.avg_hr }} <span style="font-size:10px;color:var(--muted)">bpm</span></span>
+          {% endif %}
+          {% if rep.max_hr %}
+          <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">max {{ rep.max_hr }}</span>
+          {% endif %}
+          {% if rep.duration_secs %}
+          <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">{{ rep.duration_secs // 60 }}m{{ '%02d'|format(rep.duration_secs % 60) }}s</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+        {% if a.interval_reps | length >= 2 %}
+        {% set first_hr = a.interval_reps[0].avg_hr or 0 %}
+        {% set last_hr  = a.interval_reps[-1].avg_hr or 0 %}
+        {% set drift = last_hr - first_hr %}
+        <div style="margin-top:4px;padding-top:8px;border-top:1px solid var(--surface2)">
+          <span style="font-family:var(--font-m);font-size:11px;color:var(--muted)">
+            HR drift: <span style="color:{% if drift > 0 %}#fb923c{% else %}#4ade80{% endif %}">{% if drift > 0 %}+{% endif %}{{ drift }} bpm</span>
+            rep 1 → rep {{ a.interval_reps | length }}
+          </span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- HR zones -->
     {% if a.zone_sections %}
     <div style="margin-bottom:18px">

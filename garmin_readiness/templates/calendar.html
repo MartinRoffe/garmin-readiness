@@ -109,15 +109,15 @@
     </div>
 
     <div class="border-t border-slate-800 mb-5 mt-1"></div>
-    {% endif %}
-
-    <!-- Day-of-week header -->
+    {% else %}
+    <!-- Day-of-week header (only shown when there is no pre-plan history) -->
     <div class="grid grid-cols-8 gap-1 mb-1">
       <div class="text-[10px] text-slate-600 uppercase tracking-wider text-right pr-2 pt-1">Wk</div>
       {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
         <div class="day-header text-center">{{ d }}</div>
       {% endfor %}
     </div>
+    {% endif %}
 
     <!-- ── Unified programme weeks ─────────────────────────────────────────── -->
     {% for week in unified_weeks %}

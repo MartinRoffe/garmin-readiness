@@ -29,15 +29,98 @@ def _ensure_analysis_schema(con: sqlite3.Connection) -> None:
             analysed_at TEXT DEFAULT (datetime('now'))
         )
     """)
+    for col, typ in [
+        ("ftp_effort_avg_hr",  "REAL"),
+        ("ftp_effort_max_hr",  "REAL"),
+        ("interval_data_json", "TEXT"),
+    ]:
+        try:
+            con.execute(f"ALTER TABLE activity_analyses ADD COLUMN {col} {typ}")
+        except Exception:
+            pass
 
 
 # ── Fetch detail from Garmin API ─────────────────────────────────────────────
 
-def fetch_activity_detail(api: Any, activity_id: int, activity: Optional[dict] = None) -> dict:
+_FTP_SESSION_LABELS = {"FTP Test", "FTP Re-test", "Final FTP Test"}
+
+# effort_min/max in seconds — range that identifies a single effort lap
+_INTERVAL_CONFIG: dict[str, dict] = {
+    "Tempo Intervals":     {"effort_min": 480,  "effort_max": 780,  "name": "Tempo rep"},
+    "Sweetspot Intervals": {"effort_min": 720,  "effort_max": 1200, "name": "Sweetspot block"},
+    "Sweetspot Ride":      {"effort_min": 720,  "effort_max": 1200, "name": "Sweetspot block"},
+    "Hill Repeats":        {"effort_min": 120,  "effort_max": 330,  "name": "Hill rep"},
+    "Threshold Ride":      {"effort_min": 900,  "effort_max": 1500, "name": "Threshold block"},
+    "Over-Unders":         {"effort_min": 840,  "effort_max": 1200, "name": "OU set"},
+}
+
+
+def _extract_interval_data(api: Any, activity_id: int, session_label: str) -> dict:
+    """Return per-rep HR data for structured interval sessions using lap splits."""
+    config = _INTERVAL_CONFIG.get(session_label)
+    if not config:
+        return {}
+    try:
+        splits = api.get_activity_splits(activity_id)
+        laps = splits.get("lapDTOs") or splits.get("laps") or []
+        lo, hi = config["effort_min"], config["effort_max"]
+        effort_laps = [
+            l for l in laps
+            if lo <= (l.get("duration") or l.get("elapsedDuration") or 0) <= hi
+            and (l.get("averageHR") or 0) > 0
+        ]
+        if not effort_laps:
+            return {}
+        reps = []
+        for i, l in enumerate(effort_laps, 1):
+            dur = round(l.get("duration") or l.get("elapsedDuration") or 0)
+            reps.append({
+                "rep":          i,
+                "name":         config["name"],
+                "avg_hr":       round(l["averageHR"]) if l.get("averageHR") else None,
+                "max_hr":       round(l["maxHR"])     if l.get("maxHR")     else None,
+                "duration_secs": dur,
+            })
+        return {"interval_reps": reps} if reps else {}
+    except Exception:
+        return {}
+
+
+def _extract_ftp_effort(api: Any, activity_id: int) -> dict:
+    """Call get_activity_splits and return avg/max HR for the best ~20-min lap.
+
+    Looks for the lap >= 10 minutes with the highest avg HR — that's the
+    all-out 20-min test effort. Returns empty dict on any failure.
+    """
+    try:
+        splits = api.get_activity_splits(activity_id)
+        laps = splits.get("lapDTOs") or splits.get("laps") or []
+        candidates = [
+            l for l in laps
+            if (l.get("duration") or l.get("elapsedDuration") or 0) >= 600
+        ]
+        if not candidates:
+            return {}
+        best = max(candidates, key=lambda l: l.get("averageHR") or 0)
+        avg_hr = best.get("averageHR")
+        if not avg_hr:
+            return {}
+        return {
+            "ftp_effort_avg_hr": round(avg_hr),
+            "ftp_effort_max_hr": round(best["maxHR"]) if best.get("maxHR") else None,
+        }
+    except Exception:
+        return {}
+
+
+def fetch_activity_detail(api: Any, activity_id: int, activity: Optional[dict] = None,
+                          session_label: Optional[str] = None) -> dict:
     """Return a merged dict of activity summary + HR zones.
 
     Uses inline fields from the activity row when available (avoids two extra
     API calls). Falls back to API for activities saved before the new columns.
+    For FTP test sessions, additionally fetches lap splits to extract the
+    20-min effort HR.
     """
     if activity and activity.get("hr_zone_1_sec") is not None:
         total_secs = sum(activity.get(f"hr_zone_{z}_sec") or 0 for z in range(1, 6)) or 1
@@ -50,7 +133,7 @@ def fetch_activity_detail(api: Any, activity_id: int, activity: Optional[dict] =
             }
             for z in range(1, 6)
         ]
-        return {
+        result = {
             "training_effect":       activity.get("aerobic_te"),
             "training_effect_label": activity.get("training_effect_label"),
             "aerobic_te_message":    None,
@@ -59,6 +142,11 @@ def fetch_activity_detail(api: Any, activity_id: int, activity: Optional[dict] =
             "avg_respiration":       activity.get("avg_respiration"),
             "hr_zones":              hr_zones,
         }
+        if session_label in _FTP_SESSION_LABELS:
+            result.update(_extract_ftp_effort(api, activity_id))
+        elif session_label in _INTERVAL_CONFIG:
+            result.update(_extract_interval_data(api, activity_id, session_label))
+        return result
 
     summary_raw = api.get_activity(activity_id)
     s = summary_raw.get("summaryDTO", {})
@@ -75,7 +163,7 @@ def fetch_activity_detail(api: Any, activity_id: int, activity: Optional[dict] =
         for z in sorted(hr_zones_raw, key=lambda x: x["zoneNumber"])
     ]
 
-    return {
+    result = {
         "training_effect":       s.get("trainingEffect"),
         "training_effect_label": s.get("trainingEffectLabel"),
         "aerobic_te_message":    s.get("aerobicTrainingEffectMessage"),
@@ -84,17 +172,23 @@ def fetch_activity_detail(api: Any, activity_id: int, activity: Optional[dict] =
         "avg_respiration":       s.get("avgRespirationRate"),
         "hr_zones":              hr_zones,
     }
+    if session_label in _FTP_SESSION_LABELS:
+        result.update(_extract_ftp_effort(api, activity_id))
+    elif session_label in _INTERVAL_CONFIG:
+        result.update(_extract_interval_data(api, activity_id, session_label))
+    return result
 
 
 def save_detail(activity_id: int, detail: dict, analysis_text: str) -> None:
     with _conn() as con:
         _ensure_analysis_schema(con)
+        interval_reps = detail.get("interval_reps")
         con.execute(
             """INSERT OR REPLACE INTO activity_analyses
                (activity_id, hr_zones_json, training_effect, training_effect_label,
                 aerobic_te_message, anaerobic_te, training_load, avg_respiration,
-                analysis_text)
-               VALUES (?,?,?,?,?,?,?,?,?)""",
+                analysis_text, ftp_effort_avg_hr, ftp_effort_max_hr, interval_data_json)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
                 activity_id,
                 json.dumps(detail["hr_zones"]),
@@ -105,6 +199,9 @@ def save_detail(activity_id: int, detail: dict, analysis_text: str) -> None:
                 detail.get("training_load"),
                 detail.get("avg_respiration"),
                 analysis_text,
+                detail.get("ftp_effort_avg_hr"),
+                detail.get("ftp_effort_max_hr"),
+                json.dumps(interval_reps) if interval_reps else None,
             ),
         )
 
@@ -119,10 +216,8 @@ def load_analysis(activity_id: int) -> Optional[dict]:
     if row is None:
         return None
     d = dict(row)
-    if d.get("hr_zones_json"):
-        d["hr_zones"] = json.loads(d["hr_zones_json"])
-    else:
-        d["hr_zones"] = []
+    d["hr_zones"] = json.loads(d["hr_zones_json"]) if d.get("hr_zones_json") else []
+    d["interval_reps"] = json.loads(d["interval_data_json"]) if d.get("interval_data_json") else []
     return d
 
 
@@ -311,6 +406,18 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
     )
 
     _ftp_labels = {"FTP Test", "FTP Re-test", "Final FTP Test"}
+    _is_ftp = bool(d_obj and session_for_date_extended(d_obj) and session_for_date_extended(d_obj)[1] in _ftp_labels)
+    ftp_effort_avg_hr = detail.get("ftp_effort_avg_hr")
+    ftp_effort_max_hr = detail.get("ftp_effort_max_hr")
+    ftp_effort_line = ""
+    if _is_ftp and ftp_effort_avg_hr:
+        max_str = f", max HR {int(ftp_effort_max_hr)} bpm" if ftp_effort_max_hr else ""
+        ftp_effort_line = (
+            f"20-minute test effort (extracted from lap data): "
+            f"avg HR {int(ftp_effort_avg_hr)} bpm{max_str}. "
+            "This avg HR is the athlete's estimated lactate threshold HR. "
+            "Reference it when assessing whether the effort was maximal."
+        )
     ftp_note = (
         "Session structure note: this is an FTP test. The standard structure is "
         "~15m warm-up (Z1–Z2), 3m priming effort, 5m Z1 recovery, then a 20-minute all-out effort (target Z4–Z5), "
@@ -318,8 +425,29 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
         "show significant Z1–Z2 time from the warm-up and cool-down — this is expected and correct. "
         "Focus your analysis on whether the 20-minute test effort was well-executed: "
         "was max HR high, did the athlete sustain effort into Z4–Z5, and how does the training load reflect the test demand?"
-        if (d_obj and session_for_date_extended(d_obj) and session_for_date_extended(d_obj)[1] in _ftp_labels) else ""
+        if _is_ftp else ""
     )
+
+    # Interval rep summary for structured sessions
+    interval_reps = detail.get("interval_reps") or []
+    interval_lines: list[str] = []
+    if interval_reps:
+        interval_lines.append("Interval rep data (from lap splits):")
+        for rep in interval_reps:
+            dur_s = rep.get("duration_secs") or 0
+            dur_fmt_rep = f"{dur_s // 60}m{dur_s % 60:02d}s"
+            avg = f"avg HR {rep['avg_hr']} bpm" if rep.get("avg_hr") else ""
+            mx  = f", max {rep['max_hr']} bpm" if rep.get("max_hr") else ""
+            interval_lines.append(f"  {rep['name']} {rep['rep']}: {avg}{mx} ({dur_fmt_rep})")
+        if len(interval_reps) >= 2:
+            first_hr = interval_reps[0].get("avg_hr") or 0
+            last_hr  = interval_reps[-1].get("avg_hr") or 0
+            drift = last_hr - first_hr
+            sign = "+" if drift >= 0 else ""
+            interval_lines.append(
+                f"HR drift across reps: {sign}{drift} bpm (rep 1 → rep {len(interval_reps)}) — "
+                + ("expected accumulation" if drift > 0 else "HR stayed flat or dropped")
+            )
 
     lines = [
         f"Activity: {name}",
@@ -332,6 +460,8 @@ def _build_analysis_prompt(activity: dict, detail: dict, companion: Optional[dic
         f"Avg respiration: {resp} breaths/min" if resp else "",
         equipment_note,
         ftp_note,
+        ftp_effort_line,
+        *interval_lines,
         "",
         "Heart rate zone distribution:",
         *zone_lines,
@@ -388,7 +518,13 @@ def refresh_analyses(api: Any, days: int = 14) -> None:
             continue  # already done
         try:
             companion = _find_compound_companion(act, acts_by_date.get(act["date"], []))
-            detail = fetch_activity_detail(api, act_id, activity=act)
+            act_date = act.get("date")
+            session_label = None
+            if act_date:
+                sess = session_for_date_extended(date.fromisoformat(act_date))
+                if sess:
+                    session_label = sess[1]
+            detail = fetch_activity_detail(api, act_id, activity=act, session_label=session_label)
             text = generate_analysis(act, detail, companion=companion)
             save_detail(act_id, detail, text)
         except Exception as exc:
