@@ -884,6 +884,18 @@ async def calendar_view(request: Request):
             break
     ctx["current_streak"] = current_streak
 
+    # Build single unified weeks list (plan → camp → event prep) with phase tags.
+    # Plan weeks are reused after completion tracking, so their day dicts already have
+    # completed/actual_min populated.
+    unified: list[dict] = []
+    for w in ctx["weeks"]:
+        unified.append({**w, "phase": "plan", "phase_start": w["week_num"] == 1})
+    for i, w in enumerate(ctx["camp_weeks"]):
+        unified.append({**w, "phase": "camp", "phase_start": i == 0})
+    for i, w in enumerate(ctx["combined_event_weeks"]):
+        unified.append({**w, "phase": "event_prep", "phase_start": i == 0})
+    ctx["unified_weeks"] = unified
+
     return TEMPLATES.TemplateResponse(request=request, name="calendar.html", context=ctx)
 
 
@@ -1338,7 +1350,7 @@ def date_fromisoformat_safe(s: str) -> date:
 
 _COACH_SYSTEM = (
     "You are an experienced endurance coach working with an amateur athlete preparing for "
-    "a 5-day charity cycling event (Lap the Map, ~170 km total, 6 Sep 2026). "
+    "a 2-day charity cycling event (Ghent to Amsterdam, ~310 km total, 13–14 Sep 2026). "
     "The athlete is 50+, training 6+ hours/week mixing cycling, kettlebells, rucking, and MaxiClimber. "
     "They also have a longer-term goal: Haute Route Alpes 2027 (7 stages, ~900 km, ~25,000 m elevation).\n\n"
     "You have access to their live Garmin data in the context block below. "
@@ -1347,9 +1359,10 @@ _COACH_SYSTEM = (
     "When you recommend modifying a planned session's duration, call the propose_plan_change tool — "
     "a confirmation card will appear for the athlete to review. After the tool call, briefly explain "
     "the proposed change in your text (do not say 'above' or 'below' — just refer to 'the proposal card').\n\n"
-    "Training plan context: 12-week plan runs 18 May – 9 Aug 2026. Builds from Zone 2 base to a 5-hour "
-    "event simulation. Key sessions: Zone 2 rides, FTP tests (wks 3/7/12), hill repeats and tempo from "
-    "wk 5, progressive rucking (Mersea Coastal Spur build in wks 9–10), KB + MaxiClimber strength.\n\n"
+    "Training plan context: 12-week plan runs 18 May – 9 Aug 2026, followed by Tenerife cycling camp "
+    "(13–27 Aug) and event prep block (Aug 31 – Sep 12). Builds from Zone 2 base to back-to-back long "
+    "rides simulating the 2-day event. Key sessions: Zone 2 rides, FTP tests (wks 3/7/12), hill repeats "
+    "and tempo from wk 5, progressive rucking (Mersea Coastal Spur build in wks 9–10), KB + MaxiClimber strength.\n\n"
     "PMC note: Garmin TSB units differ from Coggan TSS. Rough bands: "
     "fresh > −50, moderate load −50 to −150, heavy load −150 to −250, very high fatigue < −250."
 )
@@ -1423,7 +1436,7 @@ def _build_coach_context() -> str:
     # Event prep days (Aug 31 – Sep 6)
     event_prep_future = [ep for ep in EVENT_PREP_DAYS if ep["date"] >= today]
     if event_prep_future:
-        upcoming_lines.append("  --- Event Prep (Lap the Map, 6 Sep 2026) ---")
+        upcoming_lines.append("  --- Event Prep (Ghent to Amsterdam charity ride, 13–14 Sep 2026) ---")
         for ep in event_prep_future:
             upcoming_lines.append(
                 f"  {ep['date'].strftime('%a %d %b')} ({ep['date'].isoformat()}): "
@@ -1600,7 +1613,7 @@ def _regenerate_coach_memory(api_key: str) -> None:
         f"Recent conversations:\n{conv_text}\n\n"
         f"Live context summary (for reference only — don't repeat this):\n{context[:600]}\n\n"
         "Write a replacement memo (150–250 words) covering:\n"
-        "- Goals and timeline (Lap the Map, Haute Route)\n"
+        "- Goals and timeline (Ghent to Amsterdam charity ride 13–14 Sep 2026, Haute Route Alpes 2027)\n"
         "- Tendencies (e.g. pushes through fatigue, HRV baseline, training response)\n"
         "- Plan decisions made via coach chat\n"
         "- Long-term patterns worth watching\n"
@@ -1630,6 +1643,9 @@ def _maybe_update_memo_bg(api_key: str) -> None:
 
 def _stream_coach_sse(messages: list[dict], user_message: str, api_key: str):
     """Sync generator yielding SSE events for the coach chat stream."""
+    # Save user message immediately so it survives connection drops or server restarts.
+    save_coach_message("user", user_message)
+
     context = _build_coach_context()
     system = _COACH_SYSTEM + f"\n\n## Current Context\n{context}"
     client = _anthropic.Anthropic(api_key=api_key)
@@ -1686,7 +1702,6 @@ def _stream_coach_sse(messages: list[dict], user_message: str, api_key: str):
             yield f"data: {json.dumps({'type': 'proposal', 'data': proposal})}\n\n"
 
         full_reply = "".join(full_text)
-        save_coach_message("user", user_message)
         save_coach_message("assistant", full_reply, json.dumps(proposal) if proposal else None)
         _maybe_update_memo_bg(api_key)
 

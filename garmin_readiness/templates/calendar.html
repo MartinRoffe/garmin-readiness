@@ -39,9 +39,9 @@
 
     <div style="margin-bottom:28px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px">
       <div>
-        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#c4c4cc;margin-bottom:8px">12-Week Training Plan</p>
+        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#c4c4cc;margin-bottom:8px">Full Programme</p>
         <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:#fafafa;line-height:1">Calendar</h1>
-        <p style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc;margin-top:6px">{{ plan_start.strftime("%-d %b %Y") }} → 9 Aug 2026</p>
+        <p style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc;margin-top:6px">{{ plan_start.strftime("%-d %b %Y") }} → 20 Sep 2026</p>
       </div>
       {% if current_streak > 0 %}
       <div style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;padding:6px 14px;border:1px solid #166534;color:#4ade80;background:#052e16/40;border-radius:2px;white-space:nowrap;align-self:flex-start;margin-top:4px">
@@ -119,252 +119,217 @@
       {% endfor %}
     </div>
 
-    <!-- Weeks -->
-    {% for week in weeks %}
-    <div class="grid grid-cols-8 gap-1 mb-1">
+    <!-- ── Unified programme weeks ─────────────────────────────────────────── -->
+    {% for week in unified_weeks %}
+
+    {% if week.phase_start and week.phase == 'camp' %}
+    <div style="display:flex;align-items:center;gap:12px;margin:20px 0 6px">
+      <div style="flex:1;height:1px;background:rgba(251,191,36,0.2)"></div>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;color:#fbbf24;white-space:nowrap">🏔 TENERIFE CAMP · 13–27 AUG · click any ride for route</span>
+      <div style="flex:1;height:1px;background:rgba(251,191,36,0.2)"></div>
+    </div>
+    {% elif week.phase_start and week.phase == 'event_prep' %}
+    <div style="display:flex;align-items:center;gap:12px;margin:20px 0 6px">
+      <div style="flex:1;height:1px;background:rgba(56,189,248,0.2)"></div>
+      <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;color:#38bdf8;white-space:nowrap">🎯 GHENT → AMSTERDAM · 13 SEP · recovery → build → taper → race</span>
+      <div style="flex:1;height:1px;background:rgba(56,189,248,0.2)"></div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-8 gap-1 mb-1" style="{% if week.phase == 'camp' %}background:rgba(120,53,15,0.12);border-radius:4px;{% elif week.phase == 'event_prep' %}background:rgba(7,89,133,0.12);border-radius:4px;{% endif %}">
+
+      <!-- Week sidebar -->
       <div class="flex flex-col items-end justify-center pr-2">
-        <span class="text-[13px] font-bold text-slate-200">W{{ "%02d"|format(week.week_num) }}</span>
-        <span class="text-[12px] text-slate-400">{{ week.start.strftime("%-d %b") }}</span>
-        <span class="text-[12px] text-slate-400 mt-0.5">{{ week.plan_min_fmt }}</span>
-        {% if week.done_min_fmt %}
-          <span class="text-[11px] text-emerald-500">{{ week.done_min_fmt }}</span>
-        {% endif %}
-        {% if week.completion_pct is not none %}
-          <span class="text-[14px] font-bold mt-1
-            {% if week.completion_pct >= 90 %}text-emerald-400
-            {% elif week.completion_pct >= 60 %}text-yellow-400
-            {% else %}text-red-400{% endif %}">
-            {{ week.completion_pct }}%
-          </span>
-        {% endif %}
-        {% if week.days_total > 0 %}
-          <span class="text-[12px] text-slate-400 mt-0.5">{{ week.days_hit }}/{{ week.days_total }} days</span>
+        {% if week.phase == 'plan' %}
+          <span class="text-[13px] font-bold text-slate-200">W{{ "%02d"|format(week.week_num) }}</span>
+          <span class="text-[12px] text-slate-400">{{ week.start.strftime("%-d %b") }}</span>
+          <span class="text-[12px] text-slate-400 mt-0.5">{{ week.plan_min_fmt }}</span>
+          {% if week.done_min_fmt %}
+            <span class="text-[11px] text-emerald-500">{{ week.done_min_fmt }}</span>
+          {% endif %}
+          {% if week.completion_pct is not none %}
+            <span class="text-[14px] font-bold mt-1
+              {% if week.completion_pct >= 90 %}text-emerald-400
+              {% elif week.completion_pct >= 60 %}text-yellow-400
+              {% else %}text-red-400{% endif %}">
+              {{ week.completion_pct }}%
+            </span>
+          {% endif %}
+          {% if week.days_total > 0 %}
+            <span class="text-[12px] text-slate-400 mt-0.5">{{ week.days_hit }}/{{ week.days_total }} days</span>
+          {% endif %}
+        {% elif week.phase == 'camp' %}
+          <span class="text-[12px] font-semibold" style="color:#fbbf24">{{ week.week_label }}</span>
+        {% elif week.phase == 'event_prep' %}
+          <span class="text-[12px] font-semibold" style="color:#38bdf8">{{ week.week_label }}</span>
         {% endif %}
       </div>
 
+      <!-- Day cells -->
       {% for day in week.days %}
-      {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength', 'ruck'] %}
-      {% set is_missed = day.completed == false and day.type != 'rest' and not day.is_today %}
-      <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
-                  {% if day.is_today %}today-ring{% endif %}
-                  {% if day.is_past %}is-past{% endif %}
-                  {% if is_missed or (is_clickable and not is_missed) %}clickable-session{% endif %}"
-           {% if is_missed %}
-             data-date="{{ day.date.isoformat() }}"
-             data-label="{{ day.label }}"
-             data-dur-fmt="{{ day.dur_fmt }}"
-             onclick="openRecoveryModal(this)"
-           {% elif is_clickable %}
-             data-label="{{ day.label }}"
-             data-dur="{{ day.dur_min }}"
-             data-dur-fmt="{{ day.dur_fmt }}"
-             data-coach-note="{{ day.coach_note }}"
-             {% if day.maxi_intervals %}data-maxi-intervals='{{ day.maxi_intervals | tojson }}'{% endif %}
-             {% if day.ruck_spec %}data-ruck-spec='{{ day.ruck_spec | tojson }}'{% endif %}
-             {% if day.kb_spec %}data-kb-spec='{{ day.kb_spec | tojson }}'{% endif %}
-             onclick="openModal(this)"
-           {% endif %}>
-        <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
-          {% if day.coach_note %}
-            <span class="text-[11px] text-amber-400 font-semibold leading-none" title="AI coach recommendation">✦</span>
-          {% elif day.completed == true %}
-            <span class="text-[13px] text-emerald-400 font-bold leading-none" title="Completed">✓</span>
-          {% elif day.completed == false %}
-            <span class="text-[13px] text-red-500 font-bold leading-none" title="Missed — click for recovery advice">✗</span>
-          {% elif day.is_today %}
-            <span class="text-[11px] text-sky-400 font-semibold">TODAY</span>
-          {% endif %}
-        </div>
-        {% if day.type != 'rest' %}
-          {% if day.sub_sessions %}
-            <div style="flex:1;display:flex;flex-direction:column;gap:4px;margin-bottom:2px">
-              {% for sub in day.sub_sessions %}
-              <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
-                <span class="text-[12px] font-semibold leading-tight">{{ sub.label }}</span>
-                {% if sub.completed == true %}
-                  <span class="text-[11px] text-emerald-400 font-bold flex-shrink-0">✓</span>
-                {% elif sub.completed == false %}
-                  <span class="text-[11px] text-red-500 font-bold flex-shrink-0">✗</span>
-                {% endif %}
+
+      {% if week.phase == 'plan' %}
+        {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength', 'ruck'] %}
+        {% set is_missed = day.completed == false and day.type != 'rest' and not day.is_today %}
+        <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
+                    {% if day.is_today %}today-ring{% endif %}
+                    {% if day.is_past %}is-past{% endif %}
+                    {% if is_missed or (is_clickable and not is_missed) %}clickable-session{% endif %}"
+             {% if is_missed %}
+               data-date="{{ day.date.isoformat() }}"
+               data-label="{{ day.label }}"
+               data-dur-fmt="{{ day.dur_fmt }}"
+               onclick="openRecoveryModal(this)"
+             {% elif is_clickable %}
+               data-label="{{ day.label }}"
+               data-dur="{{ day.dur_min }}"
+               data-dur-fmt="{{ day.dur_fmt }}"
+               data-coach-note="{{ day.coach_note }}"
+               {% if day.maxi_intervals %}data-maxi-intervals='{{ day.maxi_intervals | tojson }}'{% endif %}
+               {% if day.ruck_spec %}data-ruck-spec='{{ day.ruck_spec | tojson }}'{% endif %}
+               {% if day.kb_spec %}data-kb-spec='{{ day.kb_spec | tojson }}'{% endif %}
+               onclick="openModal(this)"
+             {% endif %}>
+          <div class="flex items-start justify-between mb-0.5">
+            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+            {% if day.coach_note %}
+              <span class="text-[11px] text-amber-400 font-semibold leading-none" title="AI coach recommendation">✦</span>
+            {% elif day.completed == true %}
+              <span class="text-[13px] text-emerald-400 font-bold leading-none" title="Completed">✓</span>
+            {% elif day.completed == false %}
+              <span class="text-[13px] text-red-500 font-bold leading-none" title="Missed — click for recovery advice">✗</span>
+            {% elif day.is_today %}
+              <span class="text-[11px] text-sky-400 font-semibold">TODAY</span>
+            {% endif %}
+          </div>
+          {% if day.type != 'rest' %}
+            {% if day.sub_sessions %}
+              <div style="flex:1;display:flex;flex-direction:column;gap:4px;margin-bottom:2px">
+                {% for sub in day.sub_sessions %}
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
+                  <span class="text-[12px] font-semibold leading-tight">{{ sub.label }}</span>
+                  {% if sub.completed == true %}
+                    <span class="text-[11px] text-emerald-400 font-bold flex-shrink-0">✓</span>
+                  {% elif sub.completed == false %}
+                    <span class="text-[11px] text-red-500 font-bold flex-shrink-0">✗</span>
+                  {% endif %}
+                </div>
+                {% endfor %}
               </div>
-              {% endfor %}
-            </div>
-            {% if day.dur_fmt %}
-              <p class="text-[12px] opacity-70 mt-auto">{{ day.dur_fmt }}</p>
+              {% if day.dur_fmt %}
+                <p class="text-[12px] opacity-70 mt-auto">{{ day.dur_fmt }}</p>
+              {% endif %}
+            {% else %}
+              <p class="text-[12px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+              <div class="flex items-center justify-between mt-auto gap-1">
+                {% if day.dur_fmt %}<p class="text-[12px] opacity-80">{{ day.dur_fmt }}</p>{% endif %}
+                {% if day.mersea_build %}<span class="text-[10px] font-semibold px-1 rounded" style="background:#0f1a00;border:1px solid #65a30d;color:#a3e635;letter-spacing:0.08em">🥾 MERSEA</span>{% endif %}
+              </div>
             {% endif %}
           {% else %}
-            <p class="text-[12px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-            <div class="flex items-center justify-between mt-auto gap-1">
-              {% if day.dur_fmt %}<p class="text-[12px] opacity-80">{{ day.dur_fmt }}</p>{% endif %}
-              {% if day.mersea_build %}<span class="text-[10px] font-semibold px-1 rounded" style="background:#0f1a00;border:1px solid #65a30d;color:#a3e635;letter-spacing:0.08em">🥾 MERSEA</span>{% endif %}
-            </div>
+            <p class="text-[12px] opacity-65 mt-auto">Rest</p>
           {% endif %}
-        {% else %}
-          <p class="text-[12px] opacity-65 mt-auto">Rest</p>
-        {% endif %}
-      </div>
-      {% endfor %}
-    </div>
-    {% endfor %}
-
-    <!-- ── Tenerife Cycling Camp ─────────────────────────────────────────── -->
-    <div class="border-t border-slate-800 mt-4 mb-5"></div>
-
-    <div class="mb-4">
-      <p class="text-xs text-slate-300 uppercase tracking-widest mb-1">Cycling Camp · Los Gigantes, Tenerife</p>
-      <h2 class="text-lg font-bold text-amber-400">Tenerife Cycling Camp</h2>
-      <p class="text-xs text-slate-300 mt-1">13 Aug – 27 Aug 2026 · travel days 13 &amp; 27 · 12 riding days</p>
-    </div>
-
-    <div class="flex flex-wrap gap-2 mb-4">
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-camp-hard">Hard</span>
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-camp-medium">Medium</span>
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-camp-easy">Easy</span>
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-camp-rest">Rest / Travel</span>
-      <span class="text-[12px] text-slate-400 self-center ml-2">· click any riding day for full route</span>
-    </div>
-
-    <div class="grid grid-cols-8 gap-1 mb-1">
-      <div class="text-[10px] text-slate-600 uppercase tracking-wider text-right pr-2 pt-1">Wk</div>
-      {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
-        <div class="day-header text-center">{{ d }}</div>
-      {% endfor %}
-    </div>
-
-    {% for camp_week in camp_weeks %}
-    <div class="grid grid-cols-8 gap-1 mb-1">
-      <div class="flex flex-col items-end justify-center pr-2">
-        <span class="text-[12px] text-slate-400">{{ camp_week.week_label }}</span>
-      </div>
-      {% for day in camp_week.days %}
-      {% if day.is_camp and day.intensity not in ('rest', 'travel') %}
-      <a href="/tenerife#day-{{ day.camp_day_num }}"
-         class="rounded border p-1.5 min-h-[64px] flex flex-col sess-camp-{{ day.intensity }} no-underline clickable-session
-                {% if day.is_today %}today-ring{% endif %}
-                {% if day.is_past %}is-past{% endif %}">
-        <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
-          <span class="text-[11px] text-amber-500 font-semibold">D{{ day.camp_day_num }}</span>
         </div>
-        <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-        <p class="text-[12px] opacity-80 mt-auto">{{ day.km }}km · {{ day.elev_m }}m</p>
-      </a>
-      {% elif day.is_camp %}
-      <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-camp-{{ day.intensity }}
+
+      {% elif week.phase == 'camp' %}
+        {% if day.is_camp and day.intensity not in ('rest', 'travel') %}
+        <a href="/tenerife#day-{{ day.camp_day_num }}"
+           class="rounded border p-1.5 min-h-[64px] flex flex-col sess-camp-{{ day.intensity }} no-underline clickable-session
                   {% if day.is_today %}today-ring{% endif %}
                   {% if day.is_past %}is-past{% endif %}">
-        <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
-        </div>
-        <p class="text-[12px] opacity-65 mt-auto">{{ day.label }}</p>
-      </div>
-      {% elif day.is_workout %}
-      {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength'] %}
-      <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
-                  {% if day.is_today %}today-ring{% endif %}
-                  {% if day.is_past %}is-past{% endif %}
-                  {% if is_clickable %}clickable-session{% endif %}"
-           {% if is_clickable %}
-             data-label="{{ day.label }}"
-             data-dur="{{ day.dur_min }}"
-             data-dur-fmt="{{ day.dur_fmt }}"
-             onclick="openModal(this)"
-           {% endif %}>
-        <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
-        </div>
-        <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-        <p class="text-[12px] opacity-80 mt-auto">{{ day.dur_fmt }}</p>
-      </div>
-      {% else %}
-      <div class="min-h-[64px]"></div>
-      {% endif %}
-      {% endfor %}
-    </div>
-    {% endfor %}
-
-    <!-- ── Ghent–Amsterdam Build + Charity Ride ─────────────────────────── -->
-    <div class="border-t border-slate-800 mt-4 mb-5"></div>
-
-    <div class="mb-4">
-      <p class="text-xs text-slate-300 uppercase tracking-widest mb-1">Ghent–Amsterdam Build with Charity Ride · Belgium → Netherlands</p>
-      <h2 class="text-lg font-bold text-sky-400">Ghent to Amsterdam</h2>
-      <p class="text-xs text-slate-300 mt-1">13–14 September 2026 · 2-day event · ~310km total · recovery → build → taper → event</p>
-    </div>
-
-    <div class="flex flex-wrap gap-2 mb-4">
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-bike">Z2 / Easy</span>
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-long">Long Ride</span>
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-tempo">Sweetspot / Tempo</span>
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-charity">Event Day</span>
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-mersea">Mersea Goal</span>
-      <span class="px-2 py-0.5 rounded text-[11px] border sess-rest">Rest</span>
-      <span class="text-[12px] text-slate-400 self-center ml-2">· click any session for details</span>
-    </div>
-
-    <div class="grid grid-cols-8 gap-1 mb-1">
-      <div class="text-[10px] text-slate-600 uppercase tracking-wider text-right pr-2 pt-1">Wk</div>
-      {% for d in ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] %}
-        <div class="day-header text-center">{{ d }}</div>
-      {% endfor %}
-    </div>
-
-    {% for week in combined_event_weeks %}
-    <div class="grid grid-cols-8 gap-1 mb-1">
-      <div class="flex flex-col items-end justify-center pr-2">
-        <span class="text-[12px] text-slate-400">{{ week.week_label }}</span>
-      </div>
-      {% for day in week.days %}
-      {% if day.is_event and day.is_mersea %}
-      <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-mersea
-                  {% if day.is_today %}today-ring{% endif %}
-                  {% if day.is_past %}is-past{% endif %}">
-        <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
-          <span class="text-[11px] font-semibold" style="color:#a3e635">🥾</span>
-        </div>
-        <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-        <p class="text-[12px] opacity-80 mt-auto">~{{ day.km }}km</p>
-      </div>
-      {% elif day.is_event %}
-      <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-charity
-                  {% if day.is_today %}today-ring{% endif %}
-                  {% if day.is_past %}is-past{% endif %}">
-        <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
-          <span class="text-[11px] text-sky-400 font-semibold">D{{ day.day_num_ride }}</span>
-        </div>
-        <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-        <p class="text-[12px] opacity-80 mt-auto">~{{ day.km }}km</p>
-      </div>
-      {% else %}
-      {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength'] %}
-      <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
-                  {% if day.is_today %}today-ring{% endif %}
-                  {% if day.is_past %}is-past{% endif %}
-                  {% if is_clickable %}clickable-session{% endif %}"
-           {% if is_clickable %}
-             data-label="{{ day.label }}"
-             data-dur="{{ day.dur_min }}"
-             data-dur-fmt="{{ day.dur_fmt }}"
-             onclick="openModal(this)"
-           {% endif %}>
-        <div class="flex items-start justify-between mb-0.5">
-          <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
-          {% if day.is_today %}<span class="text-[9px] text-sky-400 font-semibold">TODAY</span>{% endif %}
-        </div>
-        {% if day.type != 'rest' and day.label %}
+          <div class="flex items-start justify-between mb-0.5">
+            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+            <span class="text-[11px] text-amber-500 font-semibold">D{{ day.camp_day_num }}</span>
+          </div>
           <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-          {% if day.dur_fmt %}<p class="text-[12px] opacity-80 mt-auto">{{ day.dur_fmt }}</p>{% endif %}
+          <p class="text-[12px] opacity-80 mt-auto">{{ day.km }}km · {{ day.elev_m }}m</p>
+        </a>
+        {% elif day.is_camp %}
+        <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-camp-{{ day.intensity }}
+                    {% if day.is_today %}today-ring{% endif %}
+                    {% if day.is_past %}is-past{% endif %}">
+          <div class="flex items-start justify-between mb-0.5">
+            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+          </div>
+          <p class="text-[12px] opacity-65 mt-auto">{{ day.label }}</p>
+        </div>
+        {% elif day.is_workout %}
+        {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength'] %}
+        <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
+                    {% if day.is_today %}today-ring{% endif %}
+                    {% if day.is_past %}is-past{% endif %}
+                    {% if is_clickable %}clickable-session{% endif %}"
+             {% if is_clickable %}
+               data-label="{{ day.label }}"
+               data-dur="{{ day.dur_min }}"
+               data-dur-fmt="{{ day.dur_fmt }}"
+               onclick="openModal(this)"
+             {% endif %}>
+          <div class="flex items-start justify-between mb-0.5">
+            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+          </div>
+          <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+          <p class="text-[12px] opacity-80 mt-auto">{{ day.dur_fmt }}</p>
+        </div>
         {% else %}
-          <p class="text-[12px] opacity-65 mt-auto">Rest</p>
+        <div class="min-h-[64px]"></div>
         {% endif %}
-      </div>
-      {% endif %}
-      {% endfor %}
-    </div>
-    {% endfor %}
+
+      {% elif week.phase == 'event_prep' %}
+        {% if day.is_event and day.is_mersea %}
+        <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-mersea
+                    {% if day.is_today %}today-ring{% endif %}
+                    {% if day.is_past %}is-past{% endif %}">
+          <div class="flex items-start justify-between mb-0.5">
+            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+            <span class="text-[11px] font-semibold" style="color:#a3e635">🥾</span>
+          </div>
+          <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+          <p class="text-[12px] opacity-80 mt-auto">~{{ day.km }}km</p>
+        </div>
+        {% elif day.is_event %}
+        <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-charity
+                    {% if day.is_today %}today-ring{% endif %}
+                    {% if day.is_past %}is-past{% endif %}">
+          <div class="flex items-start justify-between mb-0.5">
+            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+            <span class="text-[11px] text-sky-400 font-semibold">D{{ day.day_num_ride }}</span>
+          </div>
+          <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+          <p class="text-[12px] opacity-80 mt-auto">~{{ day.km }}km</p>
+        </div>
+        {% else %}
+        {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength'] %}
+        <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
+                    {% if day.is_today %}today-ring{% endif %}
+                    {% if day.is_past %}is-past{% endif %}
+                    {% if is_clickable %}clickable-session{% endif %}"
+             {% if is_clickable %}
+               data-label="{{ day.label }}"
+               data-dur="{{ day.dur_min }}"
+               data-dur-fmt="{{ day.dur_fmt }}"
+               onclick="openModal(this)"
+             {% endif %}>
+          <div class="flex items-start justify-between mb-0.5">
+            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
+            {% if day.is_today %}<span class="text-[9px] text-sky-400 font-semibold">TODAY</span>{% endif %}
+          </div>
+          {% if day.type != 'rest' and day.label %}
+            <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+            {% if day.dur_fmt %}<p class="text-[12px] opacity-80 mt-auto">{{ day.dur_fmt }}</p>{% endif %}
+          {% else %}
+            <p class="text-[12px] opacity-65 mt-auto">Rest</p>
+          {% endif %}
+        </div>
+        {% endif %}
+
+      {% endif %}{# end phase dispatch #}
+
+      {% endfor %}{# end day loop #}
+
+    </div>{# end week row grid #}
+
+    {% endfor %}{# end unified_weeks loop #}
 
   </div>
 
