@@ -27,7 +27,7 @@ from .plan import (PLAN_START as _PLAN_START, build_calendar_weeks, build_camp_w
 from .hr_plan import (HR_PHASES, HR_PLAN_START, HR_TRAINING_WEEKS,
                       build_hr_calendar_weeks, build_hr_event_weeks,
                       HR_EVENT_START, HR_EVENT_END)
-from .mersea_routes import MERSEA_ROUTES, MERSEA_TARGET_DATE
+from .mersea_routes import MERSEA_TARGET_DATE
 from .report import generate_advice, generate_dashboard_explainer, generate_pmc_analysis, generate_pmc_explainer
 from .body import bp_classification, fetch_body_composition, fetch_blood_pressure
 from .history import (
@@ -1075,16 +1075,6 @@ async def haute_route_view(request: Request):
     }
     return TEMPLATES.TemplateResponse(request=request, name="hr_calendar.html", context=ctx)
 
-
-@app.get("/mersea", response_class=HTMLResponse)
-async def mersea_view(request: Request):
-    import json
-    return TEMPLATES.TemplateResponse(request=request, name="mersea.html", context={
-        "active_tab":  "mersea",
-        "routes":      MERSEA_ROUTES,
-        "routes_json": json.dumps(MERSEA_ROUTES),
-        "target_date": MERSEA_TARGET_DATE.isoformat(),
-    })
 
 
 def _week_summary() -> Optional[dict]:
