@@ -137,11 +137,18 @@
             {% endif %}
           </div>
 
-          <!-- Kcal target -->
+          <!-- Kcal target + actual burn -->
           <div style="text-align:right;flex-shrink:0;margin-right:8px">
             {% if day.kcal %}
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#c4c4cc">kcal</p>
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#c4c4cc">target</p>
             <p style="font-family:'DM Mono',monospace;font-size:13px;color:#fafafa">~{{ day.kcal }}</p>
+            {% endif %}
+            {% if day.actual_kcal %}
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#52525b;margin-top:3px">burned</p>
+            <p style="font-family:'DM Mono',monospace;font-size:12px;
+              {% if day.kcal and day.actual_kcal > day.kcal * 1.15 %}color:#fb923c
+              {% elif day.kcal and day.actual_kcal < day.kcal * 0.5 %}color:#71717a
+              {% else %}color:#4ade80{% endif %}">{{ day.actual_kcal }}</p>
             {% endif %}
           </div>
 
@@ -165,6 +172,76 @@
 
     </div><!-- /week-panel -->
     {% endfor %}
+
+    <!-- ── Tenerife Cycling Camp ─────────────────────────────────────────── -->
+    {% if camp_days %}
+    <div style="margin-top:40px;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <div style="flex:1;height:1px;background:rgba(251,191,36,0.2)"></div>
+        <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;color:#fbbf24;white-space:nowrap">🏔 TENERIFE CAMP · 13–27 AUG · NUTRITION</span>
+        <div style="flex:1;height:1px;background:rgba(251,191,36,0.2)"></div>
+      </div>
+
+      <div style="background:rgba(120,53,15,0.1);border:1px solid rgba(251,191,36,0.15);border-radius:2px;padding:14px 16px;margin-bottom:12px">
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4" style="font-size:12px;color:#a1a1aa;line-height:1.6">
+          <div><span style="color:#f87171;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em">HARD</span> ~3,200 kcal — 90+ km, 2,000+ m climbing. Carb-heavy breakfast, 60 g/hr on-bike, big recovery dinner.</div>
+          <div><span style="color:#fbbf24;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em">MEDIUM</span> ~2,700 kcal — 65 km, ~1,100 m. Standard training day fuelling, top up at dinner.</div>
+          <div><span style="color:#4ade80;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em">EASY</span> ~2,200 kcal — 30–50 km, leg-openers. Moderate carbs, prioritise protein recovery.</div>
+          <div><span style="color:#71717a;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em">REST/TRAVEL</span> ~1,900 kcal — no riding. High protein, lower carbs. Hotel buffet: protein first.</div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:4px">
+      {% for cd in camp_days %}
+      {% set int_colour = {'hard':'#f87171','medium':'#fbbf24','easy':'#4ade80','rest':'#71717a','travel':'#71717a'} %}
+      {% set int_bg = {'hard':'rgba(153,27,27,0.15)','medium':'rgba(120,53,15,0.15)','easy':'rgba(5,46,22,0.15)','rest':'rgba(39,39,42,0.15)','travel':'rgba(39,39,42,0.15)'} %}
+      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;overflow:hidden{% if cd.is_today %};outline:2px solid #fbbf24;outline-offset:2px{% endif %}{% if cd.is_past %};opacity:0.55{% endif %}"
+           class="day-card" onclick="toggleDay(this)">
+        <div class="flex items-center gap-3 px-4 py-3 cursor-pointer select-none" style="transition:background 0.15s" onmouseover="this.style.background='#18181b'" onmouseout="this.style.background=''">
+
+          <div style="width:52px;flex-shrink:0">
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;color:#c4c4cc;text-transform:uppercase">{{ cd.date.strftime("%a") }}</p>
+            <p style="font-family:'DM Mono',monospace;font-size:13px;color:#fafafa">{{ cd.date.strftime("%-d %b") }}</p>
+            {% if cd.is_today %}<p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#fbbf24">today</p>{% endif %}
+          </div>
+
+          <div style="width:76px;flex-shrink:0">
+            <span style="display:inline-block;padding:2px 8px;border-radius:2px;border:1px solid {{ int_colour.get(cd.intensity,'#71717a') }};background:{{ int_bg.get(cd.intensity,'transparent') }};font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:{{ int_colour.get(cd.intensity,'#71717a') }}">{{ cd.intensity }}</span>
+          </div>
+
+          <div style="flex:1;min-width:0">
+            <p style="font-size:13px;color:#fafafa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ cd.label }}</p>
+            {% if cd.km %}<p style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc">{{ cd.km }} km · {{ cd.elev_m }} m</p>{% endif %}
+          </div>
+
+          <div style="text-align:right;flex-shrink:0;margin-right:8px">
+            {% if cd.kcal_target %}
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#c4c4cc">target</p>
+            <p style="font-family:'DM Mono',monospace;font-size:13px;color:#fafafa">~{{ cd.kcal_target }}</p>
+            {% endif %}
+            {% if cd.actual_kcal %}
+            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#52525b;margin-top:3px">burned</p>
+            <p style="font-family:'DM Mono',monospace;font-size:12px;color:#4ade80">{{ cd.actual_kcal }}</p>
+            {% endif %}
+          </div>
+
+          <div class="day-chevron" style="font-family:'DM Mono',monospace;font-size:12px;color:#52525b">▾</div>
+        </div>
+
+        <div class="day-card-body" style="border-top:1px solid #18181b"
+             data-type="camp_{{ cd.intensity }}"
+             data-dur="{{ cd.km }}"
+             data-kcal="{{ cd.kcal_target or '' }}"
+             data-protein=""
+             data-carbs=""
+             data-fat=""
+             data-brief="{{ cd.label }} — {{ cd.km }} km, {{ cd.elev_m }} m elevation">
+        </div>
+      </div>
+      {% endfor %}
+      </div>
+    </div>
+    {% endif %}
 
     <!-- On-bike fuelling guide -->
     <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:20px 24px;margin-bottom:8px">
@@ -437,6 +514,106 @@
       },
     };
 
+    // ── Camp meal templates ───────────────────────────────────────────────────
+    MEALS.camp_hard = {
+      breakfast: {
+        name: "Big Carb-Load Breakfast",
+        source: "Hotel",
+        detail: "Hotel buffet: large bowl of porridge/muesli + 2 eggs + 2 slices toast + banana + OJ. Target 800–900 kcal, 80+ g carbs. Eat 2–2.5 hrs before the start. Hard day = maximum pre-loading.",
+        kcal: 850, p: 40, c: 95, f: 18,
+      },
+      lunch: {
+        name: "On-Bike Fuelling",
+        source: "On-bike",
+        detail: "60 g carbs per hour from km 30 onwards — gels, bars, bananas, dates. For a 4–5 hr hard ride that's 240–300 g carbs on-bike. Never wait until hungry. Keep a bottle of electrolytes at all times.",
+        kcal: 960, p: 8, c: 240, f: 4,
+      },
+      dinner: {
+        name: "Maximum Recovery Dinner",
+        source: "Hotel",
+        detail: "Hotel dinner: pasta or rice base (double portion), lean protein (chicken/fish), veg. No alcohol. Aim for 800–900 kcal with 100+ g carbs and 50+ g protein. Follow with chocolate milk or recovery shake if available.",
+        kcal: 850, p: 55, c: 105, f: 20,
+      },
+      snacks: [
+        { label: "Pre-ride top-up", item: "Banana + café cortado 20 min before start" },
+        { label: "Post-ride",       item: "Chocolate milk or recovery shake within 20 min of finishing" },
+        { label: "Evening",         item: "Protein yogurt or cottage cheese if still hungry before bed" },
+      ],
+    };
+    MEALS.camp_medium = {
+      breakfast: {
+        name: "Carb Breakfast",
+        source: "Hotel",
+        detail: "Hotel buffet: porridge or muesli + 2 eggs + toast + fruit. 650–750 kcal, 70 g carbs. Eat 2 hrs before riding.",
+        kcal: 700, p: 38, c: 72, f: 14,
+      },
+      lunch: {
+        name: "On-Bike Fuelling",
+        source: "On-bike",
+        detail: "45–50 g carbs per hour — banana, bar, or gel at 45 min intervals. 3–3.5 hr medium ride = 135–175 g carbs on-bike.",
+        kcal: 680, p: 6, c: 170, f: 3,
+      },
+      dinner: {
+        name: "Recovery Dinner",
+        source: "Hotel",
+        detail: "Hotel dinner with a carb base (rice/pasta), protein, and veg. 700–750 kcal. Top up glycogen for tomorrow.",
+        kcal: 720, p: 50, c: 82, f: 16,
+      },
+      snacks: [
+        { label: "Post-ride", item: "Chocolate milk or recovery shake within 20 min" },
+        { label: "Afternoon", item: "Fruit + handful nuts while legs up (~200 kcal)" },
+      ],
+    };
+    MEALS.camp_easy = {
+      breakfast: {
+        name: "Light Carb Breakfast",
+        source: "Hotel",
+        detail: "Hotel buffet: eggs + toast + fruit. Moderate carbs — easy days need fuel but not a full load. 550–600 kcal.",
+        kcal: 580, p: 35, c: 55, f: 12,
+      },
+      lunch: {
+        name: "On-Bike Fuelling (light)",
+        source: "On-bike",
+        detail: "1–2 bananas or bars during the ride (~45 g carbs total). Easy days: don't over-fuel — save appetite for the recovery dinner protein.",
+        kcal: 200, p: 3, c: 50, f: 1,
+      },
+      dinner: {
+        name: "Protein Recovery Dinner",
+        source: "Hotel",
+        detail: "Hotel dinner focused on protein: fish or chicken + veg + moderate carb side. 650–700 kcal. Easy days are when you rebuild — protein is the priority.",
+        kcal: 680, p: 55, c: 60, f: 16,
+      },
+      snacks: [
+        { label: "Post-ride", item: "Chocolate milk or protein shake within 20 min" },
+        { label: "Afternoon", item: "Rest and elevate legs — snack only if genuinely hungry" },
+      ],
+    };
+    MEALS.camp_rest = {
+      breakfast: {
+        name: "Hotel Breakfast — Protein Focus",
+        source: "Hotel",
+        detail: "Hotel buffet: eggs (scrambled or boiled) + yogurt + fruit. Lower carbs on full rest days — body doesn't need glycogen top-up. 450–500 kcal.",
+        kcal: 480, p: 38, c: 32, f: 14,
+      },
+      lunch: {
+        name: "Light Lunch — Explore",
+        source: "Local",
+        detail: "Cafe lunch in Los Gigantes: salad + protein (fish/chicken) or a small sandwich. Sight-see, walk around, don't eat heavy. 400–500 kcal.",
+        kcal: 450, p: 35, c: 38, f: 12,
+      },
+      dinner: {
+        name: "Moderate Recovery Dinner",
+        source: "Hotel",
+        detail: "Hotel dinner: lean protein + veg + small carb portion. Rest days don't need 3,000 kcal — eat to feel good, not stuffed. 600–650 kcal.",
+        kcal: 630, p: 48, c: 55, f: 16,
+      },
+      snacks: [
+        { label: "Afternoon", item: "Fruit bowl or protein yogurt from the hotel (~150 kcal)" },
+        { label: "Evening",   item: "Early to bed — the rest day compounds into tomorrow's ride" },
+      ],
+    };
+    MEALS.camp_travel = MEALS.camp_rest;
+
     // Fallback for unknown types
     MEALS.default = MEALS.rest;
 
@@ -468,8 +645,8 @@
 
       // Meals grid
       const meals = [
-        { label: 'Breakfast · Tesco', data: m.breakfast },
-        { label: 'Lunch · Tesco',     data: m.lunch },
+        { label: 'Breakfast · Asda', data: m.breakfast },
+        { label: 'Lunch · Asda',     data: m.lunch },
         { label: 'Dinner · Gousto',   data: m.dinner },
       ];
       html += '<div class="grid grid-cols-3 divide-x divide-[#1e2030]">';

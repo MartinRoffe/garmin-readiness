@@ -1008,7 +1008,17 @@ async def nutrition_plan(request: Request):
     nut_targets = prefetch_nutrition_targets(unique_sessions)
     today = date.today()
     current_week = max(0, min(11, (today - _PLAN_START).days // 7))
-    # Enrich each day with nutrition target data
+
+    # Actual kcal burned per date from Garmin activities
+    plan_end = weeks[-1]["days"][-1]["date"]
+    acts_by_date = load_activities_by_date(_PLAN_START - timedelta(days=1), plan_end)
+    actual_kcal_by_date: dict[str, int] = {
+        d: int(sum(a.get("calories") or 0 for a in day_acts))
+        for d, day_acts in acts_by_date.items()
+        if any(a.get("calories") for a in day_acts)
+    }
+
+    # Enrich each plan day with nutrition target + actual burn
     for week in weeks:
         for day in week["days"]:
             key = f"{day['type']}_{day['dur_min']}"
@@ -1018,6 +1028,21 @@ async def nutrition_plan(request: Request):
             day["carbs_g"] = target.get("carbs_g")
             day["fat_g"] = target.get("fat_g")
             day["nut_brief"] = target.get("brief")
+            day["actual_kcal"] = actual_kcal_by_date.get(day["date"].isoformat())
+
+    # Camp days with kcal targets by intensity
+    _CAMP_KCAL = {"hard": 3200, "medium": 2700, "easy": 2200, "rest": 1900, "travel": 1900}
+    camp_days = [
+        {
+            **cd,
+            "kcal_target": _CAMP_KCAL.get(cd["intensity"], 2000),
+            "actual_kcal": actual_kcal_by_date.get(cd["date"].isoformat()),
+            "is_today": cd["date"] == today,
+            "is_past": cd["date"] < today,
+        }
+        for cd in TENERIFE_DAYS
+    ]
+
     return TEMPLATES.TemplateResponse(
         request=request,
         name="nutrition.html",
@@ -1025,6 +1050,7 @@ async def nutrition_plan(request: Request):
             "weeks": weeks,
             "current_week": current_week,
             "today": today.isoformat(),
+            "camp_days": camp_days,
         },
     )
 
@@ -1292,6 +1318,31 @@ async def withings_sync():
         except Exception:
             logger.exception("Withings sync failed")
     return RedirectResponse(url=f"/body?msg={msg}", status_code=303)
+
+
+@app.get("/nutrition-test")
+async def nutrition_test():
+    """Debug endpoint: return raw Garmin nutrition API responses for today."""
+    import json as _json
+    email_addr = os.getenv("GARMIN_EMAIL", "")
+    password   = os.getenv("GARMIN_PASSWORD", "")
+    today_str  = date.today().isoformat()
+    out: dict = {"date": today_str}
+    if not (email_addr and password):
+        out["error"] = "GARMIN_EMAIL / GARMIN_PASSWORD not set"
+        return JSONResponse(out)
+    try:
+        api = get_api(email_addr, password)
+        for method in ("get_nutrition_daily_food_log",
+                        "get_nutrition_daily_meals",
+                        "get_nutrition_daily_settings"):
+            try:
+                out[method] = getattr(api, method)(today_str)
+            except Exception as exc:
+                out[method] = {"error": str(exc)}
+    except Exception as exc:
+        out["error"] = f"API init failed: {exc}"
+    return JSONResponse(out)
 
 
 @app.get("/refresh", response_class=RedirectResponse)
@@ -1737,6 +1788,8 @@ class _ApplyChangeRequest(BaseModel):
     date: str
     duration_min: int
     reason: str = ""
+    session_type: Optional[str] = None  # if provided, overrides the plan session type
+    label: Optional[str] = None         # if provided, overrides the plan session label
 
 
 @app.post("/apply-plan-change")
@@ -1750,7 +1803,8 @@ async def apply_plan_change(body: _ApplyChangeRequest):
     if not sess:
         raise HTTPException(status_code=404, detail="No plan session on that date")
 
-    stype, label, _ = sess
+    stype = body.session_type or sess[0]
+    label = body.label or sess[1]
     set_plan_override(body.date, stype, label, body.duration_min, body.reason)
     return JSONResponse({"ok": True, "date": body.date, "label": label, "duration_min": body.duration_min})
 

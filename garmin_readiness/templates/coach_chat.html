@@ -95,7 +95,13 @@
       const res = await fetch('/apply-plan-change', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({date: _proposal.date, duration_min: _proposal.duration_min, reason: _proposal.reason}),
+        body: JSON.stringify({
+          date: _proposal.date,
+          duration_min: _proposal.duration_min,
+          reason: _proposal.reason,
+          session_type: _proposal.session_type || null,
+          label: _proposal.label || null,
+        }),
       });
       const data = await res.json();
       if (data.ok) {
