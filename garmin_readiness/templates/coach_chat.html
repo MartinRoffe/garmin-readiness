@@ -100,7 +100,7 @@
           duration_min: _proposal.duration_min,
           reason: _proposal.reason,
           session_type: _proposal.session_type || null,
-          label: _proposal.label || null,
+          label: _proposal.session_label || null,
         }),
       });
       const data = await res.json();

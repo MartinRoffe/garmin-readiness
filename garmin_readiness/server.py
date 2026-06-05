@@ -100,18 +100,31 @@ def _week_completion() -> dict[str, Any]:
     }
 
 
+_OVERRIDE_ICONS = {
+    "bike": "🚴", "tempo": "🚴", "ftp": "🚴", "long": "🚴",
+    "strength": "🏋️", "ruck": "🎒", "rest": "—",
+}
+
+
 def _apply_overrides(weeks: list[dict]) -> list[dict]:
-    """Patch dur_min / dur_fmt for any day that has a plan override in the DB."""
+    """Patch type/label/dur_min/dur_fmt/icon for any day with a plan override."""
     overrides = {o["date"]: o for o in list_plan_overrides()}
     if not overrides:
         return weeks
     for week in weeks:
         for day in week["days"]:
             key = day["date"].isoformat()
-            if key in overrides:
-                dur = overrides[key]["duration_min"]
-                day["dur_min"] = dur
-                day["dur_fmt"] = _fmt_min(dur)
+            if key not in overrides:
+                continue
+            ov = overrides[key]
+            dur = ov["duration_min"]
+            day["dur_min"] = dur
+            day["dur_fmt"] = _fmt_min(dur)
+            if ov.get("session_type"):
+                day["type"]  = ov["session_type"]
+                day["icon"]  = _OVERRIDE_ICONS.get(ov["session_type"], "📋")
+            if ov.get("label"):
+                day["label"] = ov["label"]
     return weeks
 
 
@@ -1411,15 +1424,18 @@ _COACH_SYSTEM = (
 _COACH_TOOL = {
     "name": "propose_plan_change",
     "description": (
-        "Propose changing a planned session's duration. The athlete must confirm before "
-        "the change is applied. Only use this when recommending a specific duration change."
+        "Propose changing a planned session — duration, type, or both. The athlete must confirm "
+        "before the change is applied. Use session_type and new_label when swapping to a different "
+        "activity type (e.g. ruck → bike ride). Omit them when only the duration is changing."
     ),
     "input_schema": {
         "type": "object",
         "properties": {
-            "date": {"type": "string", "description": "Session date (YYYY-MM-DD)"},
+            "date":         {"type": "string",  "description": "Session date (YYYY-MM-DD)"},
             "duration_min": {"type": "integer", "description": "New duration in minutes"},
-            "reason": {"type": "string", "description": "Why this change is recommended (1–2 sentences)"},
+            "reason":       {"type": "string",  "description": "Why this change is recommended (1–2 sentences)"},
+            "session_type": {"type": "string",  "description": "New session type only if swapping activity type. One of: bike, long, tempo, ftp, strength, ruck, rest"},
+            "new_label":    {"type": "string",  "description": "New session label only if swapping activity type, e.g. 'Z2 Ride', 'Easy Ride'"},
         },
         "required": ["date", "duration_min", "reason"],
     },
@@ -1583,8 +1599,9 @@ def _call_coach(messages: list[dict], api_key: str) -> tuple[str, Optional[dict]
             sess = session_for_date(d)
             ov = get_plan_override(proposal["date"])
             current_dur = ov["duration_min"] if ov else (sess[2] if sess else None)
-            proposal["session_label"] = sess[1] if sess else None
-            proposal["session_type"] = sess[0] if sess else None
+            # Prefer coach-proposed type/label (swap); fall back to existing plan session
+            proposal["session_type"]  = proposal.pop("session_type", None) or (sess[0] if sess else None)
+            proposal["session_label"] = proposal.pop("new_label", None)    or (sess[1] if sess else None)
             proposal["current_duration_min"] = current_dur
         except Exception:
             proposal["session_label"] = None
@@ -1735,8 +1752,8 @@ def _stream_coach_sse(messages: list[dict], user_message: str, api_key: str):
                 sess = session_for_date(d)
                 ov = get_plan_override(proposal["date"])
                 current_dur = ov["duration_min"] if ov else (sess[2] if sess else None)
-                proposal["session_label"] = sess[1] if sess else None
-                proposal["session_type"] = sess[0] if sess else None
+                proposal["session_type"]  = proposal.pop("session_type", None) or (sess[0] if sess else None)
+                proposal["session_label"] = proposal.pop("new_label", None)    or (sess[1] if sess else None)
                 proposal["current_duration_min"] = current_dur
             except Exception:
                 proposal["session_label"] = None

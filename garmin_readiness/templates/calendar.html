@@ -20,7 +20,6 @@
     .sess-camp-easy   { background: #091c12; border-color: #34d399; color: #6ee7b7; }
     .sess-camp-travel { background: #111114; border-color: #27272a; color: #52525b; }
     .sess-charity     { background: #091525; border-color: #0ea5e9; color: #7dd3fc; }
-    .sess-mersea      { background: #0f1a00; border-color: #65a30d; color: #a3e635; }
     .sess-camp-rest   { background: #111114; border-color: #27272a; color: #52525b; }
     a.no-underline    { text-decoration: none; }
     .today-ring    { outline: 2px solid #a3e635; outline-offset: 2px; }
@@ -223,7 +222,6 @@
               <p class="text-[12px] font-semibold leading-tight flex-1">{{ day.label }}</p>
               <div class="flex items-center justify-between mt-auto gap-1">
                 {% if day.dur_fmt %}<p class="text-[12px] opacity-80">{{ day.dur_fmt }}</p>{% endif %}
-                {% if day.mersea_build %}<span class="text-[10px] font-semibold px-1 rounded" style="background:#0f1a00;border:1px solid #65a30d;color:#a3e635;letter-spacing:0.08em">🥾 MERSEA</span>{% endif %}
               </div>
             {% endif %}
           {% else %}
@@ -276,18 +274,7 @@
         {% endif %}
 
       {% elif week.phase == 'event_prep' %}
-        {% if day.is_event and day.is_mersea %}
-        <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-mersea
-                    {% if day.is_today %}today-ring{% endif %}
-                    {% if day.is_past %}is-past{% endif %}">
-          <div class="flex items-start justify-between mb-0.5">
-            <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
-            <span class="text-[11px] font-semibold" style="color:#a3e635">🥾</span>
-          </div>
-          <p class="text-[11px] font-semibold leading-tight flex-1">{{ day.label }}</p>
-          <p class="text-[12px] opacity-80 mt-auto">~{{ day.km }}km</p>
-        </div>
-        {% elif day.is_event %}
+        {% if day.is_event and not day.is_mersea %}
         <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-charity
                     {% if day.is_today %}today-ring{% endif %}
                     {% if day.is_past %}is-past{% endif %}">
