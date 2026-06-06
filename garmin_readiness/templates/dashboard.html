@@ -102,14 +102,17 @@
   <!-- ── Header ────────────────────────────────────────────────────── -->
   {% if flash_msg %}
   <div id="flash-banner" style="margin-bottom:16px;padding:10px 16px;border-radius:2px;display:flex;align-items:center;justify-content:space-between;
-    {% if flash_msg == 'sent' %}background:rgba(163,230,53,0.08);border:1px solid #a3e635;
+    {% if flash_msg in ['sent', 'synced'] %}background:rgba(163,230,53,0.08);border:1px solid #a3e635;
     {% elif flash_msg == 'already_sent' %}background:rgba(250,204,21,0.08);border:1px solid #facc15;
     {% else %}background:rgba(248,113,113,0.08);border:1px solid #f87171;{% endif %}">
     <span style="font-family:var(--font-m);font-size:12px;letter-spacing:0.05em;
-      {% if flash_msg == 'sent' %}color:#a3e635;
+      {% if flash_msg in ['sent', 'synced'] %}color:#a3e635;
       {% elif flash_msg == 'already_sent' %}color:#facc15;
       {% else %}color:#f87171;{% endif %}">
       {% if flash_msg == 'sent' %}Email sent.
+      {% elif flash_msg == 'synced' %}Plan synced to watch{% if flash_n %} — {{ flash_n }} session(s) scheduled{% endif %}.
+      {% elif flash_msg == 'sync_error' %}Watch sync failed — check logs.
+      {% elif flash_msg == 'no_garmin' %}Garmin credentials not set — cannot sync.
       {% elif flash_msg == 'already_sent' %}Already sent today.
       {% elif flash_msg == 'no_data' %}Watch hasn't synced yet — try again after syncing.
       {% else %}Failed to send — check logs.{% endif %}
@@ -133,6 +136,11 @@
            style="font-family:var(--font-m);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;padding:7px 12px;border:1px solid var(--border2);color:var(--muted);background:var(--surface);transition:all 0.15s;border-radius:2px"
            onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'"
            onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border2)'">Send Email ✉</a>
+        <a href="/sync-workouts"
+           onclick="return confirm('Re-upload and re-schedule all plan workouts (with coach overrides) to your Garmin watch?')"
+           style="font-family:var(--font-m);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;text-decoration:none;padding:7px 12px;border:1px solid var(--border2);color:var(--muted);background:var(--surface);transition:all 0.15s;border-radius:2px"
+           onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--accent)'"
+           onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border2)'">Sync to Watch ⌚</a>
       </div>
       <p class="eyebrow">refreshes every 5 min</p>
       <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:3px" id="last-updated">just now</p>

@@ -17,7 +17,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from pydantic import BaseModel
 
-from .analysis import generate_recovery_suggestion, load_analyses_for_activities, prefetch_nutrition_targets, prefetch_workout_descriptions, refresh_analyses
+from .analysis import generate_recovery_suggestion, load_analyses_for_activities, prefetch_fuelling_plans, prefetch_nutrition_targets, prefetch_workout_descriptions, refresh_analyses, retrieve_relevant_analyses
 from .client import get_api
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
 from .plan import (PLAN_START as _PLAN_START, build_calendar_weeks, build_camp_weeks,
@@ -432,10 +432,12 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, date: Optional[str] = None, msg: Optional[str] = None):
+async def dashboard(request: Request, date: Optional[str] = None, msg: Optional[str] = None,
+                    n: Optional[int] = None):
     target = date_fromisoformat_safe(date) if date else _today()
     ctx = _build_context(target)
     ctx["flash_msg"] = msg
+    ctx["flash_n"] = n
     return TEMPLATES.TemplateResponse(request=request, name="dashboard.html", context=ctx)
 
 
@@ -473,6 +475,29 @@ async def send_email_now():
     except Exception as e:
         logger.error("send-email failed: %s", e)
         return RedirectResponse(url="/?msg=error", status_code=303)
+
+
+@app.get("/sync-workouts", response_class=RedirectResponse)
+async def sync_workouts_now():
+    """Re-upload and re-schedule all plan cycling workouts to Garmin, applying any
+    coach plan overrides. Manual trigger only (button / CLI). Outward-facing — mutates
+    the athlete's Garmin Connect calendar."""
+    from fastapi.concurrency import run_in_threadpool
+    from .workouts import upload_and_schedule
+
+    email_addr = os.getenv("GARMIN_EMAIL", "")
+    password = os.getenv("GARMIN_PASSWORD", "")
+    if not (email_addr and password):
+        return RedirectResponse(url="/?msg=no_garmin", status_code=303)
+
+    try:
+        api = get_api(email_addr, password)
+        summary = await run_in_threadpool(upload_and_schedule, api)
+        n = summary.get("scheduled", 0)
+        return RedirectResponse(url=f"/?msg=synced&n={n}", status_code=303)
+    except Exception as e:
+        logger.error("sync-workouts failed: %s", e)
+        return RedirectResponse(url="/?msg=sync_error", status_code=303)
 
 
 def _merge_compound_activities(activities: list[dict]) -> list[dict]:
@@ -1088,6 +1113,13 @@ async def nutrition_plan(request: Request):
     weeks = _calendar_weeks()
     unique_sessions = list({(d["type"], d["dur_min"]) for w in weeks for d in w["days"]})
     nut_targets = prefetch_nutrition_targets(unique_sessions)
+
+    # In-ride fuelling for qualifying endurance sessions, scaled to latest body weight.
+    body_rows = load_body_metrics(days=120)
+    weights = [r["weight_kg"] for r in body_rows if r.get("weight_kg")]
+    latest_weight = weights[-1] if weights else None
+    fuel_plans = prefetch_fuelling_plans(unique_sessions, weight_kg=latest_weight)
+
     today = date.today()
     current_week = max(0, min(11, (today - _PLAN_START).days // 7))
 
@@ -1111,6 +1143,7 @@ async def nutrition_plan(request: Request):
             day["fat_g"] = target.get("fat_g")
             day["nut_brief"] = target.get("brief")
             day["actual_kcal"] = actual_kcal_by_date.get(day["date"].isoformat())
+            day["fuelling"] = fuel_plans.get(key)
 
     # Camp days with kcal targets by intensity
     _CAMP_KCAL = {"hard": 3200, "medium": 2700, "easy": 2200, "rest": 1900, "travel": 1900}
@@ -1553,6 +1586,7 @@ def _build_coach_context() -> str:
 
     # Show all remaining sessions across the full plan + Tenerife camp + event prep.
     upcoming_lines = []
+    next_session_type: Optional[str] = None  # first upcoming non-rest session — drives RAG
 
     # 12-week training plan sessions
     for i in range(90):
@@ -1563,6 +1597,8 @@ def _build_coach_context() -> str:
         stype, label, dur = sess
         if stype == "rest":
             continue
+        if next_session_type is None:
+            next_session_type = stype
         ov = get_plan_override(d.isoformat())
         if ov:
             dur = ov["duration_min"]
@@ -1644,7 +1680,46 @@ def _build_coach_context() -> str:
     if memo:
         parts += ["", "## Coach Memory (cross-session context)", memo["memo"]]
 
+    # Ground the coach in the athlete's own past sessions in the same discipline as the next
+    # one up. NB: retrieval is by discipline (cycling/strength/rucking), not workout sub-type —
+    # bike/tempo/ftp/long all map to the same cycling activities, so don't imply sub-type match.
+    if next_session_type:
+        _DISCIPLINE = {
+            "bike": "cycling", "tempo": "cycling", "ftp": "cycling", "long": "cycling",
+            "strength": "strength", "ruck": "rucking / load-carry",
+        }
+        discipline = _DISCIPLINE.get(next_session_type, next_session_type)
+        past = retrieve_relevant_analyses(next_session_type, limit=3)
+        if past:
+            rag_lines = [
+                "", f"## Relevant Past Sessions (your recent {discipline} sessions)",
+                f"These are your most recent {discipline} sessions — NOT necessarily the same "
+                "workout type as the one coming up. Reference them for context and cite specific "
+                "dates/numbers, but do not claim they were the same session type.",
+            ]
+            for p in past:
+                hdr = f"  {p['date']} — {p.get('name') or p.get('type_key')}"
+                stats = []
+                if p.get("avg_hr"):
+                    stats.append(f"avg HR {int(p['avg_hr'])}")
+                if p.get("training_effect") is not None:
+                    stats.append(f"TE {p['training_effect']:.1f} {_te_clean(p.get('training_effect_label'))}".strip())
+                if p.get("training_load") is not None:
+                    stats.append(f"load {int(p['training_load'])}")
+                if p.get("z45_min"):
+                    stats.append(f"Z4+5 {p['z45_min']}min")
+                if stats:
+                    hdr += " (" + ", ".join(stats) + ")"
+                rag_lines.append(hdr)
+                if p.get("summary"):
+                    rag_lines.append(f"    {p['summary']}")
+            parts += rag_lines
+
     return "\n".join(parts)
+
+
+def _te_clean(label: Optional[str]) -> str:
+    return (label or "").replace("_", " ").title()
 
 
 def _call_coach(messages: list[dict], api_key: str) -> tuple[str, Optional[dict]]:

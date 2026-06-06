@@ -155,6 +155,24 @@
           <div class="day-chevron" style="font-family:'DM Mono',monospace;font-size:12px;color:#52525b">▾</div>
         </div>
 
+        <!-- Ride fuelling (in-session) — only on qualifying endurance days -->
+        {% if day.fuelling %}
+        {% set f = day.fuelling %}
+        <div style="border-top:1px solid #18181b;padding:10px 16px;background:rgba(56,189,248,0.04)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <span style="font-size:13px">🚴</span>
+            <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#38bdf8">Ride fuelling</span>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:14px;font-family:'DM Mono',monospace;font-size:12px;color:#e4e4e7">
+            {% if f.carbs_g_per_hr %}<span><span style="color:#71717a">carbs</span> {{ f.carbs_g_per_hr }} g/hr{% if f.total_carbs_g %} · {{ f.total_carbs_g }} g total{% endif %}</span>{% endif %}
+            {% if f.fluid_ml_per_hr %}<span><span style="color:#71717a">fluid</span> {{ f.fluid_ml_per_hr }} ml/hr</span>{% endif %}
+            {% if f.sodium_mg_per_hr %}<span><span style="color:#71717a">sodium</span> {{ f.sodium_mg_per_hr }} mg/hr</span>{% endif %}
+          </div>
+          {% if f.timeline %}<p style="font-size:12px;color:#a1a1aa;line-height:1.55;margin-top:6px">{{ f.timeline }}</p>{% endif %}
+          {% if f.brief %}<p style="font-size:12px;color:#71717a;line-height:1.5;margin-top:4px;font-style:italic">{{ f.brief }}</p>{% endif %}
+        </div>
+        {% endif %}
+
         <!-- Expanded meal content (rendered by JS) -->
         <div class="day-card-body" style="border-top:1px solid #18181b"
              data-type="{{ day.type }}"

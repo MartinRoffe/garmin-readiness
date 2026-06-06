@@ -544,6 +544,50 @@ def load_analyses_for_activities(activities: list[dict]) -> list[dict]:
     return result
 
 
+def retrieve_relevant_analyses(session_type: str, limit: int = 3) -> list[dict]:
+    """Return the most recent past activity analyses matching a plan session type.
+
+    Structured retrieval (no embeddings): joins activity_analyses → activities and
+    filters to the Garmin type_keys that satisfy `session_type` (via ACTIVITY_MATCH).
+    Used to ground the coach chat — "last time you did this kind of session…".
+    Returns compact dicts; empty list if no matches or no analyses yet.
+    """
+    from .history import ACTIVITY_MATCH
+
+    keys = ACTIVITY_MATCH.get(session_type)
+    if not keys:
+        return []
+    placeholders = ",".join("?" * len(keys))
+    with _conn() as con:
+        _ensure_analysis_schema(con)
+        try:
+            rows = con.execute(
+                f"""SELECT ac.date AS date, ac.name AS name, ac.type_key AS type_key,
+                           ac.avg_hr AS avg_hr, ac.hr_zone_4_sec AS z4, ac.hr_zone_5_sec AS z5,
+                           an.training_effect AS training_effect,
+                           an.training_effect_label AS training_effect_label,
+                           an.training_load AS training_load,
+                           an.analysis_text AS analysis_text
+                    FROM activity_analyses an
+                    JOIN activities ac ON ac.activity_id = an.activity_id
+                    WHERE ac.type_key IN ({placeholders})
+                      AND an.analysis_text IS NOT NULL AND an.analysis_text != ''
+                    ORDER BY ac.date DESC
+                    LIMIT ?""",
+                (*keys, limit),
+            ).fetchall()
+        except sqlite3.OperationalError:
+            return []
+    out = []
+    for r in rows:
+        d = dict(r)
+        text = (d.get("analysis_text") or "").strip().replace("\n", " ")
+        d["summary"] = (text[:280] + "…") if len(text) > 280 else text
+        d["z45_min"] = round(((d.get("z4") or 0) + (d.get("z5") or 0)) / 60)
+        out.append(d)
+    return out
+
+
 # ── Missed session recovery suggestions ─────────────────────────────────────
 
 def generate_recovery_suggestion(
@@ -865,5 +909,120 @@ def prefetch_nutrition_targets(sessions: list[tuple[str, int]]) -> dict[str, dic
     except Exception as exc:
         import logging
         logging.getLogger(__name__).warning("nutrition target generation failed: %s", exc)
+
+    return existing
+
+
+# ── In-session fuelling plans (carbs/hr, fluid, sodium during the ride) ───────
+
+# Endurance session types where in-ride fuelling matters, and the minimum duration
+# (minutes) below which fuelling is just water (no plan generated).
+_FUEL_TYPES = {"long", "bike", "tempo", "ftp"}
+_FUEL_MIN_DURATION = 75
+
+
+def _ensure_fuelling_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS fuelling_plans (
+            session_key      TEXT PRIMARY KEY,
+            carbs_g_per_hr   INTEGER,
+            total_carbs_g    INTEGER,
+            fluid_ml_per_hr  INTEGER,
+            sodium_mg_per_hr INTEGER,
+            timeline         TEXT,
+            brief            TEXT,
+            generated_at     TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def _load_fuelling_plans() -> dict[str, dict]:
+    with _conn() as con:
+        _ensure_fuelling_schema(con)
+        rows = con.execute("SELECT * FROM fuelling_plans").fetchall()
+    return {r["session_key"]: dict(r) for r in rows}
+
+
+def prefetch_fuelling_plans(sessions: list[tuple[str, int]], weight_kg: Optional[float] = None) -> dict[str, dict]:
+    """Return {f"{type}_{dur}": fuelling_plan} for qualifying endurance sessions.
+
+    Only generates for `_FUEL_TYPES` sessions ≥ `_FUEL_MIN_DURATION` minutes; shorter
+    or non-endurance sessions don't need a structured in-ride plan. Mirrors the
+    `prefetch_nutrition_targets` cache pattern (per session_key). Scales to rider
+    weight, falling back to 80 kg with a note when body-comp data is unavailable.
+    """
+    weight = weight_kg or 80.0
+    weight_known = weight_kg is not None
+
+    qualifying = [
+        (t, d) for t, d in sessions
+        if t in _FUEL_TYPES and d >= _FUEL_MIN_DURATION
+    ]
+    existing = _load_fuelling_plans()
+    missing = [(t, d) for t, d in qualifying if f"{t}_{d}" not in existing]
+    if not missing:
+        return existing
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return existing
+
+    import anthropic
+    client = anthropic.Anthropic(api_key=api_key)
+
+    weight_note = f"{weight:.0f} kg" + ("" if weight_known else " (assumed — no body-comp data)")
+    lines = [
+        f"You are a sports nutritionist planning IN-RIDE fuelling for a male cyclist, ~{weight_note}.",
+        "These are targets for what to consume DURING the session itself (not daily meals).",
+        "Use evidence-based ranges: ~60 g carbs/hr for rides 1–2.5 h, up to ~90 g/hr for longer/harder; "
+        "500–750 ml fluid/hr; 300–700 mg sodium/hr depending on duration and intensity.",
+        "For each session provide a short hour-by-hour timeline (e.g. '0–60min: 1 bottle + 1 gel; ...').",
+        "Reply ONLY with valid JSON: a dict mapping session_key -> "
+        "{\"carbs_g_per_hr\": int, \"total_carbs_g\": int, \"fluid_ml_per_hr\": int, "
+        "\"sodium_mg_per_hr\": int, \"timeline\": \"short string\", \"brief\": \"one-sentence tip\"}",
+        "No extra text, no markdown fences.",
+        "",
+        "Sessions (key: description, duration):",
+    ]
+    for stype, dur in missing:
+        desc = _SESSION_TYPE_DESC.get(stype, stype)
+        key = f"{stype}_{dur}"
+        lines.append(f'"{key}": {desc}, {dur} min')
+
+    try:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=3000,
+            messages=[{"role": "user", "content": "\n".join(lines)}],
+        )
+        import json as _json
+        raw = msg.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            raw = raw.rsplit("```", 1)[0].strip()
+        result: dict = _json.loads(raw)
+        with _conn() as con:
+            _ensure_fuelling_schema(con)
+            for key, data in result.items():
+                if isinstance(data, dict):
+                    con.execute(
+                        """INSERT OR REPLACE INTO fuelling_plans
+                           (session_key, carbs_g_per_hr, total_carbs_g, fluid_ml_per_hr,
+                            sodium_mg_per_hr, timeline, brief)
+                           VALUES (?,?,?,?,?,?,?)""",
+                        (
+                            key,
+                            data.get("carbs_g_per_hr"),
+                            data.get("total_carbs_g"),
+                            data.get("fluid_ml_per_hr"),
+                            data.get("sodium_mg_per_hr"),
+                            data.get("timeline"),
+                            data.get("brief"),
+                        ),
+                    )
+        existing.update({k: v for k, v in result.items() if isinstance(v, dict)})
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("fuelling plan generation failed: %s", exc)
 
     return existing

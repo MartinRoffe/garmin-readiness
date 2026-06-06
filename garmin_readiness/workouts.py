@@ -1,6 +1,7 @@
 """Build and schedule Garmin structured cycling workouts from the training plan."""
 from __future__ import annotations
 
+import re
 from collections import defaultdict
 from datetime import timedelta
 from typing import Any
@@ -356,12 +357,54 @@ _NAME_PREFIXES: tuple[str, ...] = (
 )
 
 
+def _resolve_builder(label: str) -> Any | None:
+    """Return a builder for a label, tolerating coach-generated free-text labels.
+
+    Plan labels match `_BUILDERS` keys exactly, but the coach's `propose_plan_change`
+    `new_label` is model-generated and may carry a duration suffix or differ in case.
+    Falls back through: exact → duration-stripped → case-insensitive → substring.
+    """
+    if label in _BUILDERS:
+        return _BUILDERS[label]
+    base = re.sub(r"\s*\d+\s*m(in)?\s*$", "", label, flags=re.I).strip()
+    if base in _BUILDERS:
+        return _BUILDERS[base]
+    low = base.lower()
+    for key, b in _BUILDERS.items():
+        if key.lower() == low:
+            return b
+    for key, b in _BUILDERS.items():
+        if key.lower() in low or low in key.lower():
+            return b
+    return None
+
+
 def _workout_schedule() -> dict[tuple[str, int], list[str]]:
+    """Map (label, duration) → dates, applying any coach plan overrides.
+
+    An override that swaps a day to a non-bike type (ruck/strength/rest) drops that
+    cycling workout entirely so the stale one is removed on the next full re-sync.
+    """
+    from .history import get_plan_override
+
     schedule: dict[tuple[str, int], list[str]] = defaultdict(list)
     for wk_idx, week in enumerate(TRAINING_WEEKS):
         for day_idx, (stype, label, dur) in enumerate(week):
+            d = PLAN_START + timedelta(weeks=wk_idx, days=day_idx)
+            ov = get_plan_override(d.isoformat())
+            if ov:
+                o_type = ov.get("session_type") or stype
+                o_label = ov.get("label") or label
+                o_dur = ov.get("duration_min") or dur
+                if o_type not in _BIKE_TYPES:
+                    # Swapped to a non-cycling session — no Garmin cycling workout for this day.
+                    continue
+                if _resolve_builder(o_label) is None:
+                    print(f"  [warn] override label '{o_label}' on {d.isoformat()} has no "
+                          f"builder; using plan label '{label}'")
+                    o_label = label
+                stype, label, dur = o_type, o_label, o_dur
             if stype in _BIKE_TYPES:
-                d = PLAN_START + timedelta(weeks=wk_idx, days=day_idx)
                 schedule[(label, dur)].append(d.isoformat())
     return schedule
 
@@ -410,39 +453,52 @@ def _delete_existing_plan_workouts(api: Any, dry_run: bool = False) -> None:
         print(f"  {deleted} existing plan workout(s) removed")
 
 
-def upload_and_schedule(api: Any, dry_run: bool = False) -> None:
-    """Delete stale plan workouts, upload fresh ones, and schedule them."""
+def upload_and_schedule(api: Any, dry_run: bool = False) -> dict[str, int]:
+    """Delete stale plan workouts, upload fresh ones (override-aware), and schedule them.
+
+    Returns a summary dict: {templates, scheduled, errors}.
+    """
     _delete_existing_plan_workouts(api, dry_run=dry_run)
     schedule = _workout_schedule()
     total_sessions = sum(len(v) for v in schedule.values())
     print(f"\nPlan has {len(schedule)} unique session templates covering {total_sessions} sessions")
 
+    summary = {"templates": 0, "scheduled": 0, "errors": 0}
     for (label, dur), dates in sorted(schedule.items()):
-        builder = _BUILDERS.get(label)
+        builder = _resolve_builder(label)
         if not builder:
             print(f"  [skip] no builder for '{label}' {dur}m")
+            summary["errors"] += 1
             continue
 
         workout = builder(dur)
         if dry_run:
             print(f"  [dry]  '{label}' {dur}m → would schedule on {', '.join(dates)}")
+            summary["templates"] += 1
+            summary["scheduled"] += len(dates)
             continue
 
         try:
             response = api.upload_cycling_workout(workout)
         except Exception as exc:
             print(f"  [error] upload failed for '{label}' {dur}m: {exc}")
+            summary["errors"] += 1
             continue
 
         workout_id = _extract_id(response)
         if not workout_id:
             print(f"  [error] no workoutId in response for '{label}' {dur}m: {response}")
+            summary["errors"] += 1
             continue
 
+        summary["templates"] += 1
         print(f"  uploaded '{label}' {dur}m → id={workout_id}")
         for date_str in dates:
             try:
                 api.schedule_workout(workout_id, date_str)
+                summary["scheduled"] += 1
                 print(f"    scheduled {date_str}")
             except Exception as exc:
+                summary["errors"] += 1
                 print(f"    [error] schedule {date_str}: {exc}")
+    return summary

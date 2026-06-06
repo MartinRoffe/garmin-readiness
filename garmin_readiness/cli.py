@@ -245,7 +245,8 @@ def main() -> None:
     parser.add_argument(
         "--workouts",
         action="store_true",
-        help="Upload training plan bike workouts to Garmin Connect and schedule them",
+        help="Upload training plan bike workouts to Garmin Connect and schedule them "
+             "(applies any coach plan overrides; use --dry-run to preview)",
     )
     parser.add_argument(
         "--withings-sync",
