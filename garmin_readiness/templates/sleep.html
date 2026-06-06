@@ -1,0 +1,529 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
+  <title>Sleep Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+  <style>
+    body { background: #09090b; }
+    .page { max-width: 1080px; margin: 0 auto; padding: 40px 24px 80px; position: relative; z-index: 1; }
+    .eyebrow {
+      font-family: var(--font-m);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 2px; }
+    .stat-num {
+      font-family: var(--font-d);
+      font-size: clamp(36px, 6vw, 56px);
+      line-height: 0.95;
+      letter-spacing: 0.02em;
+    }
+    .stat-sub {
+      font-family: var(--font-m);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-top: 8px;
+    }
+    .legend-dot { display: inline-block; width: 20px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+    .legend-sq  { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: middle; margin-right: 5px; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .page { animation: fadeUp 0.3s ease both; }
+  </style>
+</head>
+<body>
+
+{% set active_tab = 'sleep' %}
+{% include 'nav.html' %}
+
+<!-- Ambient glow -->
+<div style="position:fixed;top:-160px;left:-80px;width:640px;height:640px;background:radial-gradient(circle,rgba(167,139,250,0.025) 0%,transparent 65%);pointer-events:none;z-index:0"></div>
+
+<div class="page">
+
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <div style="margin-bottom:36px">
+    <p class="eyebrow" style="margin-bottom:8px">Recovery Monitoring</p>
+    <h1 style="font-family:var(--font-d);font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:var(--text);line-height:1">Sleep Analysis</h1>
+    <p style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:6px">30-night view · Garmin Connect data</p>
+  </div>
+
+  <!-- ── KPI cards ──────────────────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px">
+
+    <!-- Sleep Score -->
+    <div class="card" style="padding:24px 20px;border-top:2px solid #a78bfa">
+      <p class="eyebrow" style="margin-bottom:12px">Sleep Score</p>
+      {% if last and last.sleep_score is not none %}
+        {% set sc = last.sleep_score | int %}
+        <p class="stat-num" style="color:{% if sc >= 75 %}#a3e635{% elif sc >= 55 %}#fde047{% else %}#f87171{% endif %}">{{ sc }}</p>
+        <p class="stat-sub" style="color:var(--muted)">last night · 7d avg {{ avgs_7.sleep_score | int if avgs_7.sleep_score else '—' }}</p>
+      {% else %}
+        <p class="stat-num" style="color:var(--muted)">—</p>
+        <p class="stat-sub" style="color:var(--muted)">no data</p>
+      {% endif %}
+    </div>
+
+    <!-- Total Sleep -->
+    <div class="card" style="padding:24px 20px;border-top:2px solid #60a5fa">
+      <p class="eyebrow" style="margin-bottom:12px">Total Sleep</p>
+      {% if last and last.sleep_hours is not none %}
+        {% set h = last.sleep_hours | int %}
+        {% set m = ((last.sleep_hours - h) * 60) | int %}
+        <p class="stat-num" style="color:{% if last.sleep_hours >= 7.5 %}#a3e635{% elif last.sleep_hours >= 6 %}#fde047{% else %}#f87171{% endif %}">{{ h }}<span style="font-size:0.45em;letter-spacing:0.05em;vertical-align:middle">h {{ m }}m</span></p>
+        <p class="stat-sub" style="color:var(--muted)">last night · 7d avg
+          {% if avgs_7.sleep_hours %}{{ avgs_7.sleep_hours | int }}h {{ ((avgs_7.sleep_hours - (avgs_7.sleep_hours | int)) * 60) | int }}m{% else %}—{% endif %}
+        </p>
+      {% else %}
+        <p class="stat-num" style="color:var(--muted)">—</p>
+        <p class="stat-sub" style="color:var(--muted)">no data</p>
+      {% endif %}
+    </div>
+
+    <!-- Deep Sleep % -->
+    <div class="card" style="padding:24px 20px;border-top:2px solid #34d399">
+      <p class="eyebrow" style="margin-bottom:12px">Deep Sleep</p>
+      {% if last and last.deep_pct is not none %}
+        <p class="stat-num" style="color:{% if last.deep_pct >= 20 %}#a3e635{% elif last.deep_pct >= 13 %}#fde047{% else %}#f87171{% endif %}">{{ last.deep_pct }}<span style="font-size:0.45em;vertical-align:middle">%</span></p>
+        <p class="stat-sub" style="color:var(--muted)">last night · 7d avg {{ avgs_7.deep_pct | int if avgs_7.deep_pct else '—' }}%</p>
+      {% else %}
+        <p class="stat-num" style="color:var(--muted)">—</p>
+        <p class="stat-sub" style="color:var(--muted)">no data</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+
+    <!-- REM % -->
+    <div class="card" style="padding:24px 20px;border-top:2px solid #c084fc">
+      <p class="eyebrow" style="margin-bottom:12px">REM Sleep</p>
+      {% if last and last.rem_pct is not none %}
+        <p class="stat-num" style="color:{% if last.rem_pct >= 20 %}#a3e635{% elif last.rem_pct >= 15 %}#fde047{% else %}#f87171{% endif %}">{{ last.rem_pct }}<span style="font-size:0.45em;vertical-align:middle">%</span></p>
+        <p class="stat-sub" style="color:var(--muted)">last night · 7d avg {{ avgs_7.rem_pct | int if avgs_7.rem_pct else '—' }}%</p>
+      {% else %}
+        <p class="stat-num" style="color:var(--muted)">—</p>
+        <p class="stat-sub" style="color:var(--muted)">no data</p>
+      {% endif %}
+    </div>
+
+    <!-- HRV during sleep -->
+    <div class="card" style="padding:24px 20px;border-top:2px solid #fb923c">
+      <p class="eyebrow" style="margin-bottom:12px">Overnight HRV</p>
+      {% if last and last.hrv is not none %}
+        <p class="stat-num" style="color:var(--text)">{{ last.hrv | int }}<span style="font-size:0.35em;vertical-align:middle;letter-spacing:0.06em"> ms</span></p>
+        <p class="stat-sub" style="color:var(--muted)">last night · 7d avg {{ avgs_7.hrv | int if avgs_7.hrv else '—' }} ms</p>
+      {% else %}
+        <p class="stat-num" style="color:var(--muted)">—</p>
+        <p class="stat-sub" style="color:var(--muted)">no data</p>
+      {% endif %}
+    </div>
+
+    <!-- SpO2 -->
+    <div class="card" style="padding:24px 20px;border-top:2px solid {% if avgs_7.spo2 and avgs_7.spo2 >= 95 %}#34d399{% else %}#f87171{% endif %}">
+      <p class="eyebrow" style="margin-bottom:12px">Blood Oxygen</p>
+      {% if last and last.spo2 is not none %}
+        <p class="stat-num" style="color:{% if last.spo2 >= 95 %}#a3e635{% elif last.spo2 >= 92 %}#fde047{% else %}#f87171{% endif %}">{{ last.spo2 | int }}<span style="font-size:0.45em;vertical-align:middle">%</span></p>
+        <p class="stat-sub" style="color:var(--muted)">last night · 7d avg {{ avgs_7.spo2 | round(1) if avgs_7.spo2 else '—' }}%</p>
+      {% else %}
+        <p class="stat-num" style="color:var(--muted)">—</p>
+        <p class="stat-sub" style="color:var(--muted)">no data</p>
+      {% endif %}
+    </div>
+
+  </div>
+
+  {% if has_stages %}
+  <!-- ── Sleep Stage Breakdown ──────────────────────────────────────── -->
+  <div class="card" style="padding:20px 24px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+      <p class="eyebrow">Sleep Stage Breakdown · 30 nights</p>
+      <div style="display:flex;gap:14px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;flex-wrap:wrap">
+        <span><span class="legend-sq" style="background:#1d4ed8"></span>Deep</span>
+        <span><span class="legend-sq" style="background:#7c3aed"></span>REM</span>
+        <span><span class="legend-sq" style="background:#3b82f6"></span>Light</span>
+        <span><span class="legend-sq" style="background:#374151"></span>Awake</span>
+      </div>
+    </div>
+    <div style="height:220px;position:relative"><canvas id="stagesChart"></canvas></div>
+    <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:8px">
+      Deep &gt;13% and REM &gt;20% of total sleep are typical targets for endurance recovery.
+    </p>
+  </div>
+  {% endif %}
+
+  <!-- ── Score + Duration trend ────────────────────────────────────── -->
+  <div class="card" style="padding:20px 24px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+      <p class="eyebrow">Sleep Score &amp; Duration · 30 nights</p>
+      <div style="display:flex;gap:14px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em">
+        <span><span class="legend-dot" style="background:#a78bfa"></span>Score</span>
+        <span><span class="legend-dot" style="background:#60a5fa;opacity:0.6"></span>Hours</span>
+      </div>
+    </div>
+    <div style="height:180px;position:relative"><canvas id="scoreDurChart"></canvas></div>
+  </div>
+
+  {% if has_hrv %}
+  <!-- ── Overnight HRV ──────────────────────────────────────────────── -->
+  <div class="card" style="padding:20px 24px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div>
+        <p class="eyebrow" style="margin-bottom:4px">Overnight HRV · 30 nights</p>
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted)">Higher is better · suppression after hard sessions is normal, multi-day drops signal accumulating fatigue</p>
+      </div>
+    </div>
+    <div style="height:160px;position:relative"><canvas id="hrvChart"></canvas></div>
+    <p id="hrv-trend-note" style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:8px;text-align:right"></p>
+  </div>
+  {% endif %}
+
+  {% if has_spo2 %}
+  <!-- ── SpO2 ──────────────────────────────────────────────────────── -->
+  <div class="card" style="padding:20px 24px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div>
+        <p class="eyebrow" style="margin-bottom:4px">Blood Oxygen (SpO₂) · 30 nights</p>
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted)">Values below 95% warrant attention — relevant during altitude training or fatigue periods</p>
+      </div>
+      <div style="font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;flex-shrink:0">
+        <span style="color:#f87171">— 95% threshold</span>
+      </div>
+    </div>
+    <div style="height:140px;position:relative"><canvas id="spo2Chart"></canvas></div>
+  </div>
+  {% endif %}
+
+  {% if has_resp %}
+  <!-- ── Respiration Rate ───────────────────────────────────────────── -->
+  <div class="card" style="padding:20px 24px;margin-bottom:10px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
+      <div>
+        <p class="eyebrow" style="margin-bottom:4px">Respiration Rate · 30 nights</p>
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted)">Elevated breathing rate during sleep can indicate illness onset or overreaching before other markers show</p>
+      </div>
+      <div style="display:flex;gap:12px;font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;flex-shrink:0">
+        <span><span class="legend-dot" style="background:#4ade80"></span>Avg</span>
+        <span style="color:var(--muted)">Range = min/max band</span>
+      </div>
+    </div>
+    <div style="height:140px;position:relative"><canvas id="respChart"></canvas></div>
+  </div>
+  {% endif %}
+
+  <!-- ── 30-day summary table ──────────────────────────────────────── -->
+  <div class="card" style="padding:20px 24px">
+    <p class="eyebrow" style="margin-bottom:16px">30-day Averages</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px">
+      {% for label, val, unit in [
+          ('Sleep Score',   avgs_30.sleep_score, ''),
+          ('Total Sleep',   avgs_30.sleep_hours, 'h'),
+          ('Deep Sleep',    avgs_30.deep_pct,    '%'),
+          ('REM Sleep',     avgs_30.rem_pct,     '%'),
+          ('SpO₂',          avgs_30.spo2,        '%'),
+          ('HRV',           avgs_30.hrv,         ' ms'),
+          ('Respiration',   avgs_30.respiration, ' brpm'),
+      ] %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">{{ label }}</p>
+        <p style="font-family:var(--font-d);font-size:28px;letter-spacing:0.04em;color:var(--text);line-height:1">
+          {% if val is not none %}{{ val | round(1) }}{{ unit }}{% else %}<span style="color:var(--muted)">—</span>{% endif %}
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+const G = '#18181b';
+const T = { color: '#a1a1aa', font: { family: 'DM Mono', size: 11 } };
+
+const raw = {{ data | tojson }};
+const labels = raw.map(d => d.label);
+
+{% if has_stages %}
+// ── Stacked bar: sleep stages ─────────────────────────────────────────
+new Chart(document.getElementById('stagesChart'), {
+  type: 'bar',
+  data: {
+    labels,
+    datasets: [
+      { label: 'Deep',  data: raw.map(d => d.deep_hours),  backgroundColor: '#1d4ed8', stack: 'sleep' },
+      { label: 'REM',   data: raw.map(d => d.rem_hours),   backgroundColor: '#7c3aed', stack: 'sleep' },
+      { label: 'Light', data: raw.map(d => d.light_hours), backgroundColor: '#3b82f6', stack: 'sleep' },
+      { label: 'Awake', data: raw.map(d => d.awake_hours), backgroundColor: '#374151', stack: 'sleep' },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        mode: 'index', intersect: false,
+        callbacks: {
+          label: ctx => ctx.raw !== null ? `${ctx.dataset.label}: ${ctx.raw?.toFixed(1)}h` : null,
+          footer: items => {
+            const total = items.reduce((s, i) => s + (i.raw ?? 0), 0);
+            return total > 0 ? `Total: ${total.toFixed(1)}h` : '';
+          }
+        },
+        filter: item => item.raw !== null && item.raw > 0,
+      }
+    },
+    scales: {
+      x: { grid: { color: G }, ticks: { ...T, maxTicksLimit: 15 }, stacked: true },
+      y: { grid: { color: G }, ticks: { ...T, callback: v => v + 'h' }, stacked: true, min: 0 }
+    }
+  }
+});
+{% endif %}
+
+// ── Score + Duration dual-axis ────────────────────────────────────────
+(function() {
+  const scoreData = raw.map(d => d.sleep_score);
+  const durData   = raw.map(d => d.sleep_hours);
+
+  new Chart(document.getElementById('scoreDurChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Score', data: scoreData, yAxisID: 'yScore',
+          borderColor: '#a78bfa', backgroundColor: 'rgba(167,139,250,0.07)',
+          borderWidth: 1.5, pointRadius: 2, tension: 0.35, fill: true, spanGaps: true,
+        },
+        {
+          label: 'Hours', data: durData, yAxisID: 'yHours',
+          borderColor: 'rgba(96,165,250,0.6)', backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 0, tension: 0.35, fill: false, spanGaps: true,
+          borderDash: [4, 3],
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.raw === null) return null;
+              if (ctx.dataset.label === 'Score') return `Score: ${ctx.raw}`;
+              return `Hours: ${ctx.raw?.toFixed(1)}h`;
+            }
+          },
+          filter: item => item.raw !== null,
+        }
+      },
+      scales: {
+        x: { grid: { color: G }, ticks: { ...T, maxTicksLimit: 12 } },
+        yScore: {
+          position: 'left', grid: { color: G }, ticks: { ...T, callback: v => v },
+          min: 0, max: 100,
+        },
+        yHours: {
+          position: 'right', grid: { drawOnChartArea: false },
+          ticks: { ...T, callback: v => v + 'h' }, min: 0, max: 12,
+        }
+      }
+    }
+  });
+})();
+
+{% if has_hrv %}
+// ── Overnight HRV ─────────────────────────────────────────────────────
+(function() {
+  const hrvData = raw.map(d => d.hrv);
+
+  // Simple 7-day rolling average
+  const rolling = hrvData.map((_, i) => {
+    const window = hrvData.slice(Math.max(0, i - 6), i + 1).filter(v => v !== null);
+    return window.length >= 3 ? +(window.reduce((s, v) => s + v, 0) / window.length).toFixed(1) : null;
+  });
+
+  new Chart(document.getElementById('hrvChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'HRV', data: hrvData,
+          borderColor: 'rgba(251,146,60,0.5)', backgroundColor: 'transparent',
+          borderWidth: 1, pointRadius: 2, pointBackgroundColor: '#fb923c',
+          tension: 0.2, spanGaps: true,
+        },
+        {
+          label: '7d avg', data: rolling,
+          borderColor: '#fb923c', backgroundColor: 'rgba(251,146,60,0.07)',
+          borderWidth: 1.5, pointRadius: 0, tension: 0.4, fill: true, spanGaps: true,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ctx.raw !== null ? `${ctx.dataset.label}: ${ctx.raw} ms` : null,
+          },
+          filter: item => item.raw !== null,
+        }
+      },
+      scales: {
+        x: { grid: { color: G }, ticks: { ...T, maxTicksLimit: 12 } },
+        y: { grid: { color: G }, ticks: { ...T, callback: v => v + ' ms' } }
+      }
+    }
+  });
+
+  // Trend note
+  const valid = raw.filter(d => d.hrv !== null);
+  if (valid.length >= 7) {
+    const recent7 = valid.slice(-7).map(d => d.hrv);
+    const prev7   = valid.slice(-14, -7).map(d => d.hrv);
+    if (prev7.length >= 3) {
+      const avgR = recent7.reduce((s,v)=>s+v,0)/recent7.length;
+      const avgP = prev7.reduce((s,v)=>s+v,0)/prev7.length;
+      const note = document.getElementById('hrv-trend-note');
+      if (avgR < avgP * 0.92) {
+        note.textContent = '↓ HRV suppressed vs prior week — monitor for accumulated fatigue';
+        note.style.color = '#f87171';
+      } else if (avgR > avgP * 1.05) {
+        note.textContent = '↑ HRV elevated vs prior week — recovery trending positive';
+        note.style.color = '#4ade80';
+      } else {
+        note.textContent = '→ HRV stable week-on-week';
+      }
+    }
+  }
+})();
+{% endif %}
+
+{% if has_spo2 %}
+// ── SpO2 ──────────────────────────────────────────────────────────────
+(function() {
+  const spo2Data = raw.map(d => d.spo2);
+
+  const thresholdPlugin = {
+    id: 'threshold95',
+    afterDatasetsDraw(chart) {
+      const { ctx, scales: { x, y } } = chart;
+      const yPx = y.getPixelForValue(95);
+      ctx.save();
+      ctx.strokeStyle = 'rgba(248,113,113,0.4)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([5, 4]);
+      ctx.beginPath();
+      ctx.moveTo(x.left, yPx);
+      ctx.lineTo(x.right, yPx);
+      ctx.stroke();
+      ctx.restore();
+    }
+  };
+
+  new Chart(document.getElementById('spo2Chart'), {
+    type: 'line',
+    plugins: [thresholdPlugin],
+    data: {
+      labels,
+      datasets: [{
+        label: 'SpO₂', data: spo2Data,
+        borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)',
+        borderWidth: 1.5, pointRadius: 2, tension: 0.3, fill: true, spanGaps: true,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ctx.raw !== null ? `SpO₂: ${ctx.raw}%` : null },
+          filter: item => item.raw !== null,
+        }
+      },
+      scales: {
+        x: { grid: { color: G }, ticks: { ...T, maxTicksLimit: 12 } },
+        y: {
+          grid: { color: G },
+          ticks: { ...T, callback: v => v + '%' },
+          min: 88, max: 100,
+        }
+      }
+    }
+  });
+})();
+{% endif %}
+
+{% if has_resp %}
+// ── Respiration rate with min/max band ────────────────────────────────
+(function() {
+  const avgData  = raw.map(d => d.respiration);
+  const loData   = raw.map(d => d.lowest_respiration);
+  const hiData   = raw.map(d => d.highest_respiration);
+
+  // Build [lo, hi] dataset pairs for Chart.js fill between
+  new Chart(document.getElementById('respChart'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'High', data: hiData,
+          borderColor: 'transparent', backgroundColor: 'rgba(74,222,128,0.08)',
+          fill: '+1', pointRadius: 0, tension: 0.3, spanGaps: true,
+        },
+        {
+          label: 'Low', data: loData,
+          borderColor: 'transparent', backgroundColor: 'rgba(74,222,128,0.08)',
+          fill: false, pointRadius: 0, tension: 0.3, spanGaps: true,
+        },
+        {
+          label: 'Avg', data: avgData,
+          borderColor: '#4ade80', backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 2, tension: 0.3, spanGaps: true,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              if (ctx.raw === null) return null;
+              if (ctx.dataset.label === 'Avg') return `Avg: ${ctx.raw} brpm`;
+              if (ctx.dataset.label === 'High') return `High: ${ctx.raw} brpm`;
+              if (ctx.dataset.label === 'Low')  return `Low: ${ctx.raw} brpm`;
+              return null;
+            }
+          },
+          filter: item => item.raw !== null && item.dataset.label !== 'High',
+        }
+      },
+      scales: {
+        x: { grid: { color: G }, ticks: { ...T, maxTicksLimit: 12 } },
+        y: { grid: { color: G }, ticks: { ...T, callback: v => v + ' brpm' } }
+      }
+    }
+  });
+})();
+{% endif %}
+
+</script>
+</body>
+</html>

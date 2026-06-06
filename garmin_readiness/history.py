@@ -29,8 +29,16 @@ NUMERIC_FIELDS = [
     if f.name not in TEXT_FIELDS
 ]
 
-# Don't score these — they're context/baselines, not daily readiness signals
-_UNSCORED = {"training_load_chronic", "vo2_max"}
+# Don't score these — context/baselines or timestamp fields, not daily readiness signals
+_UNSCORED = {
+    "training_load_chronic", "vo2_max",
+    # timestamps — large absolute values destroy z-score baseline
+    "sleep_start_ts", "sleep_end_ts",
+    # sleep detail — sleep_score already summarises these for the composite
+    "deep_sleep_seconds", "light_sleep_seconds", "rem_sleep_seconds",
+    "awake_sleep_seconds", "nap_time_seconds",
+    "avg_spo2", "avg_respiration", "lowest_respiration", "highest_respiration",
+}
 
 SCORED_FIELDS = [f for f in NUMERIC_FIELDS if f not in _UNSCORED]
 
@@ -350,6 +358,64 @@ def raw_history(days: int = 14) -> list[dict]:
             "hrv_last_night": row.get("hrv_last_night"),
             "sleep_score": row.get("sleep_score"),
             "avg_stress": row.get("avg_stress"),
+        })
+    return result
+
+
+def sleep_history(days: int = 30) -> list[dict]:
+    """Return one dict per day (oldest first) for the last `days` days.
+
+    Hours are pre-computed floats; missing nights appear with None values so
+    chart x-axes stay continuous.
+    """
+    end = date.today()
+    start = end - timedelta(days=days - 1)
+    with _conn() as con:
+        _ensure_schema(con)
+        rows = con.execute(
+            """SELECT date, sleep_score, sleep_seconds,
+                      deep_sleep_seconds, light_sleep_seconds,
+                      rem_sleep_seconds, awake_sleep_seconds,
+                      nap_time_seconds, sleep_start_ts, sleep_end_ts,
+                      avg_spo2, avg_respiration,
+                      lowest_respiration, highest_respiration,
+                      hrv_last_night
+               FROM daily_metrics
+               WHERE date >= ? AND date <= ?
+               ORDER BY date""",
+            (start.isoformat(), end.isoformat()),
+        ).fetchall()
+    by_date = {row["date"]: dict(row) for row in rows}
+
+    def _hrs(secs):
+        return round(secs / 3600, 2) if secs is not None else None
+
+    result = []
+    for i in range(days):
+        d = start + timedelta(days=i)
+        r = by_date.get(d.isoformat(), {})
+        total_secs = r.get("sleep_seconds")
+        deep_s  = r.get("deep_sleep_seconds")
+        light_s = r.get("light_sleep_seconds")
+        rem_s   = r.get("rem_sleep_seconds")
+        awake_s = r.get("awake_sleep_seconds")
+        result.append({
+            "date":              d.isoformat(),
+            "label":             d.strftime("%-d %b"),
+            "sleep_score":       r.get("sleep_score"),
+            "sleep_hours":       _hrs(total_secs),
+            "deep_hours":        _hrs(deep_s),
+            "light_hours":       _hrs(light_s),
+            "rem_hours":         _hrs(rem_s),
+            "awake_hours":       _hrs(awake_s),
+            "nap_min":           round(r["nap_time_seconds"] / 60) if r.get("nap_time_seconds") else None,
+            "spo2":              r.get("avg_spo2"),
+            "respiration":       r.get("avg_respiration"),
+            "lowest_respiration":  r.get("lowest_respiration"),
+            "highest_respiration": r.get("highest_respiration"),
+            "hrv":               r.get("hrv_last_night"),
+            "deep_pct":          round(deep_s / total_secs * 100) if deep_s and total_secs else None,
+            "rem_pct":           round(rem_s  / total_secs * 100) if rem_s  and total_secs else None,
         })
     return result
 

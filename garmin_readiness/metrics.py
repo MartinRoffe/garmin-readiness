@@ -26,16 +26,28 @@ _TRAINING_STATUS_MAP = {
 @dataclass
 class DailyMetrics:
     date: date
-    # Sleep
+    # Sleep — summary
     sleep_score: Optional[float] = None           # 0–100
     sleep_seconds: Optional[float] = None         # total sleep duration
+    sleep_start_ts: Optional[float] = None        # Unix seconds of sleepStartTimestampGMT
+    sleep_end_ts: Optional[float] = None          # Unix seconds of sleepEndTimestampGMT
+    # Sleep — stages
+    deep_sleep_seconds: Optional[float] = None
+    light_sleep_seconds: Optional[float] = None
+    rem_sleep_seconds: Optional[float] = None
+    awake_sleep_seconds: Optional[float] = None
+    nap_time_seconds: Optional[float] = None
+    # Sleep — physiology
+    avg_spo2: Optional[float] = None              # blood oxygen %
+    avg_respiration: Optional[float] = None       # breathing rate (brpm)
+    lowest_respiration: Optional[float] = None
+    highest_respiration: Optional[float] = None
     # HRV
     hrv_last_night: Optional[float] = None        # ms (newer devices only)
     hrv_weekly_avg: Optional[float] = None        # ms
     hrv_status: Optional[str] = None              # BALANCED / UNBALANCED / LOW / POOR
     # Body Battery
     body_battery_morning: Optional[float] = None  # 0–100 (reading at/after sleep end)
-    sleep_end_ts: Optional[float] = None          # Unix seconds of sleepEndTimestampGMT
     # Stress (lower = better)
     avg_stress: Optional[float] = None            # 0–100
     rest_stress: Optional[float] = None           # 0–100
@@ -74,10 +86,27 @@ def fetch_metrics(api, target_date: date) -> DailyMetrics:
         m.sleep_score = float(score) if score is not None else None
         raw_secs = dto.get("sleepTimeSeconds")
         m.sleep_seconds = float(raw_secs) if raw_secs is not None else None
+        start_ms = dto.get("sleepStartTimestampGMT")
+        if start_ms is not None:
+            m.sleep_start_ts = float(start_ms) / 1000.0
         end_ms = dto.get("sleepEndTimestampGMT")
         if end_ms is not None:
             m.sleep_end_ts = float(end_ms) / 1000.0
             _sleep_end_ms = float(end_ms)
+        for src, dest in (
+            ("deepSleepSeconds",  "deep_sleep_seconds"),
+            ("lightSleepSeconds", "light_sleep_seconds"),
+            ("remSleepSeconds",   "rem_sleep_seconds"),
+            ("awakeSleepSeconds", "awake_sleep_seconds"),
+            ("napTimeSeconds",    "nap_time_seconds"),
+            ("avgSpO2",           "avg_spo2"),
+            ("avgRespirationValue",     "avg_respiration"),
+            ("lowestRespirationValue",  "lowest_respiration"),
+            ("highestRespirationValue", "highest_respiration"),
+        ):
+            v = dto.get(src)
+            if v is not None:
+                setattr(m, dest, float(v))
     except Exception as e:
         logger.debug("Sleep fetch failed: %s", e)
 

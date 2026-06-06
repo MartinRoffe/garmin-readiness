@@ -57,6 +57,7 @@ from .history import (
     set_coach_memory,
     set_plan_override,
     seven_day_composite_trend_csv,
+    sleep_history,
     z_score,
     get_cached_text,
 )
@@ -123,6 +124,13 @@ def _apply_overrides(weeks: list[dict]) -> list[dict]:
             if ov.get("session_type"):
                 day["type"]  = ov["session_type"]
                 day["icon"]  = _OVERRIDE_ICONS.get(ov["session_type"], "📋")
+                if ov["session_type"] != "ruck":
+                    day["ruck_spec"]      = None
+                    day["mersea_build"]   = False
+                if ov["session_type"] not in ("strength",):
+                    day["kb_spec"]        = None
+                    day["maxi_intervals"] = None
+                day["sub_sessions"] = None
             if ov.get("label"):
                 day["label"] = ov["label"]
     return weeks
@@ -1331,6 +1339,35 @@ async def withings_sync():
         except Exception:
             logger.exception("Withings sync failed")
     return RedirectResponse(url=f"/body?msg={msg}", status_code=303)
+
+
+@app.get("/sleep", response_class=HTMLResponse)
+async def sleep_view(request: Request):
+    data = sleep_history(30)
+
+    # Last night (most recent non-None sleep_score row)
+    last = next((d for d in reversed(data) if d["sleep_score"] is not None), None)
+
+    # 7-day and 30-day averages for summary cards
+    def _avg(key, rows):
+        vals = [r[key] for r in rows if r.get(key) is not None]
+        return round(sum(vals) / len(vals), 1) if vals else None
+
+    recent = [d for d in data if d["sleep_score"] is not None][-7:]
+    avgs_7 = {k: _avg(k, recent) for k in ("sleep_score", "sleep_hours", "deep_pct", "rem_pct", "spo2", "hrv", "respiration")}
+    avgs_30 = {k: _avg(k, data) for k in ("sleep_score", "sleep_hours", "deep_pct", "rem_pct", "spo2", "hrv", "respiration")}
+
+    return TEMPLATES.TemplateResponse(request=request, name="sleep.html", context={
+        "request":   request,
+        "data":      data,
+        "last":      last,
+        "avgs_7":    avgs_7,
+        "avgs_30":   avgs_30,
+        "has_stages": any(d["deep_hours"] is not None for d in data),
+        "has_spo2":   any(d["spo2"] is not None for d in data),
+        "has_resp":   any(d["respiration"] is not None for d in data),
+        "has_hrv":    any(d["hrv"] is not None for d in data),
+    })
 
 
 @app.get("/nutrition-test")

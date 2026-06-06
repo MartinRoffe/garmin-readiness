@@ -359,6 +359,10 @@ def session_for_date(d: date) -> tuple[str, str, int] | None:
     delta = (d - PLAN_START).days
     if delta < 0 or delta >= _PLAN_DAYS:
         return None
+    from .history import get_plan_override
+    ov = get_plan_override(d.isoformat())
+    if ov:
+        return (ov["session_type"], ov["label"], ov["duration_min"])
     week_idx, day_idx = divmod(delta, 7)
     return TRAINING_WEEKS[week_idx][day_idx]
 
