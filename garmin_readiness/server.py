@@ -28,7 +28,7 @@ from .hr_plan import (HR_PHASES, HR_PLAN_START, HR_TRAINING_WEEKS,
                       build_hr_calendar_weeks, build_hr_event_weeks,
                       HR_EVENT_START, HR_EVENT_END)
 from .mersea_routes import MERSEA_TARGET_DATE
-from .report import generate_advice, generate_dashboard_explainer, generate_pmc_analysis, generate_pmc_explainer
+from .report import generate_advice, generate_dashboard_explainer, generate_pmc_analysis, generate_pmc_explainer, generate_sleep_analysis
 from .body import bp_classification, fetch_body_composition, fetch_blood_pressure
 from .history import (
     ACTIVITY_MATCH,
@@ -1357,12 +1357,15 @@ async def sleep_view(request: Request):
     avgs_7 = {k: _avg(k, recent) for k in ("sleep_score", "sleep_hours", "deep_pct", "rem_pct", "spo2", "hrv", "respiration")}
     avgs_30 = {k: _avg(k, data) for k in ("sleep_score", "sleep_hours", "deep_pct", "rem_pct", "spo2", "hrv", "respiration")}
 
+    analysis = generate_sleep_analysis(data, avgs_7, avgs_30)
+
     return TEMPLATES.TemplateResponse(request=request, name="sleep.html", context={
-        "request":   request,
-        "data":      data,
-        "last":      last,
-        "avgs_7":    avgs_7,
-        "avgs_30":   avgs_30,
+        "request":    request,
+        "data":       data,
+        "last":       last,
+        "avgs_7":     avgs_7,
+        "avgs_30":    avgs_30,
+        "analysis":   analysis,
         "has_stages": any(d["deep_hours"] is not None for d in data),
         "has_spo2":   any(d["spo2"] is not None for d in data),
         "has_resp":   any(d["respiration"] is not None for d in data),

@@ -711,3 +711,104 @@ def generate_dashboard_explainer() -> str:
         return text
     except Exception:
         return ""
+
+
+def _build_sleep_prompt(data: list[dict], avgs_7: dict, avgs_30: dict) -> str:
+    today = date.today()
+    lines = [
+        f"Date: {today.isoformat()} ({today.strftime('%A')})",
+        "",
+        "Athlete profile: male, 50+, amateur endurance athlete. Currently in a 12-week charity "
+        "cycling and strength block. Training 6–8 hours/week mixing Zone 2 cycling, tempo "
+        "intervals, strength, and rucking.",
+        "",
+        "30-night sleep data (oldest → most recent, '-' = no data):",
+        "Date        Score  Hours  Deep%  REM%   HRV(ms)",
+    ]
+    for d in data:
+        score  = f"{d['sleep_score']:>5.0f}" if d['sleep_score'] is not None else "    -"
+        hrs    = f"{d['sleep_hours']:>5.1f}" if d['sleep_hours'] is not None else "    -"
+        deep   = f"{d['deep_pct']:>5.0f}" if d['deep_pct'] is not None else "    -"
+        rem    = f"{d['rem_pct']:>4.0f}" if d['rem_pct'] is not None else "   -"
+        hrv    = f"{d['hrv']:>6.0f}" if d['hrv'] is not None else "     -"
+        lines.append(f"{d['date']}  {score}  {hrs}  {deep}  {rem}  {hrv}")
+
+    lines += [
+        "",
+        "7-day averages:",
+        f"  Sleep score: {avgs_7.get('sleep_score') or '-'}  "
+        f"Total sleep: {avgs_7.get('sleep_hours') or '-'}h  "
+        f"Deep: {avgs_7.get('deep_pct') or '-'}%  "
+        f"REM: {avgs_7.get('rem_pct') or '-'}%  "
+        f"HRV: {avgs_7.get('hrv') or '-'} ms",
+        "30-day averages:",
+        f"  Sleep score: {avgs_30.get('sleep_score') or '-'}  "
+        f"Total sleep: {avgs_30.get('sleep_hours') or '-'}h  "
+        f"Deep: {avgs_30.get('deep_pct') or '-'}%  "
+        f"REM: {avgs_30.get('rem_pct') or '-'}%  "
+        f"HRV: {avgs_30.get('hrv') or '-'} ms",
+        "",
+        "Reference ranges for endurance athletes:",
+        "  Total sleep: 7.5–9h optimal. Deep sleep: >13% (ideally 15–20%). "
+        "REM: >20%. HRV suppression >10% below 7d avg for 3+ days suggests accumulated fatigue.",
+        "",
+        "Please provide a concise sleep quality analysis covering:",
+        "1. Current sleep quality trend — is it improving, declining, or stable vs 30d baseline?",
+        "2. Stage architecture — are deep and REM percentages adequate for endurance recovery? "
+        "Note any concerning nights.",
+        "3. One or two specific, actionable recommendations for this athlete to improve sleep "
+        "quality or how to interpret the data in the context of their training block.",
+        "Keep it under 150 words. Short paragraphs, no headers or bullets. Address the athlete as 'you'.",
+    ]
+    return "\n".join(lines)
+
+
+def _rule_based_sleep(data: list[dict], avgs_7: dict) -> str:
+    score = avgs_7.get("sleep_score")
+    deep  = avgs_7.get("deep_pct")
+    rem   = avgs_7.get("rem_pct")
+    if score is None:
+        return "Not enough sleep data yet — keep syncing to build your baseline."
+    parts = []
+    if score >= 75:
+        parts.append(f"Your 7-day average sleep score of {score:.0f} is strong.")
+    elif score >= 55:
+        parts.append(f"Your 7-day average sleep score of {score:.0f} is moderate — there's room to improve.")
+    else:
+        parts.append(f"Your 7-day average sleep score of {score:.0f} is low — prioritise sleep this week.")
+    if deep is not None and deep < 13:
+        parts.append(f"Deep sleep is running low at {deep:.0f}% — try an earlier bedtime and limit alcohol.")
+    if rem is not None and rem < 18:
+        parts.append(f"REM is below target at {rem:.0f}% — stress and late training sessions can suppress REM.")
+    return " ".join(parts) if parts else f"Average sleep score: {score:.0f}."
+
+
+def generate_sleep_analysis(data: list[dict], avgs_7: dict, avgs_30: dict) -> str:
+    """Return a Sonnet coaching commentary on the 30-night sleep picture. Cached daily."""
+    cache_key = f"sleep_analysis_v1_{date.today().isoformat()}"
+    cached = get_cached_text(cache_key)
+    if cached:
+        return cached
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return _rule_based_sleep(data, avgs_7)
+
+    prompt = _build_sleep_prompt(data, avgs_7, avgs_30)
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=400,
+            system=(
+                "You are an experienced endurance coach reviewing an athlete's 30-night sleep data. "
+                "Be direct, specific, and evidence-based — reference actual numbers from the data. "
+                "No bullet points or markdown headers. Short paragraphs only. Address the athlete as 'you'."
+            ),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = msg.content[0].text
+        set_cached_text(cache_key, text)
+        return text
+    except Exception:
+        return _rule_based_sleep(data, avgs_7)
