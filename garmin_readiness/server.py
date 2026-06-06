@@ -1023,6 +1023,60 @@ async def training_plan(request: Request):
     return TEMPLATES.TemplateResponse(request=request, name="training.html", context=ctx)
 
 
+_BIKE_SESSION_TYPES = {"bike", "tempo", "ftp", "long"}
+
+
+@app.get("/compliance", response_class=HTMLResponse)
+async def compliance_view(request: Request):
+    ctx = _plan_completion_stats()
+
+    # Per-discipline breakdown from day statuses
+    by_type: dict[str, dict] = {
+        "bike":     {"label": "Bike", "icon": "🚴", "plan": 0, "done": 0},
+        "strength": {"label": "Strength", "icon": "🏋️", "plan": 0, "done": 0},
+        "ruck":     {"label": "Ruck", "icon": "🎒", "plan": 0, "done": 0},
+    }
+    for wk in ctx["completion_weeks"]:
+        for day in wk["days"]:
+            if day["status"] not in ("done", "missed"):
+                continue
+            bucket = "bike" if day["type"] in _BIKE_SESSION_TYPES else day["type"]
+            if bucket not in by_type:
+                continue
+            by_type[bucket]["plan"] += 1
+            if day["status"] == "done":
+                by_type[bucket]["done"] += 1
+    for bt in by_type.values():
+        bt["pct"] = int(bt["done"] / bt["plan"] * 100) if bt["plan"] else 0
+    ctx["by_type"] = list(by_type.values())
+
+    # Current streak (consecutive done/rest days working backwards from today)
+    streak = 0
+    all_days = [d for wk in ctx["completion_weeks"] for d in wk["days"]]
+    for day in reversed(all_days):
+        if day["status"] == "future":
+            continue
+        if day["status"] in ("done", "rest"):
+            streak += 1
+        else:
+            break
+    ctx["streak"] = streak
+
+    # Cumulative adherence % per week (None for future weeks)
+    cum_plan = cum_done = 0
+    cumulative: list[Optional[int]] = []
+    for wk in ctx["completion_weeks"]:
+        if wk["status"] == "future":
+            cumulative.append(None)
+        else:
+            cum_plan += wk["plan_min"]
+            cum_done += wk["done_min"]
+            cumulative.append(int(cum_done / cum_plan * 100) if cum_plan else 0)
+    ctx["cumulative_pcts"] = cumulative
+
+    return TEMPLATES.TemplateResponse(request=request, name="compliance.html", context=ctx)
+
+
 @app.get("/nutrition", response_class=HTMLResponse)
 async def nutrition_plan(request: Request):
     weeks = _calendar_weeks()

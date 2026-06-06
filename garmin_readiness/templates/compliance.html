@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<title>Training Compliance</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f0c;
+    --surface: #161713;
+    --surface2: #1d1f1a;
+    --border: #2a2d25;
+    --accent: #c8f135;
+    --accent2: #f1a035;
+    --text: #e8ead4;
+    --muted: #7a7d6a;
+    --danger: #f14a35;
+    --green: #4ade80;
+    --blue: #60a5fa;
+    --strength: #b873f1;
+    --ruck: #f173b8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .container { max-width: 980px; margin: 0 auto; padding: 0 24px; }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    padding: 64px 40px 48px;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -80px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(200,241,53,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 8vw, 96px);
+    line-height: 0.92;
+    letter-spacing: 0.02em;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  .hero h1 span { color: var(--accent); }
+  .hero-stats {
+    display: flex;
+    gap: 32px;
+    margin-top: 36px;
+    flex-wrap: wrap;
+  }
+  .stat {
+    border-left: 2px solid var(--accent);
+    padding-left: 14px;
+  }
+  .stat.amber { border-left-color: var(--accent2); }
+  .stat.red   { border-left-color: var(--danger); }
+  .stat.blue  { border-left-color: var(--blue); }
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .stat.amber .stat-val { color: var(--accent2); }
+  .stat.red   .stat-val { color: var(--danger); }
+  .stat.blue  .stat-val { color: var(--blue); }
+  .stat-label {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+  section:last-child { border-bottom: none; }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 20px;
+  }
+
+  h2 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    letter-spacing: 0.04em;
+    margin-bottom: 24px;
+    color: var(--text);
+  }
+
+  /* DISCIPLINE CARDS */
+  .discipline-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+    margin-bottom: 0;
+  }
+  .disc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+  .disc-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .disc-bike::before     { background: var(--accent); }
+  .disc-strength::before { background: var(--strength); }
+  .disc-ruck::before     { background: var(--ruck); }
+
+  .disc-icon { font-size: 22px; margin-bottom: 8px; }
+  .disc-label {
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+    font-family: 'DM Mono', monospace;
+  }
+  .disc-pct {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .disc-bike .disc-pct     { color: var(--accent); }
+  .disc-strength .disc-pct { color: var(--strength); }
+  .disc-ruck .disc-pct     { color: var(--ruck); }
+  .disc-sessions {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+  .disc-bar {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .disc-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s;
+  }
+  .disc-bike .disc-bar-fill     { background: var(--accent); }
+  .disc-strength .disc-bar-fill { background: var(--strength); }
+  .disc-ruck .disc-bar-fill     { background: var(--ruck); }
+
+  /* WEEK ROWS */
+  .weeks-list { display: flex; flex-direction: column; gap: 6px; }
+
+  .week-row {
+    display: grid;
+    grid-template-columns: 52px 110px 1fr 52px 80px 72px;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    transition: border-color 0.15s;
+  }
+  .week-row.is-current { border-color: var(--accent); }
+  .week-row.is-future  { opacity: 0.35; }
+
+  .wk-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+  .week-row.is-current .wk-num { color: var(--accent); }
+
+  .wk-dates {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  /* Day dots */
+  .wk-dots { display: flex; gap: 5px; align-items: center; }
+  .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-today { width: 10px; height: 10px; box-shadow: 0 0 0 2px var(--accent); }
+  .dot-done   { background: var(--green); }
+  .dot-missed { background: var(--danger); }
+  .dot-rest   { background: var(--border); }
+  .dot-future { background: transparent; border: 1px solid var(--border); }
+
+  .wk-sessions {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  .wk-bar-wrap { }
+  .wk-bar {
+    height: 4px;
+    background: var(--surface2);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .wk-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.4s;
+  }
+  .wk-pct {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+    text-align: right;
+  }
+
+  .wk-cum {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    text-align: right;
+  }
+
+  /* CUMULATIVE CHART */
+  .chart-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+  }
+  .chart-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 100px;
+    margin-bottom: 8px;
+  }
+  .chart-bar-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .chart-bar {
+    width: 100%;
+    border-radius: 2px 2px 0 0;
+    min-height: 4px;
+    transition: opacity 0.2s;
+  }
+  .chart-bar:hover { opacity: 0.75; }
+  .chart-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.04em;
+  }
+  .chart-ref-line {
+    display: flex;
+    gap: 20px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .chart-ref-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-family: 'DM Mono', monospace;
+    color: var(--muted);
+  }
+  .chart-ref-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 20px;
+    margin-top: 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    flex-wrap: wrap;
+  }
+  .legend span { display: flex; align-items: center; gap: 6px; }
+
+  @media (max-width: 700px) {
+    .hero { padding: 40px 20px 36px; }
+    .container { padding: 0 16px; }
+    .week-row { grid-template-columns: 44px 1fr auto; gap: 8px; }
+    .wk-dates { display: none; }
+    .wk-bar-wrap { display: none; }
+    .discipline-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+{% set active_tab = 'compliance' %}
+{% include 'nav.html' %}
+
+{% set adherence_cls = 'stat' if overall_pct >= 80 else ('stat amber' if overall_pct >= 60 else 'stat red') %}
+
+<div class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">12-Week Programme · Training Adherence</div>
+    <h1>PLAN <span>COMPLIANCE</span></h1>
+    <div class="hero-stats">
+      <div class="{{ adherence_cls }}">
+        <div class="stat-val">{{ overall_pct }}%</div>
+        <div class="stat-label">Overall Adherence</div>
+      </div>
+      <div class="stat blue">
+        <div class="stat-val">{{ streak }}</div>
+        <div class="stat-label">Day Streak</div>
+      </div>
+      <div class="stat">
+        <div class="stat-val">{{ total_done_sessions }}<span style="font-size:16px;color:var(--muted)">/{{ total_plan_sessions }}</span></div>
+        <div class="stat-label">Sessions Done</div>
+      </div>
+      <div class="stat" style="border-left-color:var(--muted)">
+        <div class="stat-val" style="color:var(--text)">{{ (total_done_min // 60) }}h<span style="font-size:16px;color:var(--muted)"> of {{ (total_plan_min // 60) }}h</span></div>
+        <div class="stat-label">Training Time</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- BY DISCIPLINE -->
+  <section>
+    <div class="section-label">By Discipline</div>
+    <h2>ADHERENCE BREAKDOWN</h2>
+    <div class="discipline-grid">
+      {% for bt in by_type %}
+      <div class="disc-card disc-{{ bt.label | lower }}">
+        <div class="disc-icon">{{ bt.icon }}</div>
+        <div class="disc-label">{{ bt.label }}</div>
+        <div class="disc-pct">{{ bt.pct }}%</div>
+        <div class="disc-sessions">{{ bt.done }} / {{ bt.plan }} sessions</div>
+        <div class="disc-bar">
+          <div class="disc-bar-fill" style="width:{{ [bt.pct, 100] | min }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- CUMULATIVE CHART -->
+  {% if completion_weeks %}
+  <section>
+    <div class="section-label">Running Total</div>
+    <h2>CUMULATIVE ADHERENCE</h2>
+    <div class="chart-wrap">
+      <div class="chart-bars" id="cumChart"></div>
+      <div class="chart-ref-line">
+        <div class="chart-ref-item"><div class="chart-ref-dot" style="background:var(--green)"></div>≥80% on track</div>
+        <div class="chart-ref-item"><div class="chart-ref-dot" style="background:var(--accent2)"></div>60–79% slipping</div>
+        <div class="chart-ref-item"><div class="chart-ref-dot" style="background:var(--danger)"></div>&lt;60% behind</div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- WEEK BY WEEK -->
+  <section>
+    <div class="section-label">Week by Week</div>
+    <h2>SESSION LOG</h2>
+
+    <div class="weeks-list">
+      {% for wk in completion_weeks %}
+      {% set row_cls = 'week-row is-current' if wk.status == 'current' else ('week-row is-future' if wk.status == 'future' else 'week-row') %}
+      <div class="{{ row_cls }}">
+
+        <!-- Week num -->
+        <div class="wk-num">Wk {{ '%02d'|format(wk.week_num) }}</div>
+
+        <!-- Date range -->
+        <div class="wk-dates">{{ wk.date_range }}</div>
+
+        <!-- Day dots -->
+        <div class="wk-dots">
+          {% for day in wk.days %}
+          {% if day.status == 'done' %}
+            {% set dot_cls = 'dot dot-done' %}
+          {% elif day.status == 'missed' %}
+            {% set dot_cls = 'dot dot-missed' %}
+          {% elif day.status == 'rest' %}
+            {% set dot_cls = 'dot dot-rest' %}
+          {% else %}
+            {% set dot_cls = 'dot dot-future' %}
+          {% endif %}
+          {% if day.is_today %}{% set dot_cls = dot_cls + ' dot-today' %}{% endif %}
+          <span class="{{ dot_cls }}" title="{{ day.date.strftime('%-d %b') }} · {{ day.type }}"></span>
+          {% endfor %}
+        </div>
+
+        <!-- Session count -->
+        {% if wk.status != 'future' and wk.plan_sessions > 0 %}
+        <div class="wk-sessions">
+          <span style="color:{% if wk.done_sessions == wk.plan_sessions %}var(--green){% elif wk.done_sessions > 0 %}var(--accent2){% else %}var(--muted){% endif %}">{{ wk.done_sessions }}</span><span style="color:var(--border)">/</span>{{ wk.plan_sessions }}
+        </div>
+        {% else %}
+        <div></div>
+        {% endif %}
+
+        <!-- Week progress bar -->
+        <div class="wk-bar-wrap">
+          {% if wk.status != 'future' and wk.plan_min > 0 %}
+          <div class="wk-bar">
+            <div class="wk-bar-fill" style="width:{{ [wk.pct, 100] | min }}%;background:{% if wk.pct >= 80 %}var(--green){% elif wk.pct >= 60 %}var(--accent2){% else %}var(--danger){% endif %}"></div>
+          </div>
+          <div class="wk-pct">{{ wk.pct }}%</div>
+          {% endif %}
+        </div>
+
+        <!-- Cumulative % -->
+        {% set cum = cumulative_pcts[loop.index0] %}
+        <div class="wk-cum">
+          {% if cum is not none %}
+          <span style="color:{% if cum >= 80 %}var(--green){% elif cum >= 60 %}var(--accent2){% else %}var(--danger){% endif %}">{{ cum }}%</span>
+          <div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--muted);margin-top:1px;text-align:right">cumul.</div>
+          {% endif %}
+        </div>
+
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <span><span class="dot dot-done" style="width:8px;height:8px"></span>Done</span>
+      <span><span class="dot dot-missed" style="width:8px;height:8px"></span>Missed</span>
+      <span><span class="dot dot-rest" style="width:8px;height:8px"></span>Rest</span>
+      <span><span class="dot dot-future" style="width:8px;height:8px"></span>Upcoming</span>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+// Build cumulative adherence bar chart
+const pcts = {{ cumulative_pcts | tojson }};
+const labels = {{ completion_weeks | map(attribute='week_num') | list | tojson }};
+const container = document.getElementById('cumChart');
+if (container) {
+  const defined = pcts.filter(p => p !== null);
+  const maxPct = defined.length ? Math.max(...defined, 100) : 100;
+  pcts.forEach((pct, i) => {
+    const group = document.createElement('div');
+    group.className = 'chart-bar-group';
+    const barPct = pct !== null ? (pct / maxPct) * 100 : 0;
+    const color = pct === null ? 'var(--surface2)'
+                : pct >= 80 ? 'var(--green)'
+                : pct >= 60 ? 'var(--accent2)'
+                : 'var(--danger)';
+    const opacity = pct === null ? '0.3' : '1';
+    group.innerHTML = `
+      <div class="chart-bar" style="height:${barPct}%;background:${color};opacity:${opacity}" title="Wk ${labels[i]}: ${pct !== null ? pct + '%' : '—'}"></div>
+      <span class="chart-label">W${labels[i]}</span>
+    `;
+    container.appendChild(group);
+  });
+}
+</script>
+</body>
+</html>
