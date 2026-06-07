@@ -209,6 +209,59 @@
   </script>
   {% endif %}
 
+  <!-- ── Calorie Balance ──────────────────────────────────────────────── -->
+  {% if cal_ctx %}
+  <div class="card" style="padding:20px 24px;margin-bottom:16px">
+    <p class="eyebrow" style="margin-bottom:16px;color:#60a5fa">Calorie Balance</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:{% if cal_values %}20{% else %}0{% endif %}px">
+
+      {% if cal_ctx.today_consumed is defined %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Today Logged</p>
+        <p style="font-family:var(--font-d);font-size:28px;color:var(--text);letter-spacing:0.04em;line-height:1">{{ cal_ctx.today_consumed | int | format_thousands }}</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:3px">kcal</p>
+      </div>
+      {% endif %}
+
+      {% if cal_ctx.today_tdee is defined and cal_ctx.today_tdee %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">TDEE Today</p>
+        <p style="font-family:var(--font-d);font-size:28px;color:var(--text);letter-spacing:0.04em;line-height:1">{{ cal_ctx.today_tdee | int | format_thousands }}</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:3px">kcal (activity-adjusted)</p>
+      </div>
+      {% endif %}
+
+      {% if cal_ctx.today_consumed is defined and cal_ctx.today_tdee %}
+      {% set today_deficit = cal_ctx.today_tdee - cal_ctx.today_consumed %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Today's Deficit</p>
+        <p style="font-family:var(--font-d);font-size:28px;letter-spacing:0.04em;line-height:1;color:{% if today_deficit > 0 %}#a3e635{% elif today_deficit < -200 %}#f87171{% else %}#fbbf24{% endif %}">
+          {{ "%+d"|format(today_deficit | int) }}
+        </p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:3px">kcal · {% if today_deficit > 700 %}aggressive cut{% elif today_deficit > 300 %}healthy deficit{% elif today_deficit > -100 %}maintenance{% else %}surplus{% endif %}</p>
+      </div>
+      {% endif %}
+
+      {% if cal_ctx.avg_consumed is defined and cal_ctx.days_logged > 1 %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">{{ cal_ctx.days_logged }}-Day Avg</p>
+        <p style="font-family:var(--font-d);font-size:28px;color:var(--text);letter-spacing:0.04em;line-height:1">{{ cal_ctx.avg_consumed | format_thousands }}</p>
+        {% if cal_ctx.avg_deficit is defined %}
+        <p style="font-family:var(--font-m);font-size:11px;margin-top:3px;color:{% if cal_ctx.avg_deficit > 0 %}#a3e635{% else %}#f87171{% endif %}">{{ "%+d"|format(cal_ctx.avg_deficit) }} kcal/day avg</p>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+
+    {% if cal_values %}
+    <div style="position:relative;height:140px">
+      <canvas id="calChart"></canvas>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- Charts grid -->
   <div style="display:flex;flex-direction:column;gap:16px">
 
@@ -444,6 +497,71 @@ if (bpCtx) {
   });
 }
 {% endif %}
+
+{% if cal_values %}
+(function() {
+  const calCtx = document.getElementById('calChart');
+  if (!calCtx) return;
+  const labels   = {{ cal_dates  | tojson }};
+  const consumed = {{ cal_values | tojson }};
+  const tdee     = {{ tdee_values | tojson }};
+  new Chart(calCtx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Consumed',
+          data: consumed,
+          backgroundColor: 'rgba(96,165,250,0.7)',
+          borderColor: '#60a5fa',
+          borderWidth: 1,
+          borderRadius: 2,
+          order: 1,
+        },
+        {
+          label: 'TDEE',
+          data: tdee,
+          type: 'line',
+          borderColor: '#fbbf24',
+          backgroundColor: 'transparent',
+          borderWidth: 1.5,
+          borderDash: [4,3],
+          pointRadius: 0,
+          order: 0,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: { color: '#a1a1aa', font: { family: 'DM Mono, monospace', size: 10 }, boxWidth: 10, padding: 12 },
+        },
+        tooltip: {
+          backgroundColor: '#111114',
+          borderColor: '#3f3f46',
+          borderWidth: 1,
+          titleColor: '#fafafa',
+          bodyColor: '#a1a1aa',
+          titleFont: { family: 'DM Mono, monospace', size: 11 },
+          bodyFont: { family: 'DM Mono, monospace', size: 11 },
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y ? ctx.parsed.y.toLocaleString() + ' kcal' : '—'}`,
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { ...TICK, maxRotation: 0, maxTicksLimit: 14 }, grid: GRID, border: { color: '#27272a' } },
+        y: { ticks: { ...TICK, callback: v => v ? v.toLocaleString() : '' }, grid: GRID, border: { color: '#27272a' } },
+      },
+    },
+  });
+})();
+{% endif %}
+
 </script>
 
 </body>

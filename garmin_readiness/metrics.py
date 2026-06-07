@@ -61,6 +61,10 @@ class DailyMetrics:
     # Daily activity (NEAT)
     total_steps: Optional[float] = None           # daily step count
     active_calories: Optional[float] = None       # non-BMR calories burned
+    # Nutrition (Garmin food log)
+    calories_consumed: Optional[float] = None     # kcal logged by user
+    calorie_goal: Optional[float] = None          # Garmin base daily goal
+    calorie_goal_adjusted: Optional[float] = None # goal adjusted for activity (TDEE)
 
 
 def _safe_get(d: dict, *keys, default=None):
@@ -201,6 +205,24 @@ def fetch_metrics(api, target_date: date) -> DailyMetrics:
             m.active_calories = float(cals) if cals is not None else None
     except Exception as e:
         logger.debug("Daily summary fetch failed: %s", e)
+
+    # --- Nutrition (food log) ---
+    try:
+        nut = api.get_nutrition_daily_food_log(date_str)
+        if isinstance(nut, dict):
+            content = nut.get("dailyNutritionContent") or {}
+            goals = nut.get("dailyNutritionGoals") or {}
+            cal = content.get("calories")
+            if cal is not None:
+                m.calories_consumed = float(cal)
+            goal = goals.get("calories")
+            if goal is not None:
+                m.calorie_goal = float(goal)
+            adj = goals.get("adjustedCalories")
+            if adj is not None:
+                m.calorie_goal_adjusted = float(adj)
+    except Exception as e:
+        logger.debug("Nutrition fetch failed: %s", e)
 
     return m
 

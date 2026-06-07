@@ -903,6 +903,26 @@ def _build_body_prompt(body_rows: list[dict], latest: dict, pmc_today: dict, rec
             "",
         ]
 
+    # Calorie intake (food log — available once user logs meals in Garmin Connect)
+    con_vals = [r.get("calories_consumed")      for r in recent_metrics if r.get("calories_consumed")      is not None]
+    adj_vals = [r.get("calorie_goal_adjusted")  for r in recent_metrics if r.get("calorie_goal_adjusted")  is not None]
+    if con_vals:
+        avg_consumed = round(sum(con_vals) / len(con_vals))
+        avg_tdee     = round(sum(adj_vals) / len(adj_vals)) if adj_vals else None
+        deficit_note = ""
+        if avg_tdee:
+            diff = avg_tdee - avg_consumed
+            deficit_note = f"  avg deficit vs TDEE: {diff:+,} kcal/day"
+        lines += [
+            "Calorie intake (logged in Garmin Connect, last 14 days):",
+            f"  Avg consumed: {avg_consumed:,} kcal/day",
+            f"  Avg TDEE (activity-adjusted): {avg_tdee:,} kcal/day" if avg_tdee else "",
+            deficit_note,
+            "  Note: a sustained deficit of ~500 kcal/day ≈ 0.5 kg/week fat loss."
+            " If deficit exceeds 700 kcal/day on training days, flag risk of under-fuelling.",
+            "",
+        ]
+
     lines += [
         "Please provide a concise body composition analysis covering:",
         "1. Weight trajectory — at current rate, what weight will the athlete reach by Tenerife (13 Aug)?",

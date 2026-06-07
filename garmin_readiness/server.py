@@ -153,6 +153,7 @@ def _build_calendar_ctx() -> dict[str, Any]:
     }
 
 TEMPLATES = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
+TEMPLATES.env.filters["format_thousands"] = lambda v: f"{int(v):,}" if v is not None else "—"
 
 _security = HTTPBasic(auto_error=False)
 
@@ -1371,6 +1372,30 @@ def _body_context() -> dict[str, Any]:
     recent_metrics = raw_history(14)
     body_analysis = generate_body_analysis(body_rows, latest_body or {}, pmc_today, recent_metrics)
 
+    # Calorie intake from food log (last 14 days of data)
+    con_vals = [r.get("calories_consumed")     for r in recent_metrics if r.get("calories_consumed")     is not None]
+    adj_vals = [r.get("calorie_goal_adjusted") for r in recent_metrics if r.get("calorie_goal_adjusted") is not None]
+    cal_ctx: dict = {}
+    if con_vals:
+        cal_ctx["avg_consumed"]   = round(sum(con_vals) / len(con_vals))
+        cal_ctx["avg_tdee"]       = round(sum(adj_vals) / len(adj_vals)) if adj_vals else None
+        cal_ctx["days_logged"]    = len(con_vals)
+        if cal_ctx["avg_tdee"]:
+            cal_ctx["avg_deficit"] = cal_ctx["avg_tdee"] - cal_ctx["avg_consumed"]
+    # Today's specific values (most recent row with data)
+    today_nut = next((r for r in reversed(recent_metrics) if r.get("calories_consumed") is not None), None)
+    if today_nut:
+        cal_ctx["today_consumed"] = today_nut.get("calories_consumed")
+        cal_ctx["today_tdee"]     = today_nut.get("calorie_goal_adjusted")
+        cal_ctx["today_goal"]     = today_nut.get("calorie_goal")
+
+    # Calorie chart (last 14 days) — convert date objects to ISO strings for _short()
+    _cal_rows   = [r for r in recent_metrics if r.get("calories_consumed") is not None]
+    _cal_isos   = [r["date"].isoformat() if hasattr(r["date"], "isoformat") else str(r["date"]) for r in _cal_rows]
+    cal_values  = [r["calories_consumed"] for r in _cal_rows]
+    tdee_values = [r.get("calorie_goal_adjusted") for r in _cal_rows]
+    cal_labels  = _short(_cal_isos)
+
     return {
         "latest_body": latest_body,
         "latest_bp": latest_bp,
@@ -1390,6 +1415,10 @@ def _body_context() -> dict[str, Any]:
         "has_body": bool(body_rows),
         "has_bp": bool(bp_rows),
         "body_analysis": body_analysis,
+        "cal_ctx": cal_ctx,
+        "cal_dates": cal_labels,
+        "cal_values": cal_values,
+        "tdee_values": tdee_values,
     }
 
 
@@ -1693,6 +1722,19 @@ def _build_coach_context() -> str:
                 f"= {rate:+.2f} kg/week",
                 f"Projected weight at Tenerife (13 Aug, {weeks_to_tenerife} weeks): {projected:.1f} kg",
             ]
+        # Calorie intake from Garmin food log
+        history_14 = raw_history(14)
+        con_vals = [r.get("calories_consumed")     for r in history_14 if r.get("calories_consumed")     is not None]
+        adj_vals = [r.get("calorie_goal_adjusted") for r in history_14 if r.get("calorie_goal_adjusted") is not None]
+        if con_vals:
+            avg_consumed = round(sum(con_vals) / len(con_vals))
+            avg_tdee     = round(sum(adj_vals) / len(adj_vals)) if adj_vals else None
+            body_parts += ["## Calorie Intake (Garmin food log)"]
+            body_parts.append(f"Avg consumed (last {len(con_vals)} days): {avg_consumed:,} kcal/day")
+            if avg_tdee:
+                deficit = avg_tdee - avg_consumed
+                body_parts.append(f"Avg TDEE: {avg_tdee:,} kcal  |  Avg deficit: {deficit:+,} kcal/day")
+
         # Inject cached AI advisor text if available
         cached_body = get_cached_text(f"body_analysis_v1_{today.isoformat()}")
         if cached_body:
