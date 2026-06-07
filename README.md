@@ -6,18 +6,35 @@ rolling baseline, and delivers a daily email briefing and live web dashboard.
 
 ## Features
 
+**Readiness & alerts**
 - **Daily readiness score** — composite z-score across 10+ Garmin wellness metrics
-- **AI coaching advice** via Claude (falls back to rule-based if no API key)
+- **Fatigue alert system** — proactive HIGH/MODERATE banners for HRV decline (4 days), deep TSB, or volume spike; prepended to the daily email
+- **Weekly coach briefing** — Monday-morning Claude Haiku briefing (form summary, key session, execution cue), cached per ISO week
+
+**AI**
 - **AI Coach chat** — conversational coach with full training context, plan-change proposals, and cross-session memory
-- **Web dashboard** with tabs: Readiness, Performance, Analysis, Calendar, Training Plan, Compliance, Nutrition, Sleep, Body, Haute Route, Tenerife
-- **12-week cycling training plan** with structured workout uploads to Garmin Connect
+- **AI coaching advice** via Claude in the daily email (falls back to rule-based if no API key)
 - **Post-workout HR zone analysis** with Claude commentary per activity
+- **Session RPE logging** — emoji-based perceived effort (😴😊😤🔥💀) on each analysis card, stored in SQLite, surfaced in coach context
+
+**Performance & load**
+- **FTP trend chart** — estimated LTHR tracked over test history, auto-populated from activity analyses
+- **TSB trajectory to event** — projected TSB as a dashed overlay on the TSB chart with an event vertical line
+- **Zone 2 cardiac drift trend** — easy-ride-only scatter with server-side least-squares regression and bpm annotation
+- **Training polarisation charts** — stacked bar (Z1–Z5 per week) + donut (block totals) on the Performance tab
+
+**Calendar & compliance**
+- **12-week cycling training plan** with structured workout uploads to Garmin Connect
+- **Interference load flag** — amber ⚠️ badge on quality bike sessions when strength was logged within 24 h
+- **Back-to-back session tracker** — consecutive cycling pairs table with a fatigue log modal (rating + note)
+- **Plan compliance view** — per-week adherence tracking with discipline breakdown
+
+**Other**
 - **Body composition tracking** — weight, fat %, muscle mass, blood pressure (Garmin + Withings)
 - **Withings sync** — push Withings body measurements to Garmin Connect
-- **Daily email** with readiness score, planned workout, and recent activity summary
+- **Daily email** with readiness score, planned workout, recent activity summary, and any fatigue alerts
 - **Haute Route Alpes 2027 plan** — 46-week plan with phase calendar and CTL projection
 - **Tenerife cycling camp** itinerary and Ghent–Amsterdam charity ride on the calendar
-- **Plan compliance view** — per-week adherence tracking with discipline breakdown
 
 ## Prerequisites
 
@@ -83,11 +100,17 @@ garmin_readiness/
 ├── client.py        Garmin Connect session/token handling
 ├── metrics.py       Garmin API calls → DailyMetrics dataclass
 ├── history.py       SQLite persistence, z-scores, composite score
+│                    Tables: daily_metrics, activities, body_metrics,
+│                    blood_pressure, daily_advice, text_cache,
+│                    coach_conversations, plan_overrides, coach_memory,
+│                    session_rpe, ftp_tests, btb_notes
 ├── display.py       Value formatting, activity enrichment
-├── report.py        HTML email builder, Claude advice, Gmail sender
-├── analysis.py      Post-workout HR zone analysis via Claude; workout
-│                    descriptions, nutrition targets, fuelling plans
-├── plan.py          12-week training plan data + calendar builders
+├── alerts.py        Fatigue alert checks (HRV trend, TSB deep, volume spike)
+├── report.py        HTML email builder, Claude advice, weekly briefing, Gmail sender
+├── analysis.py      Post-workout HR zone analysis via Claude; FTP test
+│                    auto-population; workout descriptions, nutrition
+│                    targets, fuelling plans
+├── plan.py          12-week training plan + COMPOUND_SESSIONS registry
 ├── hr_plan.py       46-week Haute Route Alpes 2027 plan + calendar
 ├── mersea_routes.py Mersea Island coastal route data
 ├── body.py          Body composition and blood pressure helpers
@@ -105,20 +128,21 @@ Each metric (HRV, sleep duration, sleep score, stress, resting HR, body battery,
 
 ## AI Coach
 
-The coach chat tab (`/coach`) streams responses from Claude Sonnet with your full training context injected: PMC (CTL/ATL/TSB), today's readiness metrics, all remaining plan sessions, recent activities, body composition, and active plan overrides. The coach can propose session changes (duration, type swap) that appear as confirmation cards before being applied. Cross-session memory is maintained in SQLite and refreshed in the background after conversations.
+The coach chat tab streams responses from Claude Sonnet with full training context: PMC (CTL/ATL/TSB), today's readiness, all remaining plan sessions, recent activities, body composition, active plan overrides, recent RPE logs, and back-to-back fatigue history. The coach can propose session changes (duration, type swap) that appear as confirmation cards before being applied. Cross-session memory is maintained in SQLite and refreshed in the background after conversations.
 
-Post-workout analysis (Analysis tab) also uses Claude Sonnet, with structured HR zone data and plan context. Recovery suggestions, workout descriptions, and nutrition targets use Claude Haiku.
+Post-workout analysis also uses Claude Sonnet. Recovery suggestions, workout descriptions, nutrition targets, fuelling plans, and weekly briefings use Claude Haiku.
 
 ## AI text caching
-
-There are four separate cache layers:
 
 | Cache | Location | What it holds | How to clear |
 |-------|----------|---------------|--------------|
 | `_advice_cache` | `server.py` in-process dict | Daily readiness advice | Restart server |
 | `daily_advice` | SQLite table | Per-date advice (survives restart) | `DELETE FROM daily_advice WHERE date = '...'` |
-| `text_cache` | SQLite table | Workout descriptions, metric explainers, recovery suggestions | `DELETE FROM text_cache WHERE key = '...'` |
+| `text_cache` | SQLite table | Workout descriptions, metric explainers, recovery suggestions, weekly briefings, fuelling plans | `DELETE FROM text_cache WHERE key = '...'` |
 | `activity_analyses` | SQLite table | Per-activity coach analysis | `DELETE FROM activity_analyses WHERE activity_id IN (...)` then hit `/analysis-refresh` |
+| `workout_descriptions` | SQLite table | 2-sentence coaching notes per session label | `DELETE FROM workout_descriptions WHERE label = '...'` |
+| `nutrition_targets` | SQLite table | Daily macro targets per session type+duration | `DELETE FROM nutrition_targets WHERE session_key = '...'` |
+| `fuelling_plans` | SQLite table | In-ride carb/fluid/sodium plans | `DELETE FROM fuelling_plans WHERE session_key = '...'` |
 
 ## macOS background service
 

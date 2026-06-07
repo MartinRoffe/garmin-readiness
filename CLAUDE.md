@@ -44,8 +44,8 @@ The app has two interfaces sharing the same data layer:
 - `/send-email` — manual email trigger (same logic as CLI `--email`)
 - `/sync-workouts` — re-uploads and schedules all plan cycling workouts to Garmin
 - `/analysis`, `/analysis-refresh` — post-workout analysis tab and refresh trigger
-- `/performance` — PMC (CTL/ATL/TSB), Z2 HR trend, CTL projection to event
-- `/calendar` — unified plan/camp/event-prep calendar with completion tracking
+- `/performance` — PMC (CTL/ATL/TSB), Z2 HR drift, CTL/TSB projection to event, zone polarisation charts, FTP trend, Z2 cardiac drift trend
+- `/calendar` — unified plan/camp/event-prep calendar with completion tracking, interference flags, BTB log
 - `/training`, `/compliance` — plan completion stats and per-discipline adherence
 - `/nutrition` — 4-week meal plan cycle
 - `/sleep` — 30-day sleep quality history with stage breakdown
@@ -55,20 +55,26 @@ The app has two interfaces sharing the same data layer:
 - `/tenerife` — Tenerife cycling camp itinerary
 - `/coach-chat-stream` — SSE streaming coach chat endpoint
 - `/apply-plan-change` — persist a coach-proposed plan override
+- `/log-rpe` — POST: save session RPE (date, activity_id, rpe 1–5, optional note)
+- `/api/ftp-tests` — GET: return all FTP test records (date, ftp_hr, ftp_hr_max)
+- `/log-btb` — POST: save back-to-back fatigue rating (date, day_number, fatigue_rating, note)
+- `/btb-summary` — GET: return consecutive cycling pairs with fatigue notes
 
 **Data layer:**
 - `metrics.py` — `DailyMetrics` dataclass + `fetch_metrics()`/`fetch_activities()` calling the `garminconnect` API.
-- `history.py` — SQLite persistence at `~/.garmin_readiness/history.db`. Tables: `daily_metrics` (auto-migrating schema), `activities`, `body_metrics`, `blood_pressure`, `daily_advice`, `text_cache`, `coach_conversations`, `plan_overrides`, `coach_memory`. Provides `baseline_stats()` (30-day rolling window), `composite_score()` (mean z-score across scored fields), and `z_score()` (sign-flipped for lower-is-better fields).
+- `history.py` — SQLite persistence at `~/.garmin_readiness/history.db`. Tables: `daily_metrics` (auto-migrating schema), `activities`, `body_metrics`, `blood_pressure`, `daily_advice`, `text_cache`, `coach_conversations`, `plan_overrides`, `coach_memory`, `session_rpe`, `ftp_tests`, `btb_notes`. Provides `baseline_stats()` (30-day rolling window), `composite_score()` (mean z-score across scored fields), `z_score()` (sign-flipped for lower-is-better fields), `intensity_distribution_by_week()`, `load_session_rpe()`, `save_session_rpe()`, `load_ftp_tests()`, `save_ftp_test()`, `load_btb_summary()`, `save_btb_note()`.
 - `display.py` — `FIELD_LABELS`, `fmt_value()`, `readiness_label()`, `enrich_activity()` (duration/distance/pace formatting).
 - `client.py` — wraps `garminconnect` session/token handling. All `get_api()` calls go through here.
 
-**Report** (`report.py`) — builds and sends an HTML email via Gmail SMTP. Calls Claude for advice text; falls back to rule-based if no API key. Includes planned workout from `plan.py`.
+**Alerts** (`alerts.py`) — `check_fatigue_alerts(today)` checks three conditions and returns a list of `{type, severity, message}` dicts: `HRV_TREND` (4 strictly descending mornings → HIGH), `TSB_DEEP` (TSB < −180 for ≥5 days → HIGH), `VOLUME_SPIKE` (actual weekly minutes > planned × 1.20 → MODERATE). Called in `_build_context()` and `run_report()`.
+
+**Report** (`report.py`) — builds and sends an HTML email via Gmail SMTP. Calls Claude for advice text; falls back to rule-based if no API key. Includes planned workout from `plan.py`. `generate_weekly_briefing()` produces a Monday coach briefing (form summary, key session, execution cue) via Claude Haiku, cached in `text_cache` keyed by `weekly_briefing_v1_{monday_iso}`. HIGH fatigue alerts are prepended as a callout block before the readiness section.
 
 **Training plan** (`plan.py`) — single source of truth for the 12-week charity-ride prep plan (`PLAN_START = 2026-05-18`, `TRAINING_WEEKS`). `session_for_date()` returns `(type, label, duration_min)` for any date in the plan window. Also `session_for_date_extended()` which covers the Tenerife camp and event prep block. Consumed by `report.py` (email) and `server.py` (calendar tab). Also contains `MAXI_INTERVALS` — a dict keyed by week number (1–12) with interval specs (`sets`, `work_s`, `rest_s`, `kb`, `easy`, `norwegian` flags) used to populate clickable interval modals on MaxiClimber calendar tiles. Week 9 introduces the Norwegian 4×4 protocol.
 
 **Haute Route plan** (`hr_plan.py`) — separate 46-week plan for Haute Route Alpes 2027 (`HR_PLAN_START = 2026-10-05`, event Aug 23–29 2027). Five phases: Base (wks 1–13), Build (14–25), Specific Build (26–35, mountain camp wk 31), Peak (36–43, two 3-day simulation blocks), Taper (44–46). `hr_session_for_date()` and `build_hr_calendar_weeks()` mirror the API of `plan.py`. `HR_EVENT_STAGES` holds the 7 stage details (km, elevation, key climb). Rendered at `/haute-route`.
 
-**Post-training analysis** (`analysis.py`) — separate SQLite table `activity_analyses` in the same DB. `refresh_analyses()` fetches HR zone data + `summaryDTO` from Garmin for each unanalysed activity, calls Claude Sonnet with a discipline-specific coach prompt, saves result. `load_analyses_for_activities()` enriches activity dicts for the Analysis tab. `_find_compound_companion()` detects when an activity is one half of a compound plan session and returns the paired activity so the prompt can reference both. `_build_analysis_prompt()` injects a "do not flag as short" note when actual duration meets or exceeds the plan (≥95%), preventing Claude from misreading a completed session as cut short. Also contains:
+**Post-training analysis** (`analysis.py`) — separate SQLite table `activity_analyses` in the same DB. `refresh_analyses()` fetches HR zone data + `summaryDTO` from Garmin for each unanalysed activity, calls Claude Sonnet with a discipline-specific coach prompt, saves result. After saving, if the session label is in `_FTP_SESSION_LABELS` and `detail["ftp_effort_avg_hr"]` is present, auto-populates `ftp_tests` table via `save_ftp_test()`. `load_analyses_for_activities()` enriches activity dicts for the Analysis tab. `_find_compound_companion()` detects when an activity is one half of a compound plan session and returns the paired activity so the prompt can reference both. `_build_analysis_prompt()` injects a "do not flag as short" note when actual duration meets or exceeds the plan (≥95%), preventing Claude from misreading a completed session as cut short. Also contains:
 - `prefetch_workout_descriptions()` — generates 2-sentence coaching notes per session label, cached in `workout_descriptions` table
 - `prefetch_nutrition_targets()` — generates daily macro targets per session type+duration, cached in `nutrition_targets` table
 - `prefetch_fuelling_plans()` — generates in-ride carb/fluid/sodium plans for endurance sessions ≥75 min, cached in `fuelling_plans` table
@@ -76,6 +82,8 @@ The app has two interfaces sharing the same data layer:
 To regenerate a stale analysis: `DELETE FROM activity_analyses WHERE activity_id = <id>` then hit `/analysis-refresh`.
 
 **Compound sessions** (`plan.py` → `COMPOUND_SESSIONS`) — dict mapping plan label → list of sub-sessions with `garmin_key`. Example: `"KB + MaxiClimber"` maps to `strength_training` + `stair_climbing`. This is the single source of truth consumed by three places: calendar completion (tracks each sub-session independently), `_merge_compound_activities()` in `server.py` (collapses paired activities into one analysis card with side-by-side HR zones), and `_find_compound_companion()` in `analysis.py` (adds companion context to the coach prompt). Add new compound session types here first.
+
+**Interference flagging** (`server.py`) — `QUALITY_BIKE_LABELS` module-level set lists sessions that warrant an interference check (tempo, sweetspot, threshold, hill repeats, FTP tests). In `calendar_view()`, for each such day, the previous 24 h is scanned for `type_key in {"strength_training", "stair_climbing"}`; if found, `day["interference"] = True` and `day["interference_note"]` is set. The calendar template renders an amber ⚠️ badge inline with the session label.
 
 **Body composition** (`body.py`) — `fetch_body_composition()` and `fetch_blood_pressure()` pull data from Garmin Connect. `bp_classification()` returns a label and colour for blood pressure readings. Data saved to `body_metrics` and `blood_pressure` SQLite tables.
 
@@ -87,7 +95,7 @@ To regenerate a stale analysis: `DELETE FROM activity_analyses WHERE activity_id
 
 ## AI Coach chat
 
-`_COACH_SYSTEM` in `server.py` defines the coach persona and context injection format. On each request `_build_coach_context()` assembles: PMC metrics, today's readiness, all remaining plan sessions (12-week + Tenerife camp + event prep), recent activities, body composition, active plan overrides, coach memory, and RAG-retrieved past session analyses.
+`_COACH_SYSTEM` in `server.py` defines the coach persona and context injection format. On each request `_build_coach_context()` assembles: PMC metrics, today's readiness, all remaining plan sessions (12-week + Tenerife camp + event prep), recent activities, body composition, active plan overrides, coach memory, RAG-retrieved past session analyses, recent RPE logs (last 7 days from `session_rpe` table), and back-to-back training history (5 most recent pairs from `btb_notes`).
 
 The coach can call the `propose_plan_change` tool to suggest a duration/type modification. The server handles the tool-use turn, enriches the proposal with current plan data, and returns it as a JSON `proposal` alongside the text reply. The frontend renders it as a confirmation card; on approval `POST /apply-plan-change` persists it as a `plan_override`.
 
@@ -95,9 +103,9 @@ Coach memory (`coach_memory` SQLite table) is a compact durable memo (150–250 
 
 The streaming endpoint (`/coach-chat-stream`) uses `StreamingResponse` with a sync SSE generator. The non-streaming `/coach-chat` endpoint exists for fallback.
 
-## CTL projection
+## CTL/ATL/TSB projection
 
-`_ctl_projection()` in `server.py` projects CTL from today to the event date using plan sessions across all blocks (12-week, Tenerife camp, event prep). Uses additive per-minute deltas calibrated against week-1 observed data rather than the Coggan EMA, with a soft ceiling above CTL 300. `_hr_ctl_projection()` does the same across the 46-week Haute Route plan.
+`_ctl_projection()` in `server.py` projects CTL, ATL, and TSB from today to the event date using plan sessions across all blocks (12-week, Tenerife camp, event prep). CTL uses additive per-minute deltas calibrated against week-1 observed data with a soft ceiling above CTL 300. ATL uses a 7-day exponential decay: `atl = max(0, atl * exp(−1/7) + rate * dur_min)` on session days, `atl = max(0, atl * exp(−1/7))` on rest days. Each projected entry returns `{label, ctl, atl, tsb}`. The Performance tab renders projected TSB as a dashed amber overlay on the TSB chart with an event vertical line. Note: ATL/CTL are in Garmin training-load units, not standard TSS, so absolute TSB values differ from classic PMC conventions. `_hr_ctl_projection()` does the same across the 46-week Haute Route plan (CTL only).
 
 ## Configuration
 
@@ -111,18 +119,28 @@ Key vars: `GARMIN_EMAIL`, `GARMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `GMAIL_ADDRESS
 - `available_count()` checks how many non-null numeric fields exist — used to detect empty fetches. The email gate checks specifically for `sleep_score` and `body_battery_morning` (only populated after the watch syncs overnight data); if either is missing, the CLI exits with code 2 and the launchd retry loop tries again in 30 minutes.
 - All Garmin API calls are individually try/except'd; a failed endpoint logs at DEBUG and leaves the field `None` rather than crashing.
 - Templates are package data — any change to a `.html` file requires `pip install --force-reinstall .` before the running server picks it up.
-- Claude model usage: **Sonnet** for coach chat and post-workout activity analysis; **Haiku** for email advice, recovery suggestions, workout descriptions, nutrition targets, fuelling plans, and coach memory summaries.
+- Claude model usage: **Sonnet** for coach chat and post-workout activity analysis; **Haiku** for email advice, recovery suggestions, workout descriptions, nutrition targets, fuelling plans, weekly briefings, and coach memory summaries.
 
 ## AI text caching
 
-There are four separate cache layers; know which to clear when regenerating AI output:
+There are several cache layers; know which to clear when regenerating AI output:
 
 | Cache | Location | What it holds | How to clear |
 |-------|----------|---------------|--------------|
 | `_advice_cache` | `server.py` in-process dict | Daily readiness advice | Restart server |
 | `daily_advice` | SQLite table | Per-date advice (survives restart) | `DELETE FROM daily_advice WHERE date = '...'` |
-| `text_cache` | SQLite table | Workout descriptions, metric explainers, recovery suggestions, fuelling plans (arbitrary key) | `DELETE FROM text_cache WHERE key = '...'` |
+| `text_cache` | SQLite table | Workout descriptions, metric explainers, recovery suggestions, fuelling plans, weekly briefings (key: `weekly_briefing_v1_{monday_iso}`) | `DELETE FROM text_cache WHERE key = '...'` |
 | `activity_analyses` | SQLite table | Per-activity coach analysis | `DELETE FROM activity_analyses WHERE activity_id IN (...)` then hit `/analysis-refresh` |
 | `workout_descriptions` | SQLite table | 2-sentence coaching notes per session label | `DELETE FROM workout_descriptions WHERE label = '...'` |
 | `nutrition_targets` | SQLite table | Daily macro targets per session type+duration | `DELETE FROM nutrition_targets WHERE session_key = '...'` |
 | `fuelling_plans` | SQLite table | In-ride carb/fluid/sodium plans | `DELETE FROM fuelling_plans WHERE session_key = '...'` |
+
+## New SQLite tables (added in 9-feature release)
+
+| Table | Key columns | Purpose |
+|-------|-------------|---------|
+| `session_rpe` | `date, activity_id, rpe (1–5), note` | User-logged perceived effort per activity |
+| `ftp_tests` | `date UNIQUE, activity_id, ftp_hr, ftp_hr_max` | FTP test LTHR history; auto-populated by `refresh_analyses()` |
+| `btb_notes` | `date, day_number, fatigue_rating, note` | Back-to-back fatigue logs from calendar modal |
+
+All three use `_ensure_*_schema()` lazy-init (CREATE TABLE IF NOT EXISTS) called inside each read/write function — no migration needed on first access.
