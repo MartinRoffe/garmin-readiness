@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "garmin-readiness"
 version = "0.1.0"
-description = "Daily trading readiness score from Garmin Connect metrics"
+description = "Daily training readiness dashboard powered by Garmin Connect data and Claude AI"
 requires-python = ">=3.10"
 dependencies = [
     "garminconnect>=0.2.21",
