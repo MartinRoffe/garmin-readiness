@@ -58,6 +58,9 @@ class DailyMetrics:
     training_load_acute: Optional[float] = None   # 7-day acute load
     training_load_chronic: Optional[float] = None # 28-day chronic load (context only)
     vo2_max: Optional[float] = None               # VO2 max (ml/kg/min)
+    # Daily activity (NEAT)
+    total_steps: Optional[float] = None           # daily step count
+    active_calories: Optional[float] = None       # non-BMR calories burned
 
 
 def _safe_get(d: dict, *keys, default=None):
@@ -188,6 +191,16 @@ def fetch_metrics(api, target_date: date) -> DailyMetrics:
                 m.vo2_max = float(v) if v is not None else None
     except Exception as e:
         logger.debug("Training status fetch failed: %s", e)
+
+    # --- Daily summary (steps + active calories / NEAT) ---
+    try:
+        daily = api.get_daily_summary(date_str)
+        if isinstance(daily, dict):
+            m.total_steps = daily.get("totalSteps")
+            cals = daily.get("activeKilocalories") or daily.get("activeCalories")
+            m.active_calories = float(cals) if cals is not None else None
+    except Exception as e:
+        logger.debug("Daily summary fetch failed: %s", e)
 
     return m
 

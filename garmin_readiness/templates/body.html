@@ -164,6 +164,51 @@
 
   </div>
 
+  <!-- ── AI Body Advisor ──────────────────────────────────────────── -->
+  {% if body_analysis %}
+  <div class="card" style="padding:20px 24px;margin-bottom:16px;border-left:3px solid var(--accent)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <p class="eyebrow" style="color:var(--accent)">Coach's Analysis</p>
+      <button id="body-regen-btn" onclick="regenBodyAdvice()" style="font-family:var(--font-m);font-size:11px;letter-spacing:0.1em;color:var(--muted);background:none;border:1px solid var(--border);padding:3px 10px;cursor:pointer;border-radius:2px" title="Regenerate analysis">↺ rethink</button>
+    </div>
+    <div id="body-analysis-body">
+      {% for para in body_analysis.strip().split('\n\n') %}
+        {% if para.strip() %}
+          <p class="body-para" style="font-size:13px;color:var(--text-dim);line-height:1.75{% if not loop.last %};margin-bottom:10px{% endif %}">{{ para.strip() }}</p>
+        {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+  <script>
+    document.querySelectorAll('.body-para').forEach(p => {
+      p.innerHTML = p.innerHTML.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:500">$1</strong>');
+    });
+    async function regenBodyAdvice() {
+      const btn = document.getElementById('body-regen-btn');
+      btn.textContent = '…';
+      btn.disabled = true;
+      try {
+        const res = await fetch('/regenerate-body-advice', {method: 'POST'});
+        const data = await res.json();
+        if (data.analysis) {
+          const body = document.getElementById('body-analysis-body');
+          body.innerHTML = '';
+          data.analysis.trim().split(/\n\n+/).forEach((para, i, arr) => {
+            if (!para.trim()) return;
+            const p = document.createElement('p');
+            p.style.cssText = 'font-size:13px;color:var(--text-dim);line-height:1.75' + (i < arr.length - 1 ? ';margin-bottom:10px' : '');
+            p.innerHTML = para.trim().replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:500">$1</strong>');
+            body.appendChild(p);
+          });
+        }
+      } finally {
+        btn.textContent = '↺ rethink';
+        btn.disabled = false;
+      }
+    }
+  </script>
+  {% endif %}
+
   <!-- Charts grid -->
   <div style="display:flex;flex-direction:column;gap:16px">
 

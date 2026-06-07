@@ -812,3 +812,162 @@ def generate_sleep_analysis(data: list[dict], avgs_7: dict, avgs_30: dict) -> st
         return text
     except Exception:
         return _rule_based_sleep(data, avgs_7)
+
+
+# ── Body composition advisor ──────────────────────────────────────────────────
+
+_TENERIFE_DATE = date(2026, 8, 13)
+_CHARITY_DATE  = date(2026, 9, 13)
+
+
+def _build_body_prompt(body_rows: list[dict], latest: dict, pmc_today: dict, recent_metrics: list[dict]) -> str:
+    today = date.today()
+    weeks_to_tenerife = max(0, (_TENERIFE_DATE - today).days // 7)
+    weeks_to_charity  = max(0, (_CHARITY_DATE  - today).days // 7)
+
+    lines = [
+        f"Date: {today.isoformat()} ({today.strftime('%A')})",
+        f"Athlete profile: male, 50+, amateur endurance athlete. "
+        f"Targets: Tenerife cycling camp {_TENERIFE_DATE.strftime('%-d %b %Y')} ({weeks_to_tenerife} weeks), "
+        f"Ghent→Amsterdam charity ride {_CHARITY_DATE.strftime('%-d %b %Y')} ({weeks_to_charity} weeks). "
+        f"Training 6–8 hours/week: Zone 2 cycling, tempo intervals, kettlebell strength, rucking.",
+        "",
+    ]
+
+    # Latest readings
+    def _f(v, dp=1): return f"{v:.{dp}f}" if v is not None else "—"
+    lines += [
+        "Latest body composition readings:",
+        f"  Weight: {_f(latest.get('weight_kg'))} kg  |  Body fat: {_f(latest.get('fat_pct'))}%  |  Muscle mass: {_f(latest.get('muscle_mass_kg'))} kg",
+        f"  Bone mass: {_f(latest.get('bone_mass_kg'), 2)} kg  |  Hydration: {_f(latest.get('hydration_pct'))}%  |  Visceral fat index: {_f(latest.get('visceral_fat'), 0)}",
+        f"  BMI: {_f(latest.get('bmi'))}  |  Metabolic age: {_f(latest.get('metabolic_age'), 0)} years",
+        "",
+    ]
+
+    # Weight & fat trend — weekly snapshots
+    weight_rows = [r for r in body_rows if r.get("weight_kg") is not None]
+    fat_rows    = [r for r in body_rows if r.get("fat_pct") is not None]
+    muscle_rows = [r for r in body_rows if r.get("muscle_mass_kg") is not None]
+
+    if weight_rows:
+        # Rate of change: first half vs second half average
+        mid = len(weight_rows) // 2
+        first_avg  = sum(r["weight_kg"] for r in weight_rows[:mid]) / max(len(weight_rows[:mid]), 1)
+        second_avg = sum(r["weight_kg"] for r in weight_rows[mid:]) / max(len(weight_rows[mid:]), 1)
+        weekly_delta = (second_avg - first_avg) / max((len(weight_rows) // 2) / 7, 1)
+
+        # Project to Tenerife
+        projected = latest["weight_kg"] + weekly_delta * weeks_to_tenerife if latest.get("weight_kg") else None
+
+        lines += [
+            f"Weight trend (approx weekly rate): {weekly_delta:+.2f} kg/week  "
+            f"({'losing' if weekly_delta < 0 else 'gaining'} weight)",
+        ]
+        if projected:
+            lines.append(f"  → Projected weight at Tenerife ({_TENERIFE_DATE.strftime('%-d %b')}): {projected:.1f} kg  "
+                         f"(if current rate continues)")
+        lines.append("")
+
+    # Compact trend table (every 7th reading, up to 13 rows)
+    sampled = weight_rows[::max(1, len(weight_rows) // 13)]
+    if sampled:
+        lines.append("Body composition trend (sampled weekly, oldest → most recent):")
+        lines.append("  Date          Weight  Fat%  Muscle")
+        for r in sampled:
+            fat_s    = f"{r['fat_pct']:.1f}%" if r.get("fat_pct") is not None else "—"
+            muscle_s = f"{r['muscle_mass_kg']:.1f}" if r.get("muscle_mass_kg") is not None else "—"
+            lines.append(f"  {r['date']}    {r['weight_kg']:.1f} kg  {fat_s:>5}  {muscle_s}")
+        lines.append("")
+
+    # Training context
+    ctl = pmc_today.get("ctl")
+    atl = pmc_today.get("atl")
+    tsb = pmc_today.get("tsb")
+    if any(v is not None for v in [ctl, atl, tsb]):
+        lines += [
+            "Training load context (Garmin units):",
+            f"  CTL (fitness): {_f(ctl, 0)}  ATL (fatigue): {_f(atl, 0)}  TSB (form): {_f(tsb, 0)}",
+            "",
+        ]
+
+    # NEAT context (14-day average steps + active calories)
+    step_vals  = [r.get("total_steps")    for r in recent_metrics if r.get("total_steps")    is not None]
+    cal_vals   = [r.get("active_calories") for r in recent_metrics if r.get("active_calories") is not None]
+    if step_vals or cal_vals:
+        avg_steps = round(sum(step_vals) / len(step_vals)) if step_vals else None
+        avg_cals  = round(sum(cal_vals)  / len(cal_vals))  if cal_vals  else None
+        lines += [
+            "Non-exercise activity (14-day average):",
+            f"  Daily steps: {avg_steps:,}" if avg_steps else "  Daily steps: —",
+            f"  Active calories: {avg_cals} kcal/day" if avg_cals else "  Active calories: —",
+            "",
+        ]
+
+    lines += [
+        "Please provide a concise body composition analysis covering:",
+        "1. Weight trajectory — at current rate, what weight will the athlete reach by Tenerife (13 Aug)?",
+        "   How significant is that for W/kg (watts per kilogram) on mountain climbs?",
+        "2. Body composition quality — is weight change driven by fat loss, muscle loss, or both?",
+        "   Flag if muscle mass is declining (suggests need for more protein / strength work).",
+        "3. One encouraging finding or specific concern from the data (visceral fat, hydration, metabolic age, BP trend).",
+        "4. One actionable recommendation for the next 4 weeks given the athlete's training load and event timeline.",
+        "",
+        "Keep it under 180 words. Short paragraphs, no headers or bullets. Address the athlete as 'you'.",
+        "Reference actual numbers from the data.",
+    ]
+    return "\n".join(lines)
+
+
+def _rule_based_body(latest: dict) -> str:
+    if not latest:
+        return "No body composition data yet — sync your Withings scale to start tracking."
+    parts = []
+    w = latest.get("weight_kg")
+    vf = latest.get("visceral_fat")
+    bmi = latest.get("bmi")
+    if w:
+        parts.append(f"Current weight: {w:.1f} kg.")
+    if vf is not None:
+        if vf >= 13:
+            parts.append(f"Visceral fat index is {vf:.0f} — above the healthy threshold of 13. Reducing this is a priority.")
+        else:
+            parts.append(f"Visceral fat index is {vf:.0f} — within the healthy range.")
+    if bmi:
+        parts.append(f"BMI: {bmi:.1f}.")
+    parts.append("Sync more data and add an Anthropic API key for detailed AI analysis.")
+    return " ".join(parts)
+
+
+def generate_body_analysis(body_rows: list[dict], latest: dict, pmc_today: dict, recent_metrics: list[dict]) -> str:
+    """Return a Sonnet coaching commentary on body composition + trajectory. Cached daily."""
+    if not latest or not body_rows:
+        return ""
+
+    cache_key = f"body_analysis_v1_{date.today().isoformat()}"
+    cached = get_cached_text(cache_key)
+    if cached:
+        return cached
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return _rule_based_body(latest)
+
+    prompt = _build_body_prompt(body_rows, latest, pmc_today, recent_metrics)
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=450,
+            system=(
+                "You are an experienced endurance coach and sports nutritionist reviewing an athlete's "
+                "90-day body composition data alongside their training load. "
+                "Be direct, specific, and reference actual numbers from the data. "
+                "No bullet points or markdown headers — short paragraphs only. Address the athlete as 'you'."
+            ),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = msg.content[0].text
+        set_cached_text(cache_key, text)
+        return text
+    except Exception:
+        return _rule_based_body(latest)

@@ -28,7 +28,7 @@ from .hr_plan import (HR_PHASES, HR_PLAN_START, HR_TRAINING_WEEKS,
                       build_hr_calendar_weeks, build_hr_event_weeks,
                       HR_EVENT_START, HR_EVENT_END)
 from .mersea_routes import MERSEA_TARGET_DATE
-from .report import generate_advice, generate_dashboard_explainer, generate_pmc_analysis, generate_pmc_explainer, generate_sleep_analysis
+from .report import generate_advice, generate_body_analysis, generate_dashboard_explainer, generate_pmc_analysis, generate_pmc_explainer, generate_sleep_analysis
 from .body import bp_classification, fetch_body_composition, fetch_blood_pressure
 from .history import (
     ACTIVITY_MATCH,
@@ -62,6 +62,7 @@ from .history import (
     sleep_history,
     z_score,
     get_cached_text,
+    set_cached_text,
 )
 from .metrics import DailyMetrics, available_count, fetch_metrics, fetch_activities, TEXT_FIELDS
 
@@ -1310,7 +1311,7 @@ def _week_summary() -> Optional[dict]:
 
 
 def _body_context() -> dict[str, Any]:
-    body_rows = load_body_metrics(days=90)
+    body_rows = load_body_metrics(days=180)
     bp_rows = load_blood_pressure(days=90)
 
     # Latest body metrics
@@ -1366,6 +1367,10 @@ def _body_context() -> dict[str, Any]:
                 out.append(s)
         return out
 
+    pmc_today = pmc_history(days=1)[-1] if pmc_history(days=1) else {}
+    recent_metrics = raw_history(14)
+    body_analysis = generate_body_analysis(body_rows, latest_body or {}, pmc_today, recent_metrics)
+
     return {
         "latest_body": latest_body,
         "latest_bp": latest_bp,
@@ -1384,6 +1389,7 @@ def _body_context() -> dict[str, Any]:
         "bp_dia": bp_dia,
         "has_body": bool(body_rows),
         "has_bp": bool(bp_rows),
+        "body_analysis": body_analysis,
     }
 
 
@@ -2008,6 +2014,13 @@ async def regenerate_advice_endpoint():
     delete_advice(today)
     ctx = _build_context(today, force_fetch=True)
     return JSONResponse({"advice": ctx["advice"]})
+
+
+@app.post("/regenerate-body-advice")
+async def regenerate_body_advice_endpoint():
+    set_cached_text(f"body_analysis_v1_{_today().isoformat()}", "")
+    ctx = _body_context()
+    return JSONResponse({"analysis": ctx["body_analysis"]})
 
 
 @app.get("/coach-memory")

@@ -31,7 +31,7 @@ NUMERIC_FIELDS = [
 
 # Don't score these — context/baselines or timestamp fields, not daily readiness signals
 _UNSCORED = {
-    "training_load_chronic", "vo2_max",
+    "training_load_chronic", "vo2_max", "total_steps", "active_calories",
     # timestamps — large absolute values destroy z-score baseline
     "sleep_start_ts", "sleep_end_ts",
     # sleep detail — sleep_score already summarises these for the composite
@@ -44,7 +44,7 @@ SCORED_FIELDS = [f for f in NUMERIC_FIELDS if f not in _UNSCORED]
 
 HIGHER_IS_BETTER = {
     "sleep_score", "sleep_seconds", "hrv_last_night", "hrv_weekly_avg",
-    "body_battery_morning",
+    "body_battery_morning", "total_steps", "active_calories",
 }
 LOWER_IS_BETTER = {
     "avg_stress", "rest_stress", "acwr", "training_load_acute",
