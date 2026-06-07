@@ -527,6 +527,20 @@ def refresh_analyses(api: Any, days: int = 14) -> None:
             detail = fetch_activity_detail(api, act_id, activity=act, session_label=session_label)
             text = generate_analysis(act, detail, companion=companion)
             save_detail(act_id, detail, text)
+            # Auto-populate FTP trend table for FTP test sessions
+            if session_label in _FTP_SESSION_LABELS and detail.get("ftp_effort_avg_hr"):
+                try:
+                    from .history import save_ftp_test, load_ftp_tests
+                    d_obj = date.fromisoformat(act_date) if act_date else None
+                    if d_obj and not any(t["date"] == d_obj.isoformat() for t in load_ftp_tests()):
+                        save_ftp_test(
+                            d_obj.isoformat(), act_id,
+                            int(detail["ftp_effort_avg_hr"]),
+                            int(detail["ftp_effort_max_hr"]) if detail.get("ftp_effort_max_hr") else None,
+                            None,
+                        )
+                except Exception:
+                    pass
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("analysis failed for %s: %s", act_id, exc)

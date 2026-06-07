@@ -219,7 +219,7 @@
                 <p class="text-[12px] opacity-70 mt-auto">{{ day.dur_fmt }}</p>
               {% endif %}
             {% else %}
-              <p class="text-[12px] font-semibold leading-tight flex-1">{{ day.label }}</p>
+              <p class="text-[12px] font-semibold leading-tight flex-1">{{ day.label }}{% if day.interference %}&nbsp;<span title="{{ day.interference_note }}" style="font-size:10px;background:#92400e;color:#fcd34d;padding:1px 4px;border-radius:3px;vertical-align:middle">⚠</span>{% endif %}</p>
               <div class="flex items-center justify-between mt-auto gap-1">
                 {% if day.dur_fmt %}<p class="text-[12px] opacity-80">{{ day.dur_fmt }}</p>{% endif %}
               </div>
@@ -317,6 +317,64 @@
     </div>{# end week row grid #}
 
     {% endfor %}{# end unified_weeks loop #}
+
+  <!-- ── Back-to-Back Session Log ─────────────────────────────────────────────── -->
+  {% if btb_pairs or btb_log_available %}
+  <div style="margin-top:28px;background:#111114;border:1px solid #27272a;border-radius:2px;padding:20px 24px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div>
+        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#a1a1aa;margin-bottom:4px">Back-to-Back Session Log</p>
+        <p style="font-family:'DM Mono',monospace;font-size:12px;color:#71717a">Consecutive cycling days — track fatigue accumulation</p>
+      </div>
+      {% if btb_log_available %}
+      <button onclick="openBtbModal()" style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;color:#a3e635;background:none;border:1px solid rgba(163,230,53,0.35);padding:6px 14px;cursor:pointer;border-radius:2px;transition:border-color 0.15s"
+              onmouseover="this.style.borderColor='rgba(163,230,53,0.7)'" onmouseout="this.style.borderColor='rgba(163,230,53,0.35)'">+ Log fatigue</button>
+      {% endif %}
+    </div>
+    {% if btb_pairs %}
+    <table style="width:100%;border-collapse:collapse;font-family:'DM Mono',monospace;font-size:12px">
+      <thead>
+        <tr style="color:#71717a;text-align:left;border-bottom:1px solid #27272a">
+          <th style="padding:6px 0;font-weight:500">Day 1</th>
+          <th style="padding:6px 8px;font-weight:500">Day 2</th>
+          <th style="padding:6px 8px;font-weight:500;text-align:right">Avg HR</th>
+          <th style="padding:6px 8px;font-weight:500;text-align:right">Duration</th>
+          <th style="padding:6px 8px;font-weight:500;text-align:center">Fatigue D1</th>
+          <th style="padding:6px 8px;font-weight:500;text-align:center">Fatigue D2</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for pair in btb_pairs %}
+        <tr style="border-bottom:1px solid #18181b;color:#a1a1aa">
+          <td style="padding:8px 0">{{ pair.date1 }}</td>
+          <td style="padding:8px">{{ pair.date2 }}</td>
+          <td style="padding:8px;text-align:right">
+            {% if pair.avg_hr_1 %}{{ pair.avg_hr_1 | int }}{% else %}—{% endif %}
+            / {% if pair.avg_hr_2 %}{{ pair.avg_hr_2 | int }}{% else %}—{% endif %} bpm
+          </td>
+          <td style="padding:8px;text-align:right">
+            {% if pair.dur_min_1 %}{{ (pair.dur_min_1 / 60) | round(1) }}h{% else %}—{% endif %}
+            / {% if pair.dur_min_2 %}{{ (pair.dur_min_2 / 60) | round(1) }}h{% else %}—{% endif %}
+          </td>
+          <td style="padding:8px;text-align:center">
+            {% if pair.fatigue_rating_1 %}
+              <span style="color:{% if pair.fatigue_rating_1 >= 4 %}#f87171{% elif pair.fatigue_rating_1 >= 3 %}#fbbf24{% else %}#a3e635{% endif %}">{{ pair.fatigue_rating_1 }}/5</span>
+            {% else %}—{% endif %}
+          </td>
+          <td style="padding:8px;text-align:center">
+            {% if pair.fatigue_rating_2 %}
+              <span style="color:{% if pair.fatigue_rating_2 >= 4 %}#f87171{% elif pair.fatigue_rating_2 >= 3 %}#fbbf24{% else %}#a3e635{% endif %}">{{ pair.fatigue_rating_2 }}/5</span>
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p style="font-family:'DM Mono',monospace;font-size:12px;color:#52525b;text-align:center;padding:20px 0">No back-to-back pairs logged yet</p>
+    {% endif %}
+  </div>
+  {% endif %}
 
   </div>
 
@@ -695,6 +753,76 @@
       const overlay = document.getElementById('recovery-overlay');
       overlay.classList.add('hidden');
       overlay.classList.remove('flex');
+    }
+  </script>
+
+  <!-- ── BTB log modal ──────────────────────────────────────────────────────── -->
+  <div id="btb-overlay"
+       class="fixed inset-0 bg-black/75 backdrop-blur-sm z-40 hidden flex items-center justify-center p-4"
+       onclick="if(event.target===this) closeBtbModal()">
+    <div style="background:#111114;border:1px solid #27272a;border-radius:2px;width:100%;max-width:380px;box-shadow:0 24px 64px rgba(0,0,0,0.7);z-index:50;overflow:hidden">
+      <div style="padding:20px 24px 16px;border-bottom:1px solid #18181b">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#a3e635">Log Fatigue</p>
+          <button onclick="closeBtbModal()" style="background:none;border:none;cursor:pointer;font-family:'DM Mono',monospace;font-size:14px;color:#71717a;line-height:1"
+                  onmouseover="this.style.color='#fafafa'" onmouseout="this.style.color='#71717a'">✕</button>
+        </div>
+      </div>
+      <div style="padding:20px 24px">
+        <p style="font-family:'DM Mono',monospace;font-size:12px;color:#71717a;margin-bottom:16px">How do your legs feel after the back-to-back?</p>
+        <div style="display:flex;gap:8px;margin-bottom:16px" id="btb-rating-btns">
+          {% for i in range(1, 6) %}
+          <button onclick="selectBtbRating({{ i }})" id="btb-r{{ i }}"
+                  style="flex:1;padding:8px 4px;font-family:'DM Mono',monospace;font-size:12px;border:1px solid #27272a;border-radius:2px;cursor:pointer;background:#18181b;color:#a1a1aa;transition:all 0.15s">
+            {{ i }}<br><span style="font-size:10px">{{ ['Fresh','OK','Tired','Heavy','Dead'][i-1] }}</span>
+          </button>
+          {% endfor %}
+        </div>
+        <textarea id="btb-note" placeholder="Optional note…" rows="2"
+                  style="width:100%;background:#18181b;border:1px solid #27272a;border-radius:2px;padding:8px 10px;font-family:'DM Mono',monospace;font-size:12px;color:#a1a1aa;resize:none;box-sizing:border-box;margin-bottom:12px"></textarea>
+        <button onclick="submitBtbLog()"
+                style="width:100%;padding:10px;font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;background:rgba(163,230,53,0.12);border:1px solid rgba(163,230,53,0.35);color:#a3e635;cursor:pointer;border-radius:2px">
+          Save
+        </button>
+        <p id="btb-feedback" style="font-family:'DM Mono',monospace;font-size:11px;color:#a3e635;text-align:center;margin-top:8px;display:none">Saved ✓</p>
+      </div>
+    </div>
+  </div>
+  <script>
+    let _btbRating = null;
+    function openBtbModal() {
+      _btbRating = null;
+      document.querySelectorAll('#btb-rating-btns button').forEach(b => {
+        b.style.background = '#18181b'; b.style.color = '#a1a1aa'; b.style.borderColor = '#27272a';
+      });
+      document.getElementById('btb-note').value = '';
+      document.getElementById('btb-feedback').style.display = 'none';
+      const overlay = document.getElementById('btb-overlay');
+      overlay.classList.remove('hidden'); overlay.classList.add('flex');
+    }
+    function closeBtbModal() {
+      const overlay = document.getElementById('btb-overlay');
+      overlay.classList.add('hidden'); overlay.classList.remove('flex');
+    }
+    function selectBtbRating(r) {
+      _btbRating = r;
+      document.querySelectorAll('#btb-rating-btns button').forEach((b, i) => {
+        const active = i + 1 === r;
+        b.style.background = active ? 'rgba(163,230,53,0.12)' : '#18181b';
+        b.style.color = active ? '#a3e635' : '#a1a1aa';
+        b.style.borderColor = active ? 'rgba(163,230,53,0.5)' : '#27272a';
+      });
+    }
+    async function submitBtbLog() {
+      const note = document.getElementById('btb-note').value.trim();
+      const today = new Date().toISOString().slice(0,10);
+      await fetch('/log-btb', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({date: today, day_number: 2, fatigue_rating: _btbRating, note: note || null})
+      });
+      document.getElementById('btb-feedback').style.display = 'block';
+      setTimeout(closeBtbModal, 1200);
     }
   </script>
 

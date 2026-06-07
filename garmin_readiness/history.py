@@ -709,6 +709,188 @@ def _ensure_coach_memory_schema(con: sqlite3.Connection) -> None:
     """)
 
 
+def _ensure_rpe_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS session_rpe (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            activity_id INTEGER,
+            rpe INTEGER NOT NULL,
+            note TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def save_session_rpe(activity_date: str, activity_id: Optional[int], rpe: int, note: Optional[str] = None) -> None:
+    with _conn() as con:
+        _ensure_rpe_schema(con)
+        if activity_id is not None:
+            con.execute(
+                "INSERT OR REPLACE INTO session_rpe (date, activity_id, rpe, note) VALUES (?,?,?,?)",
+                (activity_date, activity_id, rpe, note),
+            )
+        else:
+            con.execute("DELETE FROM session_rpe WHERE date = ? AND activity_id IS NULL", (activity_date,))
+            con.execute(
+                "INSERT INTO session_rpe (date, activity_id, rpe, note) VALUES (?,?,?,?)",
+                (activity_date, None, rpe, note),
+            )
+
+
+def load_session_rpe(days: int = 14) -> list[dict]:
+    start = (date.today() - timedelta(days=days - 1)).isoformat()
+    with _conn() as con:
+        _ensure_rpe_schema(con)
+        rows = con.execute(
+            "SELECT * FROM session_rpe WHERE date >= ? ORDER BY date DESC, created_at DESC",
+            (start,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _ensure_ftp_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS ftp_tests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL UNIQUE,
+            activity_id INTEGER,
+            ftp_hr INTEGER,
+            ftp_hr_max INTEGER,
+            note TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def save_ftp_test(test_date: str, activity_id: Optional[int], ftp_hr: Optional[int],
+                  ftp_hr_max: Optional[int], note: Optional[str] = None) -> None:
+    with _conn() as con:
+        _ensure_ftp_schema(con)
+        con.execute(
+            "INSERT OR IGNORE INTO ftp_tests (date, activity_id, ftp_hr, ftp_hr_max, note) VALUES (?,?,?,?,?)",
+            (test_date, activity_id, ftp_hr, ftp_hr_max, note),
+        )
+
+
+def load_ftp_tests() -> list[dict]:
+    with _conn() as con:
+        _ensure_ftp_schema(con)
+        rows = con.execute("SELECT * FROM ftp_tests ORDER BY date ASC").fetchall()
+    return [dict(r) for r in rows]
+
+
+def intensity_distribution_by_week(start: date, end: date) -> list[dict]:
+    """Aggregate HR zone distribution per ISO week across all cycling activities in [start, end]."""
+    placeholders = ",".join("?" * len(_ZONE_BIKE_KEYS))
+    with _conn() as con:
+        _ensure_activities_schema(con)
+        rows = con.execute(
+            f"""SELECT strftime('%Y-W%W', date) AS week_label,
+                       SUM(hr_zone_1_sec) AS z1, SUM(hr_zone_2_sec) AS z2,
+                       SUM(hr_zone_3_sec) AS z3, SUM(hr_zone_4_sec) AS z4,
+                       SUM(hr_zone_5_sec) AS z5, COUNT(*) AS activity_count
+                FROM activities
+                WHERE date >= ? AND date <= ? AND type_key IN ({placeholders})
+                GROUP BY week_label
+                ORDER BY week_label ASC""",
+            (start.isoformat(), end.isoformat(), *_ZONE_BIKE_KEYS),
+        ).fetchall()
+
+    result = []
+    for row in rows:
+        z = [row[f"z{i}"] or 0.0 for i in range(1, 6)]
+        total = sum(z)
+        if total == 0:
+            continue
+        result.append({
+            "week_label": row["week_label"],
+            "z1_pct": round(z[0] / total * 100, 1),
+            "z2_pct": round(z[1] / total * 100, 1),
+            "z3_pct": round(z[2] / total * 100, 1),
+            "z4_pct": round(z[3] / total * 100, 1),
+            "z5_pct": round(z[4] / total * 100, 1),
+            "total_min": round(total / 60),
+            "activity_count": row["activity_count"],
+            "z1_sec": z[0], "z2_sec": z[1], "z3_sec": z[2], "z4_sec": z[3], "z5_sec": z[4],
+        })
+    return result
+
+
+def _ensure_btb_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS btb_notes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            day_number INTEGER NOT NULL,
+            fatigue_rating INTEGER,
+            note TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def save_btb_note(btb_date: str, day_number: int, fatigue_rating: Optional[int], note: Optional[str] = None) -> None:
+    with _conn() as con:
+        _ensure_btb_schema(con)
+        con.execute("DELETE FROM btb_notes WHERE date = ?", (btb_date,))
+        con.execute(
+            "INSERT INTO btb_notes (date, day_number, fatigue_rating, note) VALUES (?,?,?,?)",
+            (btb_date, day_number, fatigue_rating, note),
+        )
+
+
+_BTB_BIKE_KEYS = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
+
+
+def load_btb_summary() -> list[dict]:
+    """Find consecutive cycling day pairs and return them with fatigue notes."""
+    with _conn() as con:
+        _ensure_activities_schema(con)
+        _ensure_btb_schema(con)
+        placeholders = ",".join("?" * len(_BTB_BIKE_KEYS))
+        rows = con.execute(
+            f"""SELECT date, AVG(avg_hr) AS avg_hr, SUM(duration_seconds) AS total_secs
+                FROM activities
+                WHERE type_key IN ({placeholders})
+                GROUP BY date
+                ORDER BY date DESC""",
+            (*_BTB_BIKE_KEYS,),
+        ).fetchall()
+        btb_notes_rows = con.execute("SELECT * FROM btb_notes ORDER BY date").fetchall()
+
+    btb_notes = {r["date"]: dict(r) for r in btb_notes_rows}
+    cycling_dates = [dict(r) for r in rows]  # newest first
+
+    pairs = []
+    for i in range(len(cycling_dates) - 1):
+        day2 = cycling_dates[i]
+        day1 = cycling_dates[i + 1]
+        # Check they are consecutive calendar days
+        try:
+            d2 = date.fromisoformat(day2["date"])
+            d1 = date.fromisoformat(day1["date"])
+            if (d2 - d1).days != 1:
+                continue
+        except Exception:
+            continue
+        n1 = btb_notes.get(day1["date"], {})
+        n2 = btb_notes.get(day2["date"], {})
+        pairs.append({
+            "date1": day1["date"],
+            "date2": day2["date"],
+            "avg_hr_1": round(day1["avg_hr"]) if day1["avg_hr"] else None,
+            "avg_hr_2": round(day2["avg_hr"]) if day2["avg_hr"] else None,
+            "dur_min_1": round((day1["total_secs"] or 0) / 60),
+            "dur_min_2": round((day2["total_secs"] or 0) / 60),
+            "fatigue_rating_1": n1.get("fatigue_rating"),
+            "fatigue_rating_2": n2.get("fatigue_rating"),
+            "note_1": n1.get("note"),
+            "note_2": n2.get("note"),
+        })
+    return pairs[:10]
+
+
 def get_coach_memory() -> Optional[dict]:
     with _conn() as con:
         _ensure_coach_memory_schema(con)

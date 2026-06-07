@@ -99,7 +99,7 @@
 
   <div style="display:flex;flex-direction:column;gap:10px">
   {% for a in activities %}
-  <div class="card" style="padding:24px">
+  <div class="card" style="padding:24px" data-activity-id="{{ a.activity_id }}" data-activity-date="{{ a.date }}" id="card-{{ a.activity_id }}">
 
     <!-- Activity header -->
     <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:18px;flex-wrap:wrap">
@@ -306,6 +306,24 @@
     </div>
     {% endif %}
 
+    <!-- RPE widget -->
+    {% set saved_rpe = rpe_by_activity.get(a.activity_id | string, {}).get('rpe') %}
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px">
+      <p class="eyebrow" style="margin-bottom:8px">Session Feel</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap" data-rpe-container="{{ a.activity_id }}">
+        {% for rpe_val, rpe_emoji in [(1,'😴'),(2,'😊'),(3,'😤'),(4,'🔥'),(5,'💀')] %}
+        <button
+          onclick="logRpe({{ a.activity_id }}, '{{ a.date }}', {{ rpe_val }})"
+          data-rpe="{{ rpe_val }}"
+          style="font-size:18px;padding:4px 10px;border-radius:4px;border:1px solid {% if saved_rpe == rpe_val %}var(--accent){% else %}var(--border){% endif %};background:{% if saved_rpe == rpe_val %}rgba(163,230,53,0.12){% else %}var(--surface2){% endif %};cursor:pointer;transition:all 0.15s"
+          title="RPE {{ rpe_val }}">{{ rpe_emoji }}</button>
+        {% endfor %}
+        {% if saved_rpe %}
+        <span style="font-family:var(--font-m);font-size:11px;color:var(--muted);align-self:center;margin-left:4px">RPE {{ saved_rpe }}/5 saved</span>
+        {% endif %}
+      </div>
+    </div>
+
   </div>
   {% endfor %}
   </div>
@@ -318,6 +336,30 @@
   document.querySelectorAll('.analysis-para').forEach(p => {
     p.innerHTML = p.innerHTML.replace(/\*\*(.+?)\*\*/g, '<strong style="color:var(--text);font-weight:500">$1</strong>');
   });
+
+  function logRpe(activityId, actDate, rpeVal) {
+    const container = document.querySelector('[data-rpe-container="' + activityId + '"]');
+    fetch('/log-rpe', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({date: actDate, activity_id: activityId, rpe: rpeVal})
+    }).then(r => r.json()).then(() => {
+      if (!container) return;
+      container.querySelectorAll('button[data-rpe]').forEach(btn => {
+        const v = parseInt(btn.getAttribute('data-rpe'));
+        btn.style.border = v === rpeVal ? '1px solid var(--accent)' : '1px solid var(--border)';
+        btn.style.background = v === rpeVal ? 'rgba(163,230,53,0.12)' : 'var(--surface2)';
+      });
+      let note = container.querySelector('.rpe-saved-note');
+      if (!note) {
+        note = document.createElement('span');
+        note.className = 'rpe-saved-note';
+        note.style.cssText = 'font-family:var(--font-m);font-size:11px;color:var(--muted);align-self:center;margin-left:4px';
+        container.appendChild(note);
+      }
+      note.textContent = 'RPE ' + rpeVal + '/5 saved';
+    });
+  }
 </script>
 </body>
 </html>

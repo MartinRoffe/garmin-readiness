@@ -17,6 +17,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
 from pydantic import BaseModel
 
+from .alerts import check_fatigue_alerts
 from .analysis import generate_recovery_suggestion, load_analyses_for_activities, prefetch_fuelling_plans, prefetch_nutrition_targets, prefetch_workout_descriptions, refresh_analyses, retrieve_relevant_analyses
 from .client import get_api
 from .display import FIELD_LABELS, fmt_value, readiness_label, enrich_activity
@@ -40,14 +41,20 @@ from .history import (
     get_coach_memory,
     get_plan_override,
     history_for_chart,
+    intensity_distribution_by_week,
     list_plan_overrides,
     load,
     load_activities_by_date,
     load_body_metrics,
     load_blood_pressure,
+    load_btb_summary,
     load_coach_history,
+    load_ftp_tests,
     load_recent_activities,
+    load_session_rpe,
     pmc_history,
+    save_btb_note,
+    save_session_rpe,
     vo2_history,
     zone_distribution,
     raw_history,
@@ -74,6 +81,11 @@ _pmc_cache: dict[str, str] = {}
 _BIKE_TYPE_KEYS = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
 _HARD_LABELS = {"Tempo Intervals", "FTP Test", "FTP Re-test"}
 _HARD_SESSION_TYPES = {"tempo", "ftp", "long"}
+
+QUALITY_BIKE_LABELS = {
+    "Tempo Intervals", "Hill Repeats", "Sweetspot Ride", "Over-Unders",
+    "Threshold Ride", "FTP Test", "FTP Re-test", "Final FTP Test",
+}
 
 def _week_completion() -> dict[str, Any]:
     """Return week completion stats for the dashboard card."""
@@ -408,6 +420,28 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
     else:
         event_tracker = None
 
+    # Fatigue alerts
+    fatigue_alerts = check_fatigue_alerts(target)
+
+    # Weekly briefing (Monday only)
+    weekly_briefing: Optional[str] = None
+    is_monday = target.weekday() == 0
+    if is_monday:
+        week_sessions = []
+        for i in range(7):
+            d = target + timedelta(days=i)
+            sess = session_for_date(d)
+            if sess and sess[0] != "rest":
+                day_name = d.strftime("%a")
+                week_sessions.append((day_name, sess[0], sess[1], sess[2]))
+        _pmc1 = pmc_history(days=1)
+        _pmc_today = _pmc1[-1] if _pmc1 else {}
+        try:
+            from .report import generate_weekly_briefing
+            weekly_briefing = generate_weekly_briefing(week_sessions, _pmc_today, comp_z)
+        except Exception:
+            pass
+
     return {
         "date": date_key,
         "date_long": target.strftime("%A, %-d %B %Y"),
@@ -430,6 +464,9 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
         "today_plan": today_plan,
         "swap_suggestion": swap_suggestion,
         "event_tracker": event_tracker,
+        "fatigue_alerts": fatigue_alerts,
+        "weekly_briefing": weekly_briefing,
+        "is_monday": is_monday,
     }
 
 
@@ -562,14 +599,41 @@ async def analysis_view(request: Request):
         [enrich_activity(a) for a in activities_raw]
     )
     activities = _merge_compound_activities(activities)
+    rpe_rows = load_session_rpe(30)
+    rpe_by_activity = {str(r["activity_id"]): r for r in rpe_rows if r.get("activity_id") is not None}
     return TEMPLATES.TemplateResponse(
         request=request,
         name="analysis.html",
         context={
             "activities": activities,
             "zone_dist": zone_distribution(days=7),
+            "rpe_by_activity": rpe_by_activity,
         },
     )
+
+
+@app.post("/log-rpe")
+async def log_rpe_endpoint(request: Request, _=Depends(_require_auth)):
+    body = await request.json()
+    save_session_rpe(body["date"], body.get("activity_id"), body["rpe"], body.get("note"))
+    return JSONResponse({"ok": True})
+
+
+@app.get("/api/ftp-tests")
+async def api_ftp_tests(_=Depends(_require_auth)):
+    return JSONResponse(load_ftp_tests())
+
+
+@app.post("/log-btb")
+async def log_btb_endpoint(request: Request, _=Depends(_require_auth)):
+    body = await request.json()
+    save_btb_note(body["date"], body.get("day_number", 1), body.get("fatigue_rating"), body.get("note"))
+    return JSONResponse({"ok": True})
+
+
+@app.get("/btb-summary")
+async def btb_summary_view(_=Depends(_require_auth)):
+    return JSONResponse(load_btb_summary())
 
 
 @app.get("/analysis-refresh", response_class=RedirectResponse)
@@ -650,6 +714,35 @@ async def performance_view(request: Request):
                 "colour": colour,
             })
 
+    # Z2 cardiac drift trend: server-side regression on easy rides only
+    easy_points = [p for p in z2_points if not p.get("hard")]
+    z2_trend_line: list[dict] = []
+    z2_drift_annotation: Optional[str] = None
+    if len(easy_points) >= 3:
+        n = len(easy_points)
+        xs = list(range(n))
+        ys = [p["avg_hr"] for p in easy_points]
+        sx, sy = sum(xs), sum(ys)
+        sxy = sum(x * y for x, y in zip(xs, ys))
+        sx2 = sum(x * x for x in xs)
+        denom = n * sx2 - sx * sx
+        if denom:
+            slope = (n * sxy - sx * sy) / denom
+            intercept = (sy - slope * sx) / n
+            z2_trend_line = [
+                {"date": easy_points[0]["date"], "hr": round(intercept, 1)},
+                {"date": easy_points[-1]["date"], "hr": round(slope * (n - 1) + intercept, 1)},
+            ]
+            drop = round(intercept - (slope * (n - 1) + intercept), 1)
+            if slope < 0:
+                z2_drift_annotation = f"−{abs(drop):.1f} bpm since {easy_points[0]['date']}"
+            else:
+                z2_drift_annotation = "No improvement yet"
+
+    # Intensity distribution by week
+    zone_dist_by_week = intensity_distribution_by_week(_PLAN_START, date.today())
+    zone_dist_block = _block_zone_totals(zone_dist_by_week)
+
     return TEMPLATES.TemplateResponse(
         request=request,
         name="performance.html",
@@ -659,6 +752,8 @@ async def performance_view(request: Request):
             "pmc_analysis": _pmc_cache[date_key],
             "pmc_explainer": generate_pmc_explainer(),
             "z2_points": z2_points,
+            "z2_trend_line": z2_trend_line,
+            "z2_drift_annotation": z2_drift_annotation,
             "proj_data": proj_data,
             "event_ctl": event_ctl,
             "load_chart_data": load_chart_data,
@@ -667,6 +762,8 @@ async def performance_view(request: Request):
             "camp_end_label":   date(2026, 8, 27).strftime("%-d %b"),
             "event_prep_label": date(2026, 8, 31).strftime("%-d %b"),
             "vo2_history": vo2_history(days=90),
+            "zone_dist_by_week": zone_dist_by_week,
+            "zone_dist_block": zone_dist_block,
         },
     )
 
@@ -728,19 +825,21 @@ def _session_for_projection(d) -> tuple[str, str, int] | None:
 
 
 def _ctl_projection(current_ctl: float, current_atl: float) -> tuple[list[dict], float]:
-    """Project CTL from today to event day using all plan sessions including Tenerife camp.
+    """Project CTL/ATL/TSB from today to event day using all plan sessions including Tenerife camp.
 
     Uses additive deltas calibrated against observed week-1 data rather than
     the standard Coggan EMA, because Garmin's CTL units don't follow the
     standard TSS-based scale. A soft ceiling (diminishing returns above CTL 300)
     prevents runaway growth.
     """
+    import math as _math
     today = date.today()
     days_ahead = (_PLAN_EVENT_DATE - today).days
     if days_ahead <= 0:
         return [], round(current_ctl, 1)
 
     ctl = current_ctl
+    atl = current_atl
     result = []
     for i in range(1, days_ahead + 1):
         d = today + timedelta(days=i)
@@ -750,14 +849,38 @@ def _ctl_projection(current_ctl: float, current_atl: float) -> tuple[list[dict],
             rate = _CTL_PER_MIN.get(stype, 0.35)
             ceiling = (300 / max(ctl, 300)) ** 2
             delta = rate * (dur_min or 0) * ceiling
+            atl_delta = rate * (dur_min or 0)
+            atl = max(0.0, atl * _math.exp(-1 / 7) + atl_delta)
         else:
             delta = _CTL_REST_DECLINE
+            atl = max(0.0, atl * _math.exp(-1 / 7))
         ctl = max(0.0, ctl + delta)
+        tsb = round(ctl - atl, 1)
         result.append({
             "label": d.strftime("%-d %b"),
             "ctl":   round(ctl, 1),
+            "atl":   round(atl, 1),
+            "tsb":   tsb,
         })
     return result, round(result[-1]["ctl"], 1) if result else round(current_ctl, 1)
+
+
+def _block_zone_totals(weeks: list[dict]) -> dict:
+    """Aggregate zone distribution across all weeks to block-level percentages."""
+    totals = [0.0] * 5
+    for w in weeks:
+        for i in range(1, 6):
+            totals[i - 1] += w.get(f"z{i}_sec", 0.0)
+    total = sum(totals)
+    if total == 0:
+        return {}
+    return {
+        "z1_pct": round(totals[0] / total * 100, 1),
+        "z2_pct": round(totals[1] / total * 100, 1),
+        "z3_pct": round(totals[2] / total * 100, 1),
+        "z4_pct": round(totals[3] / total * 100, 1),
+        "z5_pct": round(totals[4] / total * 100, 1),
+    }
 
 
 _BIKE_TYPES = {"bike", "tempo", "ftp", "long"}
@@ -938,6 +1061,29 @@ async def calendar_view(request: Request):
         else:
             break
     ctx["current_streak"] = current_streak
+
+    # Interference flags: quality bike session within 24h of strength
+    _STRENGTH_KEYS = {"strength_training", "stair_climbing"}
+    for week in ctx["weeks"]:
+        for day in week["days"]:
+            if day["label"] not in QUALITY_BIKE_LABELS:
+                continue
+            date_str = day["date"].isoformat()
+            prev_date_str = (day["date"] - timedelta(days=1)).isoformat()
+            same_day_acts = acts_by_date.get(date_str, [])
+            prev_day_acts = acts_by_date.get(prev_date_str, [])
+            if any(a["type_key"] in _STRENGTH_KEYS for a in same_day_acts + prev_day_acts):
+                day["interference"] = True
+                day["interference_note"] = "Strength logged within 24h of quality bike session"
+
+    # Back-to-back consecutive cycling day pairs
+    btb_pairs = load_btb_summary()
+    yesterday = (today - timedelta(days=1)).isoformat()
+    btb_log_available = bool(acts_by_date.get(yesterday)) and any(
+        a["type_key"] in _BIKE_TYPE_KEYS for a in acts_by_date.get(yesterday, [])
+    )
+    ctx["btb_pairs"] = btb_pairs
+    ctx["btb_log_available"] = btb_log_available
 
     # Build single unified weeks list (plan → camp → event prep) with phase tags.
     # Plan weeks are reused after completion tracking, so their day dicts already have
@@ -1700,6 +1846,33 @@ def _build_coach_context() -> str:
             body_parts += ["", "Coach's body composition analysis (from Body tab):", cached_body]
         body_parts.append("")
 
+    # Recent RPE logs
+    rpe_rows = load_session_rpe(7)
+    rpe_parts: list[str] = []
+    if rpe_rows:
+        rpe_parts = ["## Recent RPE Logs (last 7 days)"]
+        for r in rpe_rows:
+            rpe_str = f"RPE {r['rpe']}/5"
+            note_str = f" — {r['note']}" if r.get("note") else ""
+            rpe_parts.append(f"  {r['date']}: {rpe_str}{note_str}")
+
+    # Back-to-back training history
+    btb_rows = load_btb_summary()
+    btb_parts: list[str] = []
+    if btb_rows:
+        btb_parts = ["## Back-to-Back Training History (most recent pairs)"]
+        for pair in btb_rows[:5]:
+            hr1 = f"avg HR {pair['avg_hr_1']}bpm" if pair.get("avg_hr_1") else ""
+            hr2 = f"avg HR {pair['avg_hr_2']}bpm" if pair.get("avg_hr_2") else ""
+            fat1 = f"fatigue {pair['fatigue_rating_1']}/5" if pair.get("fatigue_rating_1") else ""
+            fat2 = f"fatigue {pair['fatigue_rating_2']}/5" if pair.get("fatigue_rating_2") else ""
+            d1_parts = ", ".join(filter(None, [hr1, fat1]))
+            d2_parts = ", ".join(filter(None, [hr2, fat2]))
+            btb_parts.append(
+                f"  Day 1: {pair['date1']} ({d1_parts or 'no data'})  →  "
+                f"Day 2: {pair['date2']} ({d2_parts or 'no data'})"
+            )
+
     parts = [
         f"Today: {today.strftime('%A %d %B %Y')}",
         "",
@@ -1716,6 +1889,8 @@ def _build_coach_context() -> str:
         "",
         "## Recent Activities (last 14 days)",
         *(act_lines or ["  None recorded"]),
+        *([" ", *rpe_parts] if rpe_parts else []),
+        *([" ", *btb_parts] if btb_parts else []),
     ]
     if ov_lines:
         parts += ["", "## Active Plan Overrides", *ov_lines]

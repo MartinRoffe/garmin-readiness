@@ -452,6 +452,7 @@ def send_email(html: str, subject: str, to_addr: str, from_addr: str, app_passwo
 
 def run_report(m: DailyMetrics, dry_run: bool = False) -> None:
     """Generate and send (or print) the daily readiness email."""
+    from .alerts import check_fatigue_alerts
     stats = baseline_stats(m.date)
     comp_z = composite_score(m, stats)
     label, _ = readiness_label(comp_z)
@@ -461,6 +462,21 @@ def run_report(m: DailyMetrics, dry_run: bool = False) -> None:
     score_str = f"{comp_z:+.2f}σ" if comp_z is not None else "—"
     subject = f"Readiness {m.date.strftime('%-d %b')} · {score_str} {label}"
     html = build_html(m, stats, comp_z, advice, activities)
+
+    # Prepend HIGH fatigue alerts to the email
+    fatigue_alerts = [a for a in check_fatigue_alerts(m.date) if a["severity"] == "HIGH"]
+    if fatigue_alerts:
+        alert_rows = "".join(
+            f'<tr><td style="padding:10px 16px;font-size:13px;color:#7f1d1d;">'
+            f'<strong>⚠ {a["type"].replace("_", " ")}</strong>: {a["message"]}</td></tr>'
+            for a in fatigue_alerts
+        )
+        alert_block = (
+            '<table width="100%" cellpadding="0" cellspacing="0" style="background:#fef2f2;'
+            'border-left:4px solid #ef4444;margin-bottom:16px;border-radius:0 4px 4px 0;">'
+            f'{alert_rows}</table>'
+        )
+        html = html.replace("<!-- Advice -->", f"<!-- Alerts -->\n        <tr><td style='padding:16px 32px 0;'>{alert_block}</td></tr>\n\n        <!-- Advice -->")
 
     if dry_run:
         print(f"Subject: {subject}\n")
@@ -956,6 +972,63 @@ def _rule_based_body(latest: dict) -> str:
         parts.append(f"BMI: {bmi:.1f}.")
     parts.append("Sync more data and add an Anthropic API key for detailed AI analysis.")
     return " ".join(parts)
+
+
+def generate_weekly_briefing(week_sessions: list[tuple], pmc_today: dict, comp_z: Optional[float]) -> Optional[str]:
+    """Generate a Monday coach briefing for the coming week. Cached per ISO week."""
+    from .plan import PLAN_START
+    today = date.today()
+    mon = today - timedelta(days=today.weekday())
+    cache_key = f"weekly_briefing_v1_{mon.isoformat()}"
+    cached = get_cached_text(cache_key)
+    if cached:
+        return cached
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return None
+
+    days_into = (today - PLAN_START).days
+    week_num = max(1, days_into // 7 + 1) if today >= PLAN_START else 1
+
+    sess_lines = []
+    for day_name, stype, label, dur_min in week_sessions:
+        dur_str = f"{dur_min}m" if dur_min < 60 else (f"{dur_min // 60}h{dur_min % 60:02d}m" if dur_min % 60 else f"{dur_min // 60}h")
+        sess_lines.append(f"  {day_name}: {label} ({stype}, {dur_str})")
+
+    ctl = pmc_today.get("ctl") or "—"
+    atl = pmc_today.get("atl") or "—"
+    tsb = pmc_today.get("tsb") or "—"
+    z_str = f"{comp_z:+.2f}σ" if comp_z is not None else "—"
+
+    prompt = (
+        f"Week {week_num} of the training block is starting. Here are the planned sessions:\n"
+        + "\n".join(sess_lines) + "\n\n"
+        f"Current PMC: CTL={ctl}, ATL={atl}, TSB={tsb}. Readiness: {z_str}.\n\n"
+        "Provide a structured Monday briefing with exactly these four parts:\n"
+        "(a) ONE sentence on current form (use the TSB/readiness data).\n"
+        "(b) The KEY session of this week and WHY it matters for the event block.\n"
+        "(c) ONE execution focus cue for the hardest session.\n"
+        "(d) A ONE sentence pacing note for any hard/tempo/FTP session.\n\n"
+        "Be specific and reference actual numbers. Under 120 words total. Plain text, no bullets."
+    )
+
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
+            system=(
+                "You are a concise endurance coach writing a Monday morning briefing for an amateur "
+                "cyclist. Be specific, actionable, and direct."
+            ),
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = msg.content[0].text
+        set_cached_text(cache_key, text)
+        return text
+    except Exception:
+        return None
 
 
 def generate_body_analysis(body_rows: list[dict], latest: dict, pmc_today: dict, recent_metrics: list[dict]) -> str:

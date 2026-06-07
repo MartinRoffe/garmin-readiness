@@ -172,14 +172,16 @@
 
   <!-- ── TSB chart ─────────────────────────────────────────────────── -->
   <div class="card" style="padding:20px 24px;margin-bottom:16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px">
       <p class="eyebrow">Form · TSB (CTL − ATL)</p>
-      <div style="font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;display:flex;gap:12px">
+      <div style="font-family:var(--font-m);font-size:12px;letter-spacing:0.06em;display:flex;gap:12px;flex-wrap:wrap">
         <span style="color:#a3e635">▲ fresh</span>
         <span style="color:#f87171">▼ fatigued</span>
+        {% if proj_data %}<span><span class="legend-dot" style="background:#fbbf24;opacity:0.8"></span>projected</span>{% endif %}
+        {% if event_date_label %}<span style="color:rgba(163,230,53,0.6)">┊ event</span>{% endif %}
       </div>
     </div>
-    <div style="height:130px;position:relative"><canvas id="tsbChart"></canvas></div>
+    <div style="height:160px;position:relative"><canvas id="tsbChart"></canvas></div>
   </div>
 
   <!-- ── Session Training Load ─────────────────────────────────────── -->
@@ -198,6 +200,41 @@
   </div>
   {% endif %}
 
+  <!-- ── FTP Trend ────────────────────────────────────────────────── -->
+  <div id="ftpChartCard" class="card" style="padding:20px 24px;margin-bottom:16px;display:none">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <p class="eyebrow" style="margin-bottom:4px">FTP Trend · Estimated LTHR</p>
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted)">Average HR during FTP test effort · lower = improved threshold economy</p>
+      </div>
+      <span id="ftpCurrentLabel" style="font-family:var(--font-m);font-size:12px;color:#60a5fa;flex-shrink:0;padding-top:2px"></span>
+    </div>
+    <div style="height:160px;position:relative"><canvas id="ftpTrendChart"></canvas></div>
+  </div>
+
+  <!-- ── Training Polarisation ─────────────────────────────────────── -->
+  {% if zone_dist_by_week and zone_dist_by_week | length > 0 %}
+  <div class="card" style="padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <div>
+        <p class="eyebrow" style="margin-bottom:4px">Training Polarisation · Zone Distribution</p>
+        <p style="font-family:var(--font-m);font-size:12px;color:var(--muted)">Cycling activities since plan start · target: 80%+ Z1–Z2, &lt;10% Z3, 10–20% Z4–Z5</p>
+      </div>
+      <div style="display:flex;gap:10px;font-family:var(--font-m);font-size:11px;flex-wrap:wrap;flex-shrink:0">
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#52525b;margin-right:4px;vertical-align:middle"></span>Z1</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#a3e635;margin-right:4px;vertical-align:middle"></span>Z2</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#fde047;margin-right:4px;vertical-align:middle"></span>Z3</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#fb923c;margin-right:4px;vertical-align:middle"></span>Z4</span>
+        <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f87171;margin-right:4px;vertical-align:middle"></span>Z5</span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;align-items:center">
+      <div style="height:180px;position:relative"><canvas id="zonePolarChart"></canvas></div>
+      <div style="height:180px;position:relative"><canvas id="zoneDonutChart"></canvas></div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── Z2 HR Drift ───────────────────────────────────────────────── -->
   {% if z2_points and z2_points | length >= 2 %}
   <div class="card" style="padding:20px 24px;margin-bottom:10px">
@@ -213,6 +250,21 @@
     </div>
     <div style="height:160px;position:relative"><canvas id="z2DriftChart"></canvas></div>
     <p id="z2-trend-note" style="font-family:var(--font-m);font-size:12px;color:var(--muted);margin-top:8px;text-align:right"></p>
+  </div>
+  {% endif %}
+
+  <!-- ── Z2 Cardiac Drift Trend (easy only) ────────────────────────── -->
+  {% if z2_trend_line and z2_trend_line | length == 2 %}
+  <div class="card" style="padding:20px 24px;margin-bottom:16px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+      <div>
+        <p class="eyebrow" style="margin-bottom:4px">Z2 Cardiac Drift Trend · Easy rides only</p>
+        {% if z2_drift_annotation %}
+        <p style="font-family:var(--font-m);font-size:12px;color:{% if '−' in z2_drift_annotation %}#4ade80{% else %}var(--muted){% endif %}">{{ z2_drift_annotation }}</p>
+        {% endif %}
+      </div>
+    </div>
+    <div style="height:160px;position:relative"><canvas id="z2EasyTrendChart"></canvas></div>
   </div>
   {% endif %}
 
@@ -301,8 +353,10 @@
   {% if proj_data %}
   const projLabels = {{ proj_data | map(attribute='label') | list | tojson }};
   const projCtl    = {{ proj_data | map(attribute='ctl')   | list | tojson }};
+  const projAtl    = {{ proj_data | map(attribute='atl')   | list | tojson }};
+  const projTsb    = {{ proj_data | map(attribute='tsb')   | list | tojson }};
   {% else %}
-  const projLabels = [], projCtl = [];
+  const projLabels = [], projCtl = [], projAtl = [], projTsb = [];
   {% endif %}
 
   // Combine labels; pad historical datasets with null for future, projected with null for past
@@ -310,9 +364,11 @@
   const nHist = histLabels.length, nProj = projLabels.length;
   const ctlFull = [...ctlData, ...Array(nProj).fill(null)];
   const atlFull = [...atlData, ...Array(nProj).fill(null)];
-  // Bridge: connect historical to projection at today's CTL value
+  // Bridge: connect historical to projection at today's values
   const lastCtl = ctlData.filter(v=>v!==null).at(-1) ?? null;
   const ctlProj = [...Array(nHist).fill(null), lastCtl, ...projCtl.slice(1)];
+  const lastTsb = tsbData.filter(v=>v!==null).at(-1) ?? null;
+  const tsbProj = [...Array(nHist).fill(null), lastTsb, ...projTsb.slice(1)];
 
   const G = '#18181b', T = { color: '#a1a1aa', font: { family: 'DM Mono', size: 11 } };
 
@@ -409,6 +465,30 @@
     }
   };
 
+  const tsbFormWindowPlugin = {
+    id: 'tsbFormWindow',
+    beforeDatasetsDraw(chart) {
+      const { ctx, scales: { x, y } } = chart;
+      ctx.save();
+      ctx.font = '500 9px "DM Mono", monospace';
+      // Event vertical line
+      const labels = chart.data.labels;
+      const evIdx = labels.indexOf({{ event_date_label | tojson }});
+      if (evIdx >= 0) {
+        const evX = x.getPixelForValue(evIdx);
+        ctx.strokeStyle = 'rgba(163,230,53,0.55)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(evX, y.top); ctx.lineTo(evX, y.bottom); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = 'rgba(163,230,53,0.65)';
+        ctx.textAlign = 'center';
+        ctx.fillText('EVENT', evX, y.top + 10);
+      }
+      ctx.restore();
+    }
+  };
+
   {% if z2_points and z2_points | length >= 2 %}
   (function() {
     const rawPts = {{ z2_points | tojson }};
@@ -478,17 +558,32 @@
   {% endif %}
 
   new Chart(document.getElementById('tsbChart'), {
-    type:'line', plugins:[tsbFillPlugin],
+    type:'line', plugins:[tsbFillPlugin, tsbFormWindowPlugin],
     data:{
-      labels: histLabels,
-      datasets:[{ label:'TSB (form)', data:tsbData, borderWidth:0, pointRadius:0, tension:0.3, spanGaps:true,
-        segment:{ borderColor: ctx => ctx.p1.parsed.y>=0 ? '#a3e635' : '#f87171' }
-      }]
+      labels: allLabels,
+      datasets:[
+        { label:'TSB', data:[...tsbData, ...Array(nProj).fill(null)], borderWidth:0, pointRadius:0, tension:0.3, spanGaps:true,
+          segment:{ borderColor: ctx => ctx.p1.parsed.y>=0 ? '#a3e635' : '#f87171' }
+        },
+        { label:'TSB projected', data:tsbProj, borderColor:'rgba(251,191,36,0.85)', borderWidth:1.5, borderDash:[5,4], pointRadius:0, tension:0.3, spanGaps:false, fill:false },
+      ]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
-      plugins:{legend:{display:false}, tooltip:{callbacks:{label: ctx=>`TSB: ${ctx.raw!==null?(ctx.raw>=0?'+':'')+ctx.raw:'—'}`}}},
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          callbacks:{
+            label: ctx => {
+              if (ctx.raw === null) return null;
+              const v = ctx.raw;
+              return `${ctx.dataset.label}: ${v>=0?'+':''}${v}`;
+            }
+          },
+          filter: item => item.raw !== null,
+        }
+      },
       scales:{
         x:{grid:{color:G},ticks:{...T,maxTicksLimit:10}},
         y:{grid:{color: ctx=>ctx.tick.value===0?'#3f3f46':G, lineWidth: ctx=>ctx.tick.value===0?1.5:1}, ticks:{...T}}
@@ -524,6 +619,142 @@
         scales: {
           x: {grid: {color: G}, ticks: {...T, maxTicksLimit: 14}},
           y: {grid: {color: G}, ticks: {...T}, min: 0},
+        }
+      }
+    });
+  })();
+  {% endif %}
+
+  // FTP trend chart (fetched from API)
+  (async function() {
+    try {
+      const data = await fetch('/api/ftp-tests').then(r => r.json());
+      if (!data || data.length < 1) return;
+      document.getElementById('ftpChartCard').style.display = '';
+      const labels  = data.map(d => d.date.slice(5).replace('-', '/'));
+      const hrVals  = data.map(d => d.ftp_hr);
+      const latest  = hrVals.filter(v => v != null).at(-1);
+      if (latest) document.getElementById('ftpCurrentLabel').textContent = `Current: ${latest} bpm LTHR`;
+      const flatLine = Array(hrVals.length).fill(latest);
+      new Chart(document.getElementById('ftpTrendChart'), {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label:'Est. LTHR', data:hrVals, borderColor:'#60a5fa', backgroundColor:'rgba(96,165,250,0.08)', borderWidth:2, pointRadius:5, tension:0.2, fill:true, spanGaps:true },
+            { label:'Current', data:flatLine, borderColor:'rgba(96,165,250,0.3)', borderWidth:1, borderDash:[5,4], pointRadius:0, tension:0 },
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              callbacks:{ label: ctx => ctx.dataset.label==='Current' ? null : `LTHR: ${ctx.raw} bpm` },
+              filter: item => item.dataset.label !== 'Current',
+            }
+          },
+          scales:{
+            x:{grid:{color:G},ticks:{...T}},
+            y:{grid:{color:G},ticks:{...T,callback:v=>v+' bpm'},suggestedMin:140,suggestedMax:185}
+          }
+        }
+      });
+    } catch(e) { console.warn('FTP chart:', e); }
+  })();
+
+  // Zone distribution charts
+  {% if zone_dist_by_week and zone_dist_by_week | length > 0 %}
+  (function() {
+    const weeks   = {{ zone_dist_by_week | tojson }};
+    const zColors = ['#52525b','#a3e635','#fde047','#fb923c','#f87171'];
+    const wLabels = weeks.map(w => w.week_label ? w.week_label.replace(/^\d{4}-/,'') : '');
+
+    new Chart(document.getElementById('zonePolarChart'), {
+      type: 'bar',
+      data: {
+        labels: wLabels,
+        datasets: [1,2,3,4,5].map((z,i) => ({
+          label: `Z${z}`,
+          data: weeks.map(w => +(w[`z${z}_pct`] ?? 0).toFixed(1)),
+          backgroundColor: zColors[i],
+          stack: 'zones',
+          borderRadius: i === 4 ? 2 : 0,
+          borderSkipped: false,
+        }))
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{ callbacks:{ label: ctx=>`Z${ctx.datasetIndex+1}: ${ctx.raw}%` } }
+        },
+        scales:{
+          x:{grid:{color:G},ticks:{...T,maxTicksLimit:12},stacked:true},
+          y:{grid:{color:G},ticks:{...T,callback:v=>v+'%'},stacked:true,min:0,max:100}
+        }
+      }
+    });
+
+    const block = {{ zone_dist_block | tojson }};
+    if (block && Object.keys(block).length) {
+      new Chart(document.getElementById('zoneDonutChart'), {
+        type: 'doughnut',
+        data:{
+          labels:['Z1','Z2','Z3','Z4','Z5'],
+          datasets:[{ data:[1,2,3,4,5].map(z=>+(block[`z${z}_pct`]??0).toFixed(1)), backgroundColor:zColors, borderWidth:0 }]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          cutout:'65%',
+          plugins:{
+            legend:{display:false},
+            tooltip:{ callbacks:{ label: ctx=>`${ctx.label}: ${ctx.raw}%` } }
+          }
+        }
+      });
+    }
+  })();
+  {% endif %}
+
+  // Z2 easy-only trend chart
+  {% if z2_trend_line and z2_trend_line | length == 2 %}
+  (function() {
+    const rawPts   = {{ z2_points | tojson }};
+    const trendPts = {{ z2_trend_line | tojson }};
+    const easyPts  = rawPts.filter(p => !p.hard);
+    if (easyPts.length < 2) return;
+    const n = easyPts.length;
+    const trendData = easyPts.map((_, i) =>
+      +(trendPts[0].hr + (trendPts[1].hr - trendPts[0].hr) * i / (n - 1)).toFixed(1)
+    );
+    new Chart(document.getElementById('z2EasyTrendChart'), {
+      type: 'line',
+      data:{
+        labels: easyPts.map(p => p.date.slice(5).replace('-','/')),
+        datasets:[
+          { label:'Easy HR', data:easyPts.map(p=>p.avg_hr), borderColor:'#4ade80', backgroundColor:'#4ade80', pointRadius:5, showLine:false, spanGaps:false },
+          { label:'Trend', data:trendData, borderColor:'rgba(74,222,128,0.4)', borderWidth:1.5, borderDash:[5,4], pointRadius:0, showLine:true, tension:0 },
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            callbacks:{
+              title: ctx => easyPts[ctx[0].dataIndex]?.date ?? '',
+              label: ctx => {
+                if (ctx.dataset.label === 'Trend') return null;
+                return `${easyPts[ctx.dataIndex]?.label ?? ''}: ${ctx.raw} bpm`;
+              }
+            },
+            filter: item => item.dataset.label !== 'Trend',
+          }
+        },
+        scales:{
+          x:{grid:{color:G},ticks:{...T,maxTicksLimit:8}},
+          y:{grid:{color:G},ticks:{...T,callback:v=>v+' bpm'},suggestedMin:110,suggestedMax:175}
         }
       }
     });

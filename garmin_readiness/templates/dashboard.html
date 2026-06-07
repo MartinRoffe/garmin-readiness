@@ -147,6 +147,19 @@
     </div>
   </div>
 
+  <!-- ── Fatigue alerts ───────────────────────────────────────────── -->
+  {% if fatigue_alerts %}
+  {% for alert in fatigue_alerts %}
+  <div style="background:{% if alert.severity == 'HIGH' %}rgba(239,68,68,0.12){% else %}rgba(251,191,36,0.1){% endif %};
+              border-left:3px solid {% if alert.severity == 'HIGH' %}var(--danger){% else %}#fbbf24{% endif %};
+              padding:12px 18px;border-radius:0 4px 4px 0;margin-bottom:8px">
+    <span style="font-family:var(--font-m);font-size:13px;color:var(--text)">
+      {% if alert.severity == 'HIGH' %}⚠ {% endif %}{{ alert.message }}
+    </span>
+  </div>
+  {% endfor %}
+  {% endif %}
+
   <!-- ── Hero: Composite Score ──────────────────────────────────────── -->
   <div class="card" style="padding:32px 36px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
     <div style="flex:1;min-width:180px">
@@ -270,6 +283,16 @@
     </div>
 
   </div>
+  {% endif %}
+
+  <!-- ── Weekly coach briefing (Monday only) ──────────────────────── -->
+  {% if weekly_briefing %}
+  <details {% if is_monday %}open{% endif %} class="card" style="padding:16px 20px;margin-bottom:12px">
+    <summary style="cursor:pointer;font-family:var(--font-m);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);user-select:none">
+      This week — Coach's Briefing
+    </summary>
+    <div style="margin-top:12px;font-size:13px;color:var(--text-dim);line-height:1.7;white-space:pre-wrap">{{ weekly_briefing }}</div>
+  </details>
   {% endif %}
 
   <!-- ── Today's session ──────────────────────────────────────────────── -->
