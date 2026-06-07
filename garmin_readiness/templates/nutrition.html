@@ -1,769 +1,736 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
-  <title>Nutrition · 12 Weeks</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    body { background: #09090b; }
-    .sess-rest     { background: #111114; border-color: #27272a; color: #52525b; }
-    .sess-strength { background: #1a0e28; border-color: #7c3aed; color: #c4b5fd; }
-    .sess-bike     { background: #091c12; border-color: #059669; color: #6ee7b7; }
-    .sess-tempo    { background: #1c1600; border-color: #ca8a04; color: #fde047; }
-    .sess-ftp      { background: #1c0c00; border-color: #ea580c; color: #fdba74; }
-    .sess-ruck     { background: #1c0714; border-color: #be185d; color: #f9a8d4; }
-    .sess-long     { background: #181000; border-color: #b45309; color: #fde68a; }
-    .day-card-body { display: none; }
-    .day-card.open .day-card-body { display: block; }
-    .day-chevron { transition: transform 0.2s; }
-    .day-card.open .day-chevron { transform: rotate(180deg); }
-    .src-tesco  { background: #091c12; color: #4ade80; border: 1px solid #166534; }
-    .src-gousto { background: #1c0c00; color: #fb923c; border: 1px solid #7c2d12; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚴</text></svg>">
+<title>Nutrition — Fuel to Perform</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f0c;
+    --surface: #161713;
+    --surface2: #1d1f1a;
+    --border: #2a2d25;
+    --accent: #c8f135;
+    --accent2: #f1a035;
+    --accent3: #35c8f1;
+    --text: #e8ead4;
+    --muted: #7a7d6a;
+    --danger: #f14a35;
+    --protein: #35c8f1;
+    --carbs: #c8f135;
+    --fat: #7a7d6a;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'DM Sans',sans-serif; font-weight:300; line-height:1.6; min-height:100vh; }
+
+  /* HERO */
+  .hero { position:relative; padding:64px 40px 48px; overflow:hidden; border-bottom:1px solid var(--border); }
+  .hero::before { content:''; position:absolute; top:-60px; right:-80px; width:500px; height:500px; background:radial-gradient(circle,rgba(200,241,53,0.07) 0%,transparent 70%); pointer-events:none; }
+  .hero-eyebrow { font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.2em; color:var(--accent); text-transform:uppercase; margin-bottom:16px; }
+  .hero h1 { font-family:'Bebas Neue',sans-serif; font-size:clamp(48px,8vw,92px); line-height:0.92; letter-spacing:0.02em; color:var(--text); margin-bottom:24px; }
+  .hero h1 span { color:var(--accent); }
+  .hero-sub { font-size:15px; color:var(--muted); max-width:540px; line-height:1.7; }
+  .hero-stats { display:flex; gap:32px; margin-top:36px; flex-wrap:wrap; }
+  .stat { border-left:2px solid var(--accent); padding-left:14px; }
+  .stat-val { font-family:'Bebas Neue',sans-serif; font-size:28px; color:var(--accent); line-height:1; }
+  .stat-label { font-size:11px; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; margin-top:2px; }
+
+  /* LAYOUT */
+  .container { max-width:980px; margin:0 auto; padding:0 24px; }
+  section { padding:48px 0; border-bottom:1px solid var(--border); }
+  section:last-child { border-bottom:none; }
+  .section-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.25em; text-transform:uppercase; color:var(--accent); margin-bottom:20px; }
+  h2 { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.04em; margin-bottom:20px; color:var(--text); }
+  p { color:#b0b39a; font-size:14px; line-height:1.75; margin-bottom:12px; }
+  p:last-child { margin-bottom:0; }
+
+  /* PRINCIPLES GRID */
+  .principles-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:12px; margin-top:24px; }
+  .principle-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:18px; position:relative; overflow:hidden; }
+  .principle-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+  .pc-protein::before { background:var(--protein); }
+  .pc-carbs::before { background:var(--carbs); }
+  .pc-cost::before { background:var(--accent2); }
+  .pc-gousto::before { background:#9b59b6; }
+  .pc-sunday::before { background:var(--danger); }
+  .principle-icon { font-size:20px; margin-bottom:8px; }
+  .principle-title { font-size:12px; font-weight:500; color:var(--text); margin-bottom:6px; letter-spacing:0.04em; text-transform:uppercase; }
+  .principle-card p { font-size:11px; color:var(--muted); line-height:1.55; margin:0; }
+
+  /* CALORIE TIER STRIP */
+  .calorie-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-top:20px; }
+  .cal-cell { background:var(--surface2); padding:14px 16px; }
+  .cal-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px; }
+  .cal-val { font-family:'Bebas Neue',sans-serif; font-size:26px; color:var(--accent); line-height:1; }
+  .cal-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+
+  /* WEEK TABS */
+  .week-tabs { display:flex; gap:4px; margin-bottom:28px; flex-wrap:wrap; }
+  .wtab { background:var(--surface); border:1px solid var(--border); color:var(--muted); padding:8px 18px; font-family:'DM Mono',monospace; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; border-radius:2px; transition:all 0.15s; }
+  .wtab:hover { color:var(--text); border-color:var(--muted); }
+  .wtab.active { background:var(--accent); border-color:var(--accent); color:#0e0f0c; }
+  .week-panel { display:none; }
+  .week-panel.active { display:block; }
+
+  /* WEEK INTRO BANNER */
+  .week-banner { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); padding:14px 18px; margin-bottom:20px; border-radius:0 4px 4px 0; }
+  .week-banner p { margin:0; font-size:13px; color:#b0b39a; }
+  .week-banner strong { color:var(--accent); font-weight:500; }
+  .week-banner.recovery { border-left-color:var(--accent3); }
+  .week-banner.recovery strong { color:var(--accent3); }
+
+  /* DAY CARDS */
+  .day-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:10px; transition:border-color 0.15s; }
+  .day-card:hover { border-color:#3a3d33; }
+  .day-header { display:flex; align-items:center; justify-content:space-between; padding:12px 18px; background:var(--surface2); border-bottom:1px solid var(--border); cursor:pointer; user-select:none; }
+  .day-header-left { display:flex; align-items:center; gap:14px; }
+  .day-name { font-family:'Bebas Neue',sans-serif; font-size:20px; color:var(--text); min-width:90px; line-height:1; }
+  .day-type { font-size:12px; color:var(--muted); }
+  .day-kcal { font-family:'DM Mono',monospace; font-size:11px; color:var(--accent2); letter-spacing:0.06em; }
+  .day-chevron { color:var(--muted); font-size:14px; transition:transform 0.2s; margin-left:10px; }
+  .day-card.open .day-chevron { transform:rotate(180deg); }
+  .day-body { display:none; }
+  .day-card.open .day-body { display:block; }
+
+  /* MEAL TABLE */
+  .meal-table { width:100%; border-collapse:collapse; }
+  .meal-table tr { border-bottom:1px solid var(--border); }
+  .meal-table tr:last-child { border-bottom:none; }
+  .meal-table td { padding:10px 18px; font-size:13px; vertical-align:top; }
+  .meal-type-cell { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:0.1em; text-transform:uppercase; width:80px; padding-top:12px; white-space:nowrap; }
+  .meal-name { font-weight:500; color:var(--text); margin-bottom:2px; font-size:13px; }
+  .meal-detail { color:var(--muted); font-size:11px; line-height:1.5; }
+  .meal-macros { display:flex; gap:8px; margin-top:5px; flex-wrap:wrap; }
+  .macro { font-family:'DM Mono',monospace; font-size:10px; padding:2px 6px; border-radius:2px; letter-spacing:0.05em; }
+  .m-kcal { background:rgba(122,125,106,0.15); color:var(--muted); border:1px solid rgba(122,125,106,0.2); }
+  .m-p { background:rgba(53,200,241,0.1); color:var(--protein); border:1px solid rgba(53,200,241,0.2); }
+  .m-c { background:rgba(200,241,53,0.1); color:var(--carbs); border:1px solid rgba(200,241,53,0.2); }
+  .m-f { background:rgba(122,125,106,0.1); color:var(--muted); border:1px solid rgba(122,125,106,0.15); }
+  .getpro-tag { background:rgba(53,200,241,0.15); color:var(--protein); border:1px solid rgba(53,200,241,0.3); font-family:'DM Mono',monospace; font-size:9px; padding:1px 5px; border-radius:2px; margin-left:5px; letter-spacing:0.05em; vertical-align:middle; }
+  .fav-tag { background:rgba(200,241,53,0.15); color:var(--accent); border:1px solid rgba(200,241,53,0.3); font-family:'DM Mono',monospace; font-size:9px; padding:1px 5px; border-radius:2px; margin-left:5px; letter-spacing:0.05em; vertical-align:middle; }
+
+  /* PROTEIN BAR */
+  .protein-bar-row { padding:10px 18px 14px; background:rgba(0,0,0,0.15); border-top:1px solid var(--border); display:flex; align-items:center; gap:12px; }
+  .pb-label { font-family:'DM Mono',monospace; font-size:10px; color:var(--muted); letter-spacing:0.1em; white-space:nowrap; }
+  .pb-track { flex:1; height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+  .pb-fill { height:100%; border-radius:3px; background:var(--protein); }
+  .pb-val { font-family:'DM Mono',monospace; font-size:11px; color:var(--protein); white-space:nowrap; min-width:36px; text-align:right; }
+  .pb-note { font-size:11px; color:var(--muted); font-style:italic; flex:2; }
+  .pb-warn { color:var(--accent2); }
+
+  /* DAY TYPE BADGES */
+  .badge { font-family:'DM Mono',monospace; font-size:9px; padding:2px 7px; border-radius:2px; letter-spacing:0.08em; text-transform:uppercase; }
+  .badge-rest { background:rgba(122,125,106,0.15); color:var(--muted); border:1px solid rgba(122,125,106,0.2); }
+  .badge-train { background:rgba(200,241,53,0.12); color:var(--accent); border:1px solid rgba(200,241,53,0.2); }
+  .badge-ride { background:rgba(241,160,53,0.12); color:var(--accent2); border:1px solid rgba(241,160,53,0.2); }
+  .badge-ruck { background:rgba(155,89,182,0.12); color:#c39bd3; border:1px solid rgba(155,89,182,0.2); }
+  .badge-long { background:rgba(241,74,53,0.12); color:var(--danger); border:1px solid rgba(241,74,53,0.2); }
+  .badge-recovery { background:rgba(53,200,241,0.12); color:var(--accent3); border:1px solid rgba(53,200,241,0.2); }
+
+  /* SHOPPING LIST */
+  .shop-section { margin-top:0; }
+  .shop-cat-label { font-family:'DM Mono',monospace; font-size:10px; letter-spacing:0.15em; text-transform:uppercase; color:var(--accent2); margin:24px 0 8px; }
+  .shop-table { width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:4px; }
+  .shop-table tr { border-bottom:1px solid var(--border); transition:background 0.1s; cursor:pointer; }
+  .shop-table tr:last-child { border-bottom:none; }
+  .shop-table tr:hover { background:var(--surface2); }
+  .shop-table tr.ticked td { opacity:0.45; text-decoration:line-through; }
+  .shop-table td { padding:9px 14px; font-size:13px; vertical-align:middle; }
+  .shop-check { width:28px; font-size:14px; color:var(--muted); text-align:center; }
+  .shop-check.on { color:var(--accent); }
+  .shop-name { color:var(--text); }
+  .shop-note { font-size:11px; color:var(--muted); display:block; margin-top:1px; }
+  .shop-qty { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); text-align:center; width:50px; }
+  .shop-unit { font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); text-align:right; width:58px; }
+  .shop-total { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; color:var(--accent); text-align:right; width:58px; }
+  .shop-total.dimmed { color:var(--muted); }
+  .conf-tag { background:rgba(200,241,53,0.1); color:var(--accent); border:1px solid rgba(200,241,53,0.2); font-family:'DM Mono',monospace; font-size:9px; padding:1px 4px; border-radius:2px; margin-left:5px; }
+  .est-tag { background:rgba(241,160,53,0.1); color:var(--accent2); border:1px solid rgba(241,160,53,0.2); font-family:'DM Mono',monospace; font-size:9px; padding:1px 4px; border-radius:2px; margin-left:5px; }
+  .shop-subtotal { display:flex; justify-content:space-between; padding:8px 14px; background:var(--surface2); border:1px solid var(--border); border-top:none; border-radius:0 0 4px 4px; margin-bottom:2px; }
+  .shop-subtotal-label { font-size:12px; color:var(--muted); }
+  .shop-subtotal-val { font-family:'DM Mono',monospace; font-size:12px; font-weight:500; color:var(--text); }
+  .shop-grand { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent); padding:14px 18px; margin-top:20px; display:flex; justify-content:space-between; align-items:center; border-radius:0 4px 4px 0; }
+  .shop-grand-label { font-size:14px; font-weight:500; color:var(--text); }
+  .shop-grand-val { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--accent); line-height:1; }
+  .shop-grand-note { font-size:11px; color:var(--muted); margin-top:4px; }
+
+  /* COST OPTIMISER */
+  .swap-grid { display:grid; gap:12px; margin-top:8px; }
+  .swap-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+  .swap-header { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--surface2); border-bottom:1px solid var(--border); }
+  .swap-title { font-size:13px; font-weight:500; color:var(--text); }
+  .saving-pill { font-family:'DM Mono',monospace; font-size:10px; padding:2px 8px; border-radius:2px; letter-spacing:0.06em; }
+  .sp-big { background:rgba(200,241,53,0.15); color:var(--accent); border:1px solid rgba(200,241,53,0.25); }
+  .sp-med { background:rgba(241,160,53,0.12); color:var(--accent2); border:1px solid rgba(241,160,53,0.2); }
+  .sp-keep { background:rgba(122,125,106,0.1); color:var(--muted); border:1px solid rgba(122,125,106,0.15); }
+  .swap-body { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+  .swap-side { padding:12px 16px; }
+  .swap-side.left { border-right:1px solid var(--border); }
+  .swap-side-label { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:0.15em; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+  .swap-item-name { font-size:13px; color:var(--text); margin-bottom:3px; }
+  .swap-price { font-family:'Bebas Neue',sans-serif; font-size:22px; line-height:1; margin-bottom:4px; }
+  .sp-old { color:var(--muted); text-decoration:line-through; }
+  .sp-new { color:var(--accent); }
+  .swap-note-text { font-size:11px; color:var(--muted); line-height:1.5; }
+  .effort-dots { display:flex; gap:3px; margin-top:6px; align-items:center; }
+  .ed-label { font-size:10px; color:var(--muted); margin-right:3px; }
+  .dot { width:7px; height:7px; border-radius:50%; background:var(--border); }
+  .dot.on { background:var(--accent3); }
+
+  .footer-note { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent2); padding:14px 18px; margin-top:20px; border-radius:0 4px 4px 0; }
+  .footer-note p { margin:0; font-size:12px; color:var(--muted); }
+  .footer-note strong { color:var(--accent2); font-weight:500; }
+
+  @media(max-width:640px){
+    .hero{padding:40px 20px 32px;}
+    .container{padding:0 14px;}
+    section{padding:32px 0;}
+    .calorie-strip{grid-template-columns:1fr 1fr;}
+    .swap-body{grid-template-columns:1fr;}
+    .swap-side.left{border-right:none;border-bottom:1px solid var(--border);}
+    .protein-bar-row{flex-wrap:wrap;}
+    .pb-note{flex-basis:100%;}
+  }
+</style>
 </head>
 <body>
 
-  {% set active_tab = 'nutrition' %}
-  {% include 'nav.html' %}
+{% set active_tab = 'nutrition' %}
+{% include 'nav.html' %}
 
-  <div style="max-width:1080px;margin:0 auto;padding:40px 24px 80px">
-
-    <!-- Header -->
-    <div style="margin-bottom:32px">
-      <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.22em;text-transform:uppercase;color:#c4c4cc;margin-bottom:8px">12-Week Training Plan</p>
-      <h1 style="font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,42px);letter-spacing:0.05em;color:#fafafa;line-height:1">Nutrition</h1>
-      <p style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc;margin-top:6px">Asda protein pot + shake · Uncle Bens rice pouches · Gousto dinners · 160 g+ protein daily</p>
+<div class="hero">
+  <div class="container">
+    <div class="hero-eyebrow">Nutrition Plan · Asda-Sourced · 4-Week Repeatable Cycle</div>
+    <h1>FUEL TO<br><span>PERFORM</span></h1>
+    <p class="hero-sub">A 4-week repeatable nutrition plan built around Fuel10k breakfasts, Asda lunches, and Gousto dinners. Protein-first, carbs timed to training, and budget-conscious throughout.</p>
+    <div class="hero-stats">
+      <div class="stat"><div class="stat-val">160g+</div><div class="stat-label">Daily Protein</div></div>
+      <div class="stat"><div class="stat-val">~£49</div><div class="stat-label">Weekly shop</div></div>
+      <div class="stat"><div class="stat-val">~£35</div><div class="stat-label">Optimised cost</div></div>
+      <div class="stat"><div class="stat-val">4</div><div class="stat-label">Week cycle</div></div>
     </div>
+  </div>
+</div>
 
-    <!-- Principles -->
-    <div class="grid grid-cols-2 gap-2 mb-8 sm:grid-cols-3">
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:14px 16px">
-        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#c4c4cc;margin-bottom:6px">Protein first</p>
-        <p style="font-size:12px;color:#a1a1aa;line-height:1.65">160–180 g daily protects muscle over 50. Asda protein pot + shake alone gives 55 g before lunch. Add rotisserie chicken or tuna to every rice pouch.</p>
-      </div>
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:14px 16px">
-        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#c4c4cc;margin-bottom:6px">Carbs around rides</p>
-        <p style="font-size:12px;color:#a1a1aa;line-height:1.65">Add oats + banana to the protein shake breakfast on training days. Uncle Bens pouches already deliver 65–70 g carbs at lunch — use them deliberately.</p>
-      </div>
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:14px 16px">
-        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#c4c4cc;margin-bottom:6px">Zero prep</p>
-        <p style="font-size:12px;color:#a1a1aa;line-height:1.65">Protein pot + shake: open and drink. Uncle Bens: 2 min microwave. Rotisserie chicken: pull off the breast. Nothing to cook or refrigerate.</p>
-      </div>
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:14px 16px">
-        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#c4c4cc;margin-bottom:6px">Gousto dinners</p>
-        <p style="font-size:12px;color:#a1a1aa;line-height:1.65">Gousto provides structure, portion control, and variety. Use calorie bands as a guide when choosing weekly recipes.</p>
-      </div>
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:14px 16px">
-        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#c4c4cc;margin-bottom:6px">Alternate the pouches</p>
-        <p style="font-size:12px;color:#a1a1aa;line-height:1.65">Switch between Egg Fried Rice (~380 kcal) and Paella (~350 kcal) to keep lunch interesting. Both pair equally well with chicken or tuna.</p>
-      </div>
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:14px 16px;border-left:2px solid #a3e635">
-        <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#c4c4cc;margin-bottom:6px">Long ride: fuel up</p>
-        <p style="font-size:12px;color:#a1a1aa;line-height:1.65">Sunday long rides need the biggest oats + banana breakfast, on-bike carbs every 45 min, then the Uncle Bens + chicken + tuna recovery pouch immediately after.</p>
-      </div>
+{% if cal_today %}
+<div class="container">
+  <div style="background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--accent3);padding:12px 18px;border-radius:0 4px 4px 0;display:flex;gap:32px;flex-wrap:wrap;margin-top:16px">
+    <div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Today logged</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--accent3)">{{ cal_today }} kcal</div>
     </div>
-
-    <!-- Week tabs -->
-    <div class="flex gap-1 flex-wrap mb-4" id="week-tabs">
-      {% for week in weeks %}
-      <button
-        style="font-family:'DM Mono',monospace;font-size:12px;letter-spacing:0.08em;padding:6px 12px;border-radius:2px;border:1px solid;cursor:pointer;transition:all 0.15s;background:none"
-        class="wtab {% if loop.index0 == current_week %}text-[#a3e635] border-[#a3e635] bg-[#a3e635]/8{% else %}text-[#c4c4cc] border-[#27272a] hover:text-[#fafafa] hover:border-[#3f3f46]{% endif %}"
-        onclick="showWeek({{ loop.index0 }}, this)">
-        W{{ "%02d"|format(week.week_num) }}
-      </button>
-      {% endfor %}
+    {% if tdee_today %}
+    {% set deficit = tdee_today - cal_today %}
+    <div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">TDEE</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text)">{{ tdee_today }} kcal</div>
     </div>
-
-    <!-- Week panels -->
-    {% for week in weeks %}
-    <div class="week-panel {% if loop.index0 != current_week %}hidden{% endif %}" id="week-{{ loop.index0 }}">
-
-      <!-- Week header -->
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:14px 16px;margin-bottom:8px">
-        <div class="flex items-center justify-between">
-          <div>
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#c4c4cc">Week {{ week.week_num }} of 12</p>
-            <p style="font-family:'DM Mono',monospace;font-size:13px;color:#fafafa;margin-top:3px">{{ week.start.strftime("%-d %b") }} → {{ week.days[-1].date.strftime("%-d %b %Y") }}</p>
-          </div>
-          {% set ride_mins = namespace(v=0) %}
-          {% for d in week.days %}{% if d.type in ['bike','tempo','ftp','long'] %}{% set ride_mins.v = ride_mins.v + d.dur_min %}{% endif %}{% endfor %}
-          {% if ride_mins.v > 0 %}
-          <div class="text-right">
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#c4c4cc">Cycling</p>
-            <p style="font-family:'DM Mono',monospace;font-size:13px;color:#a3e635;margin-top:3px">
-              {% if ride_mins.v >= 60 %}{{ ride_mins.v // 60 }}h{% if ride_mins.v % 60 %}{{ ride_mins.v % 60 }}m{% endif %}{% else %}{{ ride_mins.v }}m{% endif %}
-            </p>
-          </div>
-          {% endif %}
-        </div>
-      </div>
-
-      <!-- Day cards -->
-      <div class="flex flex-col gap-2 mb-6">
-      {% for day in week.days %}
-
-      {% set is_today = day.date.isoformat() == today %}
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;overflow:hidden{% if is_today %};outline:2px solid #a3e635;outline-offset:2px{% endif %}"
-           class="day-card"
-           onclick="toggleDay(this)">
-
-        <!-- Card header -->
-        <div class="flex items-center gap-3 px-4 py-3 cursor-pointer select-none" style="transition:background 0.15s" onmouseover="this.style.background='#18181b'" onmouseout="this.style.background=''">
-
-          <!-- Date + today badge -->
-          <div style="width:52px;flex-shrink:0">
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;color:#c4c4cc;text-transform:uppercase">{{ day.date.strftime("%a") }}</p>
-            <p style="font-family:'DM Mono',monospace;font-size:13px;color:#fafafa">{{ day.date.strftime("%-d %b") }}</p>
-            {% if is_today %}<p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#a3e635">today</p>{% endif %}
-          </div>
-
-          <!-- Session type badge -->
-          <div style="width:76px;flex-shrink:0">
-            <span class="sess-{{ day.type }}" style="display:inline-block;padding:2px 8px;border-radius:2px;border:1px solid;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase">
-              {{ day.type }}
-            </span>
-          </div>
-
-          <!-- Session label + duration -->
-          <div style="flex:1;min-width:0">
-            {% if day.type != 'rest' %}
-            <p style="font-size:13px;color:#fafafa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ day.label }}</p>
-            {% if day.dur_fmt %}<p style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc">{{ day.dur_fmt }}</p>{% endif %}
-            {% else %}
-            <p style="font-size:13px;color:#71717a">Rest</p>
-            {% endif %}
-          </div>
-
-          <!-- Kcal target + actual burn -->
-          <div style="text-align:right;flex-shrink:0;margin-right:8px">
-            {% if day.kcal %}
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#c4c4cc">target</p>
-            <p style="font-family:'DM Mono',monospace;font-size:13px;color:#fafafa">~{{ day.kcal }}</p>
-            {% endif %}
-            {% if day.actual_kcal %}
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#52525b;margin-top:3px">burned</p>
-            <p style="font-family:'DM Mono',monospace;font-size:12px;
-              {% if day.kcal and day.actual_kcal > day.kcal * 1.15 %}color:#fb923c
-              {% elif day.kcal and day.actual_kcal < day.kcal * 0.5 %}color:#71717a
-              {% else %}color:#4ade80{% endif %}">{{ day.actual_kcal }}</p>
-            {% endif %}
-          </div>
-
-          <div class="day-chevron" style="font-family:'DM Mono',monospace;font-size:12px;color:#52525b">▾</div>
-        </div>
-
-        <!-- Ride fuelling (in-session) — only on qualifying endurance days -->
-        {% if day.fuelling %}
-        {% set f = day.fuelling %}
-        <div style="border-top:1px solid #18181b;padding:10px 16px;background:rgba(56,189,248,0.04)">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <span style="font-size:13px">🚴</span>
-            <span style="font-family:'DM Mono',monospace;font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:#38bdf8">Ride fuelling</span>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:14px;font-family:'DM Mono',monospace;font-size:12px;color:#e4e4e7">
-            {% if f.carbs_g_per_hr %}<span><span style="color:#71717a">carbs</span> {{ f.carbs_g_per_hr }} g/hr{% if f.total_carbs_g %} · {{ f.total_carbs_g }} g total{% endif %}</span>{% endif %}
-            {% if f.fluid_ml_per_hr %}<span><span style="color:#71717a">fluid</span> {{ f.fluid_ml_per_hr }} ml/hr</span>{% endif %}
-            {% if f.sodium_mg_per_hr %}<span><span style="color:#71717a">sodium</span> {{ f.sodium_mg_per_hr }} mg/hr</span>{% endif %}
-          </div>
-          {% if f.timeline %}<p style="font-size:12px;color:#a1a1aa;line-height:1.55;margin-top:6px">{{ f.timeline }}</p>{% endif %}
-          {% if f.brief %}<p style="font-size:12px;color:#71717a;line-height:1.5;margin-top:4px;font-style:italic">{{ f.brief }}</p>{% endif %}
-        </div>
-        {% endif %}
-
-        <!-- Expanded meal content (rendered by JS) -->
-        <div class="day-card-body" style="border-top:1px solid #18181b"
-             data-type="{{ day.type }}"
-             data-dur="{{ day.dur_min }}"
-             data-kcal="{{ day.kcal or '' }}"
-             data-protein="{{ day.protein_g or '' }}"
-             data-carbs="{{ day.carbs_g or '' }}"
-             data-fat="{{ day.fat_g or '' }}"
-             data-brief="{{ day.nut_brief or '' }}">
-        </div>
-
-      </div>
-      {% endfor %}
-      </div>
-
-    </div><!-- /week-panel -->
-    {% endfor %}
-
-    <!-- ── Tenerife Cycling Camp ─────────────────────────────────────────── -->
-    {% if camp_days %}
-    <div style="margin-top:40px;margin-bottom:8px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
-        <div style="flex:1;height:1px;background:rgba(251,191,36,0.2)"></div>
-        <span style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.15em;color:#fbbf24;white-space:nowrap">🏔 TENERIFE CAMP · 13–27 AUG · NUTRITION</span>
-        <div style="flex:1;height:1px;background:rgba(251,191,36,0.2)"></div>
-      </div>
-
-      <div style="background:rgba(120,53,15,0.1);border:1px solid rgba(251,191,36,0.15);border-radius:2px;padding:14px 16px;margin-bottom:12px">
-        <div class="grid grid-cols-2 gap-2 sm:grid-cols-4" style="font-size:12px;color:#a1a1aa;line-height:1.6">
-          <div><span style="color:#f87171;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em">HARD</span> ~3,200 kcal — 90+ km, 2,000+ m climbing. Carb-heavy breakfast, 60 g/hr on-bike, big recovery dinner.</div>
-          <div><span style="color:#fbbf24;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em">MEDIUM</span> ~2,700 kcal — 65 km, ~1,100 m. Standard training day fuelling, top up at dinner.</div>
-          <div><span style="color:#4ade80;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em">EASY</span> ~2,200 kcal — 30–50 km, leg-openers. Moderate carbs, prioritise protein recovery.</div>
-          <div><span style="color:#71717a;font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em">REST/TRAVEL</span> ~1,900 kcal — no riding. High protein, lower carbs. Hotel buffet: protein first.</div>
-        </div>
-      </div>
-
-      <div style="display:flex;flex-direction:column;gap:4px">
-      {% for cd in camp_days %}
-      {% set int_colour = {'hard':'#f87171','medium':'#fbbf24','easy':'#4ade80','rest':'#71717a','travel':'#71717a'} %}
-      {% set int_bg = {'hard':'rgba(153,27,27,0.15)','medium':'rgba(120,53,15,0.15)','easy':'rgba(5,46,22,0.15)','rest':'rgba(39,39,42,0.15)','travel':'rgba(39,39,42,0.15)'} %}
-      <div style="background:#111114;border:1px solid #27272a;border-radius:2px;overflow:hidden{% if cd.is_today %};outline:2px solid #fbbf24;outline-offset:2px{% endif %}{% if cd.is_past %};opacity:0.55{% endif %}"
-           class="day-card" onclick="toggleDay(this)">
-        <div class="flex items-center gap-3 px-4 py-3 cursor-pointer select-none" style="transition:background 0.15s" onmouseover="this.style.background='#18181b'" onmouseout="this.style.background=''">
-
-          <div style="width:52px;flex-shrink:0">
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.1em;color:#c4c4cc;text-transform:uppercase">{{ cd.date.strftime("%a") }}</p>
-            <p style="font-family:'DM Mono',monospace;font-size:13px;color:#fafafa">{{ cd.date.strftime("%-d %b") }}</p>
-            {% if cd.is_today %}<p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#fbbf24">today</p>{% endif %}
-          </div>
-
-          <div style="width:76px;flex-shrink:0">
-            <span style="display:inline-block;padding:2px 8px;border-radius:2px;border:1px solid {{ int_colour.get(cd.intensity,'#71717a') }};background:{{ int_bg.get(cd.intensity,'transparent') }};font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:{{ int_colour.get(cd.intensity,'#71717a') }}">{{ cd.intensity }}</span>
-          </div>
-
-          <div style="flex:1;min-width:0">
-            <p style="font-size:13px;color:#fafafa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ cd.label }}</p>
-            {% if cd.km %}<p style="font-family:'DM Mono',monospace;font-size:12px;color:#c4c4cc">{{ cd.km }} km · {{ cd.elev_m }} m</p>{% endif %}
-          </div>
-
-          <div style="text-align:right;flex-shrink:0;margin-right:8px">
-            {% if cd.kcal_target %}
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#c4c4cc">target</p>
-            <p style="font-family:'DM Mono',monospace;font-size:13px;color:#fafafa">~{{ cd.kcal_target }}</p>
-            {% endif %}
-            {% if cd.actual_kcal %}
-            <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:#52525b;margin-top:3px">burned</p>
-            <p style="font-family:'DM Mono',monospace;font-size:12px;color:#4ade80">{{ cd.actual_kcal }}</p>
-            {% endif %}
-          </div>
-
-          <div class="day-chevron" style="font-family:'DM Mono',monospace;font-size:12px;color:#52525b">▾</div>
-        </div>
-
-        <div class="day-card-body" style="border-top:1px solid #18181b"
-             data-type="camp_{{ cd.intensity }}"
-             data-dur="{{ cd.km }}"
-             data-kcal="{{ cd.kcal_target or '' }}"
-             data-protein=""
-             data-carbs=""
-             data-fat=""
-             data-brief="{{ cd.label }} — {{ cd.km }} km, {{ cd.elev_m }} m elevation">
-        </div>
-      </div>
-      {% endfor %}
+    <div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em">Deficit</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:{% if deficit > 700 %}var(--danger){% elif deficit > 0 %}var(--accent){% else %}var(--accent2){% endif %}">
+        {{ "%+d"|format(deficit) }} kcal
       </div>
     </div>
     {% endif %}
-
-    <!-- On-bike fuelling guide -->
-    <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:20px 24px;margin-bottom:8px">
-      <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c4c4cc;margin-bottom:14px">On-bike nutrition</p>
-      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <div>
-          <p class="text-xs text-emerald-400 mb-2">45–60 min rides</p>
-          <ul class="space-y-1.5 text-xs text-slate-300">
-            <li><span class="text-slate-300">Before:</span> Banana 30–45 min prior</li>
-            <li><span class="text-slate-300">During:</span> Water only — no food needed</li>
-            <li><span class="text-slate-300">After:</span> Asda chocolate milk 300 ml within 20 min</li>
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs text-yellow-400 mb-2">60–90 min rides</p>
-          <ul class="space-y-1.5 text-xs text-slate-300">
-            <li><span class="text-slate-300">Before:</span> Full breakfast 90 min prior</li>
-            <li><span class="text-slate-300">During:</span> 1 banana at 45 min (~23 g carbs)</li>
-            <li><span class="text-slate-300">After:</span> Asda chocolate milk immediately</li>
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs text-orange-400 mb-2">90 min–3 hrs</p>
-          <ul class="space-y-1.5 text-xs text-slate-300">
-            <li><span class="text-slate-300">Before:</span> Big oats breakfast 2–2.5 hrs prior</li>
-            <li><span class="text-slate-300">During:</span> 40 g carbs every 45 min</li>
-            <li><span class="text-slate-300">After:</span> Chocolate milk + Uncle Bens recovery pouch</li>
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs text-slate-300 mb-2">On-bike picks (~40 g carbs each)</p>
-          <ul class="space-y-1.5 text-xs text-slate-300">
-            <li>Banana — 23 g carbs, cheap from Asda</li>
-            <li>Jaffa Cakes ×3 — 35 g carbs</li>
-            <li>Nature Valley bar — 38 g carbs</li>
-            <li>Asda malt loaf slice — 38 g carbs</li>
-            <li>Dried mango strips 30 g — 35 g carbs</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-
-    <!-- Weekly shopping guide -->
-    <div style="background:#111114;border:1px solid #27272a;border-radius:2px;padding:20px 24px;margin-bottom:8px">
-      <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c4c4cc;margin-bottom:14px">Weekly shopping staples</p>
-      <div class="grid grid-cols-2 gap-6 sm:grid-cols-3">
-        <div>
-          <p class="text-xs text-slate-300 uppercase tracking-wider mb-2">Asda — breakfast &amp; protein</p>
-          <ul class="space-y-1 text-xs text-slate-300">
-            <li class="flex justify-between"><span>Asda protein pots ×7 (1 per day)</span><span class="text-slate-400">~£7–9</span></li>
-            <li class="flex justify-between"><span>Asda protein shakes ×7 (1 per day)</span><span class="text-slate-400">~£7–10</span></li>
-            <li class="flex justify-between"><span>Asda rotisserie chicken breasts ×3</span><span class="text-slate-400">~£6–8</span></li>
-            <li class="flex justify-between"><span>Asda tuna in spring water ×6 tins</span><span class="text-slate-400">~£3–4</span></li>
-            <li class="flex justify-between"><span>Asda chocolate milk 1 L carton</span><span class="text-slate-400">~£1.10</span></li>
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs text-slate-300 uppercase tracking-wider mb-2">Uncle Bens — lunch base</p>
-          <ul class="space-y-1 text-xs text-slate-300">
-            <li class="flex justify-between"><span>Uncle Bens Egg Fried Rice ×4</span><span class="text-slate-400">~£5–6</span></li>
-            <li class="flex justify-between"><span>Uncle Bens Paella ×3</span><span class="text-slate-400">~£4–5</span></li>
-          </ul>
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2 mt-4">Asda — carb add-ons &amp; fuel</p>
-          <ul class="space-y-1 text-xs text-slate-300">
-            <li class="flex justify-between"><span>Rolled oats 1 kg (lasts 2–3 wks)</span><span class="text-slate-400">~£1.09</span></li>
-            <li class="flex justify-between"><span>Bananas bunch ×6</span><span class="text-slate-400">~£0.75</span></li>
-            <li class="flex justify-between"><span>Wholemeal bread loaf</span><span class="text-slate-400">~£1.20</span></li>
-            <li class="flex justify-between"><span>Malt loaf (on-bike fuel)</span><span class="text-slate-400">~£0.75</span></li>
-          </ul>
-        </div>
-        <div>
-          <p class="text-xs text-slate-300 uppercase tracking-wider mb-2">Snacks &amp; extras</p>
-          <ul class="space-y-1 text-xs text-slate-300">
-            <li class="flex justify-between"><span>Peanut butter sachets ×6</span><span class="text-slate-400">~£2.50</span></li>
-            <li class="flex justify-between"><span>Mixed nuts 200 g bag</span><span class="text-slate-400">~£2.00</span></li>
-            <li class="flex justify-between"><span>Asda protein bars ×4 pack</span><span class="text-slate-400">~£3.50</span></li>
-            <li class="flex justify-between"><span>Jaffa Cakes (on-bike fuel)</span><span class="text-slate-400">~£0.90</span></li>
-          </ul>
-          <p class="text-[12px] text-slate-400 mt-3">Asda B'fast + Lunch + Snacks: ~£35–45/wk<br>Gousto 4-recipe box: ~£30–36/wk</p>
-        </div>
-      </div>
-    </div>
-
-    <p style="font-family:'DM Mono',monospace;font-size:12px;color:#71717a;text-align:center;margin-bottom:20px;line-height:1.6">
-      Calorie targets calculated by Claude AI based on session type and duration for a 50+ male athlete ~85 kg targeting ~0.5 kg/week loss.
-      Individual needs vary — adjust to your actual weight, height, and metabolic rate.
-    </p>
-
   </div>
+</div>
+{% endif %}
 
-  <script>
-    // ── Meal templates by session type ────────────────────────────────────────
-    // Base: Asda protein pot (~200 kcal, 25g P) + Asda protein shake (~180 kcal, 30g P) = 380 kcal, 55g P
-    // Lunch base: Uncle Bens rice pouch — Egg Fried Rice (~380 kcal, 9g P) or Paella (~350 kcal, 8g P)
-    const MEALS = {
-      rest: {
-        breakfast: {
-          name: "Asda Protein Pot + Protein Shake",
-          source: "Asda",
-          detail: "Asda protein pot (~200 kcal, 25 g protein) + Asda protein shake (~180 kcal, 30 g protein). No prep, no cooking. Base of 55 g protein before you've even had lunch — sufficient on a rest day without adding extra carbs.",
-          kcal: 380, p: 55, c: 18, f: 8,
-        },
-        lunch: {
-          name: "Uncle Bens Rice + Chicken Slices",
-          source: "Asda",
-          detail: "Uncle Bens Egg Fried Rice pouch (~380 kcal, 9 g protein) microwaved. Add Asda cooked chicken breast slices ~100 g (~165 kcal, 31 g protein). Mix together — zero effort, good protein hit alongside the carb base.",
-          kcal: 545, p: 40, c: 70, f: 8,
-        },
-        dinner: {
-          name: "Lean Protein + Veg",
-          source: "Gousto",
-          detail: "Any Gousto recipe under 600 kcal: Chicken & Leek, Teriyaki Salmon Bowl, Baked Cod with Greens. Lean protein + veg focus on rest days — no need to top up carbs.",
-          kcal: 600, p: 45, c: 55, f: 14,
-        },
-        snacks: [
-          { label: "Mid-morning", item: "Apple or banana (~80 kcal) — hunger check before main meal" },
-          { label: "Afternoon",   item: "Asda protein bar or 2 boiled eggs if genuinely hungry (~150–200 kcal)" },
-          { label: "Evening",     item: "Skip or Asda low-fat cottage cheese 150 g + rice cakes (~150 kcal) if evening hunger hits" },
-        ],
-      },
-      strength: {
-        breakfast: {
-          name: "Asda Protein Pot + Shake + Banana",
-          source: "Asda",
-          detail: "Asda protein pot + Asda protein shake as always (380 kcal, 55 g P). Add 1 banana for pre-session carbs (~105 kcal, 27 g carbs). Easy fuel for a morning or evening strength session.",
-          kcal: 485, p: 56, c: 45, f: 8,
-        },
-        lunch: {
-          name: "Uncle Bens Rice + Rotisserie Chicken",
-          source: "Asda",
-          detail: "Uncle Bens Egg Fried Rice or Paella pouch. Add Asda rotisserie chicken breast ~150 g (~240 kcal, 45 g protein) — pull it apart and mix through the rice. High protein, practical, no prep.",
-          kcal: 620, p: 54, c: 68, f: 10,
-        },
-        dinner: {
-          name: "Protein + Complex Carb",
-          source: "Gousto",
-          detail: "Gousto 600–700 kcal with carbs to replenish glycogen post-KB session: Chicken Jambalaya, Beef Stir-Fry with Noodles, or similar.",
-          kcal: 650, p: 44, c: 68, f: 15,
-        },
-        snacks: [
-          { label: "Pre-session",  item: "Banana 30–45 min before the session (~105 kcal)" },
-          { label: "Post-session", item: "Asda chocolate milk 300 ml within 20 min (~150 kcal, 10 g protein)" },
-          { label: "Afternoon",    item: "Asda protein bar or yogurt (~150 kcal, 15 g protein)" },
-        ],
-      },
-      bike: {
-        breakfast: {
-          name: "Asda Protein Pot + Shake + Oats",
-          source: "Asda",
-          detail: "Asda protein pot + Asda protein shake (380 kcal, 55 g P base). Add Asda rolled oats 40 g made with water (~150 kcal, 5 g P, 27 g carbs) for sustained Zone 2 energy. Total ~530 kcal, 60 g protein.",
-          kcal: 530, p: 60, c: 45, f: 8,
-        },
-        lunch: {
-          name: "Uncle Bens Rice + Tuna",
-          source: "Asda",
-          detail: "Uncle Bens Egg Fried Rice or Paella pouch. Add 2 tins Asda tuna in spring water (drained, ~120 g each, ~240 kcal, 56 g protein) mixed through. Cheap, shelf-stable, and transforms the pouch into a complete high-protein meal.",
-          kcal: 620, p: 65, c: 68, f: 6,
-        },
-        dinner: {
-          name: "Protein + Complex Carb",
-          source: "Gousto",
-          detail: "Gousto 650–750 kcal with a carb base: Chicken & Chorizo Jambalaya, Thai Green Curry with Rice, Beef Stir-Fry. Higher carbs on training evenings replenish glycogen.",
-          kcal: 680, p: 42, c: 75, f: 16,
-        },
-        snacks: [
-          { label: "Pre-ride",    item: "Banana + Asda peanut butter sachet 45 min before (~200 kcal)" },
-          { label: "Mid-morning", item: "Asda protein yogurt 150 g (~120 kcal, 15 g protein)" },
-          { label: "Afternoon",   item: "Handful mixed nuts 30 g (~180 kcal)" },
-        ],
-      },
-      tempo: {
-        breakfast: {
-          name: "Asda Protein Pot + Shake + Oats + Banana",
-          source: "Asda",
-          detail: "Asda protein pot + shake (380 kcal base). Add Asda rolled oats 50 g (~190 kcal) + 1 banana (~105 kcal) — biggest breakfast of the working week for tonight's hard intervals. Total ~675 kcal, 62 g protein.",
-          kcal: 675, p: 62, c: 72, f: 9,
-        },
-        lunch: {
-          name: "Uncle Bens Rice + Rotisserie Chicken",
-          source: "Asda",
-          detail: "Uncle Bens Paella or Egg Fried Rice pouch. Add Asda rotisserie chicken breast ~180 g (~290 kcal, 54 g protein). High protein and carbs before the evening tempo session — don't go into hard intervals underfuelled.",
-          kcal: 640, p: 62, c: 68, f: 10,
-        },
-        dinner: {
-          name: "Post-Tempo Recovery",
-          source: "Gousto",
-          detail: "Carb-rich Gousto 700–800 kcal after the hard effort: Pasta dishes, Chicken & Rice Bowl, Noodle stir-fry. Replenish glycogen aggressively — tempo depletes it more than Zone 2.",
-          kcal: 720, p: 46, c: 82, f: 16,
-        },
-        snacks: [
-          { label: "Pre-session (45 min before)", item: "Banana + 3 Jaffa Cakes (~210 kcal, ~45 g carbs)" },
-          { label: "Post-session",                item: "Asda chocolate milk 300 ml immediately after (~150 kcal)" },
-          { label: "Evening",                     item: "Asda protein yogurt if still hungry (~120 kcal)" },
-        ],
-      },
-      ftp: {
-        breakfast: {
-          name: "Asda Protein Pot + Shake + Oats + Banana + Honey",
-          source: "Asda",
-          detail: "Asda protein pot + shake (380 kcal base). Add Asda rolled oats 60 g + 1 banana + drizzle of honey (~310 kcal, 8 g P, 68 g carbs). Biggest pre-test breakfast — eat 2+ hours before the effort. Total ~690 kcal, 63 g protein.",
-          kcal: 690, p: 63, c: 86, f: 9,
-        },
-        lunch: {
-          name: "Uncle Bens Rice + Chicken + Tuna",
-          source: "Asda",
-          detail: "Uncle Bens Egg Fried Rice pouch. Add Asda rotisserie chicken breast ~200 g + 1 tin tuna (~380 kcal, 85 g protein combined). Maximum protein lunch — you need aggressive recovery after a 20-min maximal effort FTP test.",
-          kcal: 730, p: 94, c: 70, f: 8,
-        },
-        dinner: {
-          name: "Post-Test Celebration",
-          source: "Gousto",
-          detail: "Generous Gousto 700–800 kcal — you earned it. Pasta, Rice dish, or Curry. Plenty of carbs + protein to kickstart recovery.",
-          kcal: 730, p: 48, c: 80, f: 17,
-        },
-        snacks: [
-          { label: "Pre-test (30 min before)", item: "Banana or 3 Jaffa Cakes (~130 kcal, 32 g carbs)" },
-          { label: "Post-test",               item: "Asda chocolate milk 300 ml immediately after (~150 kcal)" },
-          { label: "Mid-morning",             item: "Asda protein bar (~180 kcal, 20 g protein)" },
-        ],
-      },
-      ruck: {
-        breakfast: {
-          name: "Asda Protein Pot + Shake + Oats + Banana",
-          source: "Asda",
-          detail: "Asda protein pot + shake (380 kcal base). Add Asda rolled oats 45 g + 1 banana (~230 kcal, 6 g P). Rucking with a loaded pack burns 500–900 kcal depending on duration — you need sustained energy. Total ~610 kcal, 61 g protein.",
-          kcal: 610, p: 61, c: 64, f: 9,
-        },
-        lunch: {
-          name: "Uncle Bens Rice + Rotisserie Chicken",
-          source: "Asda",
-          detail: "Uncle Bens Paella or Egg Fried Rice pouch. Add Asda rotisserie chicken breast ~170 g (~270 kcal, 51 g protein). Good balance of carbs and protein for sustained aerobic work.",
-          kcal: 620, p: 60, c: 68, f: 9,
-        },
-        dinner: {
-          name: "Lean Protein + Veg",
-          source: "Gousto",
-          detail: "Gousto 600–700 kcal with lean protein focus — Salmon, Chicken, or Prawn. Rucking is aerobic but less glycolytic than cycling; moderate carb dinner is fine.",
-          kcal: 640, p: 46, c: 62, f: 16,
-        },
-        snacks: [
-          { label: "Pre-ruck (30 min before)", item: "Banana + Asda peanut butter sachet (~200 kcal)" },
-          { label: "On-ruck",                  item: "Nature Valley bar or banana at 45–60 min if ruck is >90 min (~170 kcal)" },
-          { label: "Post-ruck",                item: "Asda chocolate milk 300 ml within 20 min (~150 kcal)" },
-        ],
-      },
-      long: {
-        breakfast: {
-          name: "Asda Protein Pot + Shake + Oats + Banana + Toast",
-          source: "Asda",
-          detail: "Asda protein pot + shake (380 kcal base). Add Asda rolled oats 60 g + 1 banana + 1 slice wholemeal toast + low-sugar jam (~350 kcal, 10 g P). The biggest breakfast of the week — eat 2–2.5 hours before rolling. Total ~730 kcal, 65 g protein.",
-          kcal: 730, p: 65, c: 96, f: 10,
-        },
-        lunch: {
-          name: "Uncle Bens Rice + Chicken + Tuna (Post-Ride)",
-          source: "Asda",
-          detail: "Uncle Bens Egg Fried Rice pouch. Add Asda rotisserie chicken breast ~200 g + 1 tin tuna (~380 kcal, 85 g protein). Eat within 45 min of finishing — this is your recovery plate. Carbs from the rice top up glycogen; the protein combination kicks off muscle repair.",
-          kcal: 730, p: 94, c: 70, f: 8,
-        },
-        dinner: {
-          name: "Higher-Carb Recovery Dinner",
-          source: "Gousto",
-          detail: "Generous Gousto Sunday dinner 750–850 kcal. Carb-heavy: Pasta, Risotto, or Rice dish. This evening meal completes glycogen replenishment for Monday. Sit down, eat slowly, enjoy it.",
-          kcal: 760, p: 48, c: 90, f: 18,
-        },
-        snacks: [
-          { label: "On-bike (every 45 min)", item: "40 g carbs per dose: banana, 3 Jaffa Cakes, malt loaf slice, or Nature Valley bar" },
-          { label: "Mid-ride",               item: "Asda chocolate milk 300 ml at a stopping point if >2.5 hrs" },
-          { label: "Evening",                item: "Asda protein yogurt if hungry — long rides spike appetite 4–6 hrs later (~120 kcal)" },
-        ],
-      },
-    };
+<div class="container">
 
-    // ── Camp meal templates ───────────────────────────────────────────────────
-    MEALS.camp_hard = {
-      breakfast: {
-        name: "Big Carb-Load Breakfast",
-        source: "Hotel",
-        detail: "Hotel buffet: large bowl of porridge/muesli + 2 eggs + 2 slices toast + banana + OJ. Target 800–900 kcal, 80+ g carbs. Eat 2–2.5 hrs before the start. Hard day = maximum pre-loading.",
-        kcal: 850, p: 40, c: 95, f: 18,
-      },
-      lunch: {
-        name: "On-Bike Fuelling",
-        source: "On-bike",
-        detail: "60 g carbs per hour from km 30 onwards — gels, bars, bananas, dates. For a 4–5 hr hard ride that's 240–300 g carbs on-bike. Never wait until hungry. Keep a bottle of electrolytes at all times.",
-        kcal: 960, p: 8, c: 240, f: 4,
-      },
-      dinner: {
-        name: "Maximum Recovery Dinner",
-        source: "Hotel",
-        detail: "Hotel dinner: pasta or rice base (double portion), lean protein (chicken/fish), veg. No alcohol. Aim for 800–900 kcal with 100+ g carbs and 50+ g protein. Follow with chocolate milk or recovery shake if available.",
-        kcal: 850, p: 55, c: 105, f: 20,
-      },
-      snacks: [
-        { label: "Pre-ride top-up", item: "Banana + café cortado 20 min before start" },
-        { label: "Post-ride",       item: "Chocolate milk or recovery shake within 20 min of finishing" },
-        { label: "Evening",         item: "Protein yogurt or cottage cheese if still hungry before bed" },
-      ],
-    };
-    MEALS.camp_medium = {
-      breakfast: {
-        name: "Carb Breakfast",
-        source: "Hotel",
-        detail: "Hotel buffet: porridge or muesli + 2 eggs + toast + fruit. 650–750 kcal, 70 g carbs. Eat 2 hrs before riding.",
-        kcal: 700, p: 38, c: 72, f: 14,
-      },
-      lunch: {
-        name: "On-Bike Fuelling",
-        source: "On-bike",
-        detail: "45–50 g carbs per hour — banana, bar, or gel at 45 min intervals. 3–3.5 hr medium ride = 135–175 g carbs on-bike.",
-        kcal: 680, p: 6, c: 170, f: 3,
-      },
-      dinner: {
-        name: "Recovery Dinner",
-        source: "Hotel",
-        detail: "Hotel dinner with a carb base (rice/pasta), protein, and veg. 700–750 kcal. Top up glycogen for tomorrow.",
-        kcal: 720, p: 50, c: 82, f: 16,
-      },
-      snacks: [
-        { label: "Post-ride", item: "Chocolate milk or recovery shake within 20 min" },
-        { label: "Afternoon", item: "Fruit + handful nuts while legs up (~200 kcal)" },
-      ],
-    };
-    MEALS.camp_easy = {
-      breakfast: {
-        name: "Light Carb Breakfast",
-        source: "Hotel",
-        detail: "Hotel buffet: eggs + toast + fruit. Moderate carbs — easy days need fuel but not a full load. 550–600 kcal.",
-        kcal: 580, p: 35, c: 55, f: 12,
-      },
-      lunch: {
-        name: "On-Bike Fuelling (light)",
-        source: "On-bike",
-        detail: "1–2 bananas or bars during the ride (~45 g carbs total). Easy days: don't over-fuel — save appetite for the recovery dinner protein.",
-        kcal: 200, p: 3, c: 50, f: 1,
-      },
-      dinner: {
-        name: "Protein Recovery Dinner",
-        source: "Hotel",
-        detail: "Hotel dinner focused on protein: fish or chicken + veg + moderate carb side. 650–700 kcal. Easy days are when you rebuild — protein is the priority.",
-        kcal: 680, p: 55, c: 60, f: 16,
-      },
-      snacks: [
-        { label: "Post-ride", item: "Chocolate milk or protein shake within 20 min" },
-        { label: "Afternoon", item: "Rest and elevate legs — snack only if genuinely hungry" },
-      ],
-    };
-    MEALS.camp_rest = {
-      breakfast: {
-        name: "Hotel Breakfast — Protein Focus",
-        source: "Hotel",
-        detail: "Hotel buffet: eggs (scrambled or boiled) + yogurt + fruit. Lower carbs on full rest days — body doesn't need glycogen top-up. 450–500 kcal.",
-        kcal: 480, p: 38, c: 32, f: 14,
-      },
-      lunch: {
-        name: "Light Lunch — Explore",
-        source: "Local",
-        detail: "Cafe lunch in Los Gigantes: salad + protein (fish/chicken) or a small sandwich. Sight-see, walk around, don't eat heavy. 400–500 kcal.",
-        kcal: 450, p: 35, c: 38, f: 12,
-      },
-      dinner: {
-        name: "Moderate Recovery Dinner",
-        source: "Hotel",
-        detail: "Hotel dinner: lean protein + veg + small carb portion. Rest days don't need 3,000 kcal — eat to feel good, not stuffed. 600–650 kcal.",
-        kcal: 630, p: 48, c: 55, f: 16,
-      },
-      snacks: [
-        { label: "Afternoon", item: "Fruit bowl or protein yogurt from the hotel (~150 kcal)" },
-        { label: "Evening",   item: "Early to bed — the rest day compounds into tomorrow's ride" },
-      ],
-    };
-    MEALS.camp_travel = MEALS.camp_rest;
+  <!-- PRINCIPLES -->
+  <section>
+    <div class="section-label">How This Plan Works</div>
+    <h2>THE PRINCIPLES</h2>
+    <div class="principles-grid">
+      <div class="principle-card pc-protein">
+        <div class="principle-icon">🥩</div>
+        <div class="principle-title">Protein First</div>
+        <p>160–180g daily protects muscle over 50. Every meal anchored to a protein source. GetPro at lunch on Mon/Wed/Thu closes the gap from the office food choices.</p>
+      </div>
+      <div class="principle-card pc-carbs">
+        <div class="principle-icon">🔋</div>
+        <div class="principle-title">Carbs Around Training</div>
+        <p>Rice and pasta lunches on training and ride days. Banana pre-session. Paella Thursday fuels evening kettlebell. Sunday's big breakfast powers the long ride.</p>
+      </div>
+      <div class="principle-card pc-cost">
+        <div class="principle-icon">💷</div>
+        <div class="principle-title">Budget Asda</div>
+        <p>Just Essentials chicken, Asda own rice, Ben's Paella as the one brand treat. £49/week standard, £35/week with batch cooking and skyr swap.</p>
+      </div>
+      <div class="principle-card pc-gousto">
+        <div class="principle-icon">🍳</div>
+        <div class="principle-title">Gousto Dinners</div>
+        <p>Dinners not specified here — planned separately via Gousto. Training days: aim 50–55g P, 680 kcal. Rest days: 44g P, 600 kcal. Thursday especially needs a strong pick.</p>
+      </div>
+      <div class="principle-card pc-sunday">
+        <div class="principle-icon">☀️</div>
+        <div class="principle-title">Sunday = Max Fuel</div>
+        <p>Big home-cooked breakfast 2 hrs before. Fuel on-bike every 45 min. Recovery plate within 45 min of finishing. Chocolate milk. This is the highest calorie day of the week.</p>
+      </div>
+    </div>
 
-    // Fallback for unknown types
-    MEALS.default = MEALS.rest;
+    <div class="calorie-strip">
+      <div class="cal-cell">
+        <div class="cal-label">Rest days</div>
+        <div class="cal-val">1,980</div>
+        <div class="cal-sub">Mon / recovery days</div>
+      </div>
+      <div class="cal-cell">
+        <div class="cal-label">Training days</div>
+        <div class="cal-val">2,150</div>
+        <div class="cal-sub">Tue · Wed · Thu · Fri</div>
+      </div>
+      <div class="cal-cell">
+        <div class="cal-label">Ruck Saturday</div>
+        <div class="cal-val">2,200</div>
+        <div class="cal-sub">60–90 min load carry</div>
+      </div>
+      <div class="cal-cell">
+        <div class="cal-label">Long ride Sunday</div>
+        <div class="cal-val">2,350</div>
+        <div class="cal-sub">Max fuel day</div>
+      </div>
+    </div>
 
-    // ── Render expanded meal content ──────────────────────────────────────────
-    function buildMealBody(bodyEl) {
-      if (bodyEl.dataset.rendered) return;
-      bodyEl.dataset.rendered = '1';
+    <div class="footer-note" style="margin-top:16px">
+      <p><strong>Recovery Week (W4):</strong> Drop targets by ~150–200 kcal. 1–2 snacks instead of 3. Lighter Gousto picks. Protein target relaxes to ~145g — acceptable during a deload week.</p>
+    </div>
+  </section>
 
-      const stype = bodyEl.dataset.type || 'rest';
-      const kcal    = bodyEl.dataset.kcal;
-      const protein = bodyEl.dataset.protein;
-      const carbs   = bodyEl.dataset.carbs;
-      const fat     = bodyEl.dataset.fat;
-      const brief   = bodyEl.dataset.brief;
-      const dur     = parseInt(bodyEl.dataset.dur, 10) || 0;
+  <!-- WEEKLY PLANS -->
+  <section>
+    <div class="section-label">4-Week Repeatable Cycle</div>
+    <h2>DAILY MENUS</h2>
 
-      const m = MEALS[stype] || MEALS.default;
+    <div class="week-tabs">
+      <button class="wtab active" onclick="showWeek('w1',this)">Week 1</button>
+      <button class="wtab" onclick="showWeek('w2',this)">Week 2</button>
+      <button class="wtab" onclick="showWeek('w3',this)">Week 3</button>
+      <button class="wtab" onclick="showWeek('w4',this)">Week 4 — Recovery</button>
+    </div>
 
-      let html = '';
+    <div id="w1" class="week-panel active"></div>
+    <div id="w2" class="week-panel"></div>
+    <div id="w3" class="week-panel"></div>
+    <div id="w4" class="week-panel"></div>
+  </section>
 
-      // Coach's brief (Claude-generated nutrition tip)
-      if (brief) {
-        html += `
-          <div class="px-4 py-3 border-b border-[#1e2030] bg-[#1a1f2e]">
-            <p class="text-[11px] text-sky-400 uppercase tracking-widest mb-1">Nutrition strategy</p>
-            <p class="text-xs text-slate-300 leading-relaxed">${brief}</p>
-          </div>`;
-      }
+  <!-- SHOPPING LIST -->
+  <section>
+    <div class="section-label">Asda Shopping — Prices Confirmed June 2025</div>
+    <h2>WEEKLY SHOP — WEEK 1</h2>
+    <p>Tap any item to tick it off as you shop. Prices marked <span style="background:rgba(200,241,53,0.1);color:var(--accent);font-size:11px;padding:1px 5px;border-radius:2px;font-family:'DM Mono',monospace">CONF</span> are from trolley.co.uk. Prices marked <span style="background:rgba(241,160,53,0.1);color:var(--accent2);font-size:11px;padding:1px 5px;border-radius:2px;font-family:'DM Mono',monospace">EST</span> are Asda own-brand estimates within ±20p.</p>
 
-      // Meals grid
-      const meals = [
-        { label: 'Breakfast · Asda', data: m.breakfast },
-        { label: 'Lunch · Asda',     data: m.lunch },
-        { label: 'Dinner · Gousto',   data: m.dinner },
-      ];
-      html += '<div class="grid grid-cols-3 divide-x divide-[#1e2030]">';
-      for (const { label, data } of meals) {
-        const srcCls = data.source === 'Gousto' ? 'src-gousto' : 'src-tesco';
-        html += `
-          <div class="p-4">
-            <p class="text-[12px] text-slate-300 uppercase tracking-widest mb-2">${label}</p>
-            <span class="inline-block text-[9px] px-1.5 py-0.5 rounded ${srcCls} mb-2 uppercase tracking-wider">${data.source}</span>
-            <p class="text-xs text-slate-200 font-semibold mb-1 leading-tight">${data.name}</p>
-            <p class="text-[12px] text-slate-300 leading-relaxed mb-2">${data.detail}</p>
-            <div class="flex flex-wrap gap-1 mt-2">
-              <span class="text-[11px] px-1.5 py-0.5 bg-slate-800 text-slate-200 rounded">~${data.kcal} kcal</span>
-              <span class="text-[11px] px-1.5 py-0.5 bg-orange-900/40 text-orange-300 rounded border border-orange-900">P: ${data.p}g</span>
-              <span class="text-[11px] px-1.5 py-0.5 bg-blue-900/40 text-blue-300 rounded border border-blue-900">C: ${data.c}g</span>
-              <span class="text-[11px] px-1.5 py-0.5 bg-emerald-900/40 text-emerald-300 rounded border border-emerald-900">F: ${data.f}g</span>
-            </div>
-          </div>`;
-      }
-      html += '</div>';
+    <div class="shop-section" id="shopList"></div>
 
-      // Snacks row
-      if (m.snacks && m.snacks.length) {
-        html += '<div class="border-t border-[#1e2030] px-4 py-3 flex flex-wrap gap-6">';
-        for (const s of m.snacks) {
-          html += `
-            <div>
-              <p class="text-[11px] text-slate-300 uppercase tracking-wider mb-0.5">${s.label}</p>
-              <p class="text-xs text-slate-200">${s.item}</p>
-            </div>`;
-        }
-        html += '</div>';
-      }
+    <h2 style="margin-top:40px">WEEKS 2 &amp; 3 — 2-WEEK SHOP</h2>
+    <p>Double quantities covering both weeks. Rice varieties rotated for menu variety.</p>
+    <div class="shop-section" id="shopList23"></div>
+  </section>
 
-      // On-bike note for long rides
-      if (stype === 'long' && dur >= 90) {
-        const hrs = Math.round(dur / 60 * 10) / 10;
-        const doses = Math.floor((dur - 45) / 45);
-        const onBikeKcal = doses * 160;
-        html += `
-          <div class="border-t border-[#1e2030] px-4 py-3 bg-[#1a1f2e]">
-            <p class="text-[10px] text-orange-400 uppercase tracking-widest mb-1">On-bike fuelling (${hrs}h ride)</p>
-            <p class="text-xs text-slate-400">~${doses} fuelling stop${doses !== 1 ? 's' : ''} of 40 g carbs each ≈ ${onBikeKcal} kcal on-bike. Start fuelling 45 min into the ride; don't wait until hungry.</p>
-          </div>`;
-      }
+  <!-- COST OPTIMISER -->
+  <section>
+    <div class="section-label">Budget Mode — Up To £14 Saved Per Week</div>
+    <h2>COST OPTIMISER</h2>
+    <p>Four swaps take the weekly bill from £49.44 down to ~£35. All protein targets remain achievable. The skyr and batch-chicken swaps are the biggest wins.</p>
+    <div class="swap-grid" id="swapCards"></div>
 
-      // Day totals
-      if (kcal) {
-        const dayType = { rest:'Rest — lower carb', strength:'Strength day', bike:'Training — higher carbs',
-                          tempo:'Hard day — max carbs', ftp:'Test day — max carbs', ruck:'Ruck day', long:'Long ride — full fuel' };
-        html += `
-          <div class="border-t border-[#1e2030] px-4 py-3 bg-[#0f1117] flex flex-wrap gap-6">
-            <div><p class="text-[11px] text-slate-400 uppercase">Target kcal</p><p class="text-xs text-white font-semibold">~${kcal}</p></div>
-            ${protein ? `<div><p class="text-[11px] text-slate-400 uppercase">Protein</p><p class="text-xs text-orange-300 font-semibold">~${protein}g</p></div>` : ''}
-            ${carbs   ? `<div><p class="text-[11px] text-slate-400 uppercase">Carbs</p><p class="text-xs text-blue-300 font-semibold">~${carbs}g</p></div>` : ''}
-            ${fat     ? `<div><p class="text-[11px] text-slate-400 uppercase">Fat</p><p class="text-xs text-emerald-300 font-semibold">~${fat}g</p></div>` : ''}
-            <div><p class="text-[11px] text-slate-400 uppercase">Day type</p><p class="text-xs text-slate-300">${dayType[stype] || stype}</p></div>
-          </div>`;
-      }
+    <div class="footer-note" style="margin-top:24px">
+      <p><strong>Batch cook tip:</strong> Roast 1kg chicken thighs Sunday at 200°C / 25 min. Season with mixed herbs. Cool and portion into 3 × 240g lunch containers + 150g Sunday recovery pot. Keeps 4 days in fridge. Cook a second batch Wednesday for Fri if needed.</p>
+    </div>
+    <div class="footer-note" style="margin-top:8px;border-left-color:var(--protein)">
+      <p><strong style="color:var(--protein)">Skyr portioning:</strong> Buy 2 × Arla Skyr 450g pots Sunday. Spoon into 8 small containers (~112g each). Each portion delivers 15g protein — identical to GetPro. Add a spoonful of fruit for variety. Takes 5 minutes.</p>
+    </div>
+  </section>
 
-      bodyEl.innerHTML = html;
-    }
+</div><!-- /container -->
 
-    // ── Toggle day card ───────────────────────────────────────────────────────
-    function toggleDay(card) {
-      const body = card.querySelector('.day-card-body');
-      buildMealBody(body);
-      card.classList.toggle('open');
-    }
+<script>
 
-    // ── Week tab switching ────────────────────────────────────────────────────
-    function showWeek(idx, btn) {
-      document.querySelectorAll('.week-panel').forEach(el => el.classList.add('hidden'));
-      document.querySelectorAll('.wtab').forEach(el => {
-        el.classList.remove('border-sky-500', 'text-sky-300', 'bg-sky-900/30');
-        el.classList.add('border-[#2a2d3a]', 'text-slate-500');
-      });
-      document.getElementById('week-' + idx).classList.remove('hidden');
-      btn.classList.remove('border-[#2a2d3a]', 'text-slate-500');
-      btn.classList.add('border-sky-500', 'text-sky-300', 'bg-sky-900/30');
-    }
+const AUTO_WEEK = {{ cycle_week }};
 
-    // Auto-open today's card if within current week panel
-    document.addEventListener('DOMContentLoaded', () => {
-      const today = {{ today | tojson }};
-      const currentPanel = document.getElementById('week-{{ current_week }}');
-      if (!currentPanel) return;
-      const cards = currentPanel.querySelectorAll('.day-card');
-      for (const card of cards) {
-        const body = card.querySelector('.day-card-body');
-        // Check if the card date matches today via the today badge
-        if (card.querySelector('.text-sky-400')) {
-          buildMealBody(body);
-          card.classList.add('open');
-          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          break;
-        }
-      }
+// ── DATA ─────────────────────────────────────────────────────────────────────
+
+function macro(kcal,p,c,f){ return `<span class="macro m-kcal">${kcal} kcal</span><span class="macro m-p">P: ${p}g</span><span class="macro m-c">C: ${c}g</span>${f?`<span class="macro m-f">F: ${f}g</span>`:''}` }
+
+const WEEKS = {
+
+w1:{
+  banner:'<strong>Weeks 1–3 — Training structure.</strong> Fuel10k + GetPro every morning. GetPro also at lunch on Mon, Wed, Thu. Asda Egg Fried Rice on Mon/Tue/Fri. Ben\'s Paella stays on Thursday.',
+  days:[
+    {name:'Monday', badge:'badge-rest', type:'Rest day', kcal:'~1,980 kcal',
+     meals:[
+       {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Grab-and-go. Shake the Fuel10k, eat the GetPro pot on the way in.', macros:macro('330','35','39','7')},
+       {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning. 10g protein hit.', macros:macro('200','10','15','9')},
+       {type:'Lunch', name:'Asda Egg Fried Rice + Chicken 240g + GetPro',extras:'<span class="getpro-tag">+GETPRO</span>', detail:'Microwave rice. Eat chicken cold from pack. GetPro alongside.', macros:macro('680','73','70','10')},
+       {type:'PM Snack', name:'Banana', detail:'Afternoon energy.', macros:macro('90','1','23','')},
+       {type:'Eve Snack', name:'Apple or orange', detail:'Light evening snack.', macros:macro('70','1','18','')},
+       {type:'Dinner', name:'Gousto — medium protein pick', detail:'~600 kcal, target 44g+ protein. Rest day — any decent meal hits target today.', macros:macro('600','44','55','18')}
+     ],
+     preDinP:120, note:'Easiest day to hit 160g — 120g pre-dinner means any Gousto gets you there.'},
+
+    {name:'Tuesday', badge:'badge-train', type:'Kettlebell + MaxiClimber', kcal:'~2,150 kcal',
+     meals:[
+       {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Same as Monday.', macros:macro('330','35','39','7')},
+       {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning.', macros:macro('200','10','15','9')},
+       {type:'Lunch', name:'Asda Egg Fried Rice + Chicken 240g', detail:'Full 240g chicken pack. No GetPro needed today — lunch protein is strong.', macros:macro('550','58','58','10')},
+       {type:'PM Snack', name:'Banana', detail:'45 min before evening session.', macros:macro('90','1','23','')},
+       {type:'Eve Snack', name:'Apple or orange', detail:'Post-session.', macros:macro('70','1','18','')},
+       {type:'Dinner', name:'Gousto — high protein pick', detail:'~680 kcal, 50–55g protein. Chicken, beef or salmon dish. This is a training day — fuel recovery properly.', macros:macro('680','52','70','20')}
+     ],
+     preDinP:105, note:'Training day — pick a Gousto with 50g+ protein. Chicken thighs, beef ragu or salmon.'},
+
+    {name:'Wednesday', badge:'badge-ride', type:'Outdoor Bike 60 min', kcal:'~2,150 kcal',
+     meals:[
+       {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Same morning routine.', macros:macro('330','35','39','7')},
+       {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning.', macros:macro('200','10','15','9')},
+       {type:'Lunch', name:'Batchelors Pasta & Sauce + Tuna tin + GetPro', extras:'<span class="getpro-tag">+GETPRO</span>', detail:'Stir full tin of tuna into pasta. GetPro alongside. Good carbs for the afternoon ride.', macros:macro('600','53','78','8')},
+       {type:'PM Snack', name:'Banana', detail:'45 min before riding.', macros:macro('90','1','23','')},
+       {type:'Eve Snack', name:'Apple or orange', detail:'Post-ride.', macros:macro('70','1','18','')},
+       {type:'Dinner', name:'Gousto — high protein, carb-friendly', detail:'~680 kcal, 50g+ protein. Pasta, rice or noodle Gousto works well on ride evenings.', macros:macro('680','52','72','18')}
+     ],
+     preDinP:100, note:'Ride day — carb-leaning Gousto fine. Target 50g+ protein from dinner.'},
+
+    {name:'Thursday', badge:'badge-train', type:'Kettlebell + MaxiClimber', kcal:'~2,150 kcal',
+     meals:[
+       {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Same morning routine.', macros:macro('330','35','39','7')},
+       {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning.', macros:macro('200','10','15','9')},
+       {type:'Lunch', name:'Ben\'s Paella ★ + Prawns 150g + GetPro', extras:'<span class="fav-tag">★ FAV</span><span class="getpro-tag">+GETPRO</span>', detail:'Thursday is Paella Thursday. Prawns stirred in cold. GetPro alongside. Excellent carb base for evening kettlebell.', macros:macro('480','47','62','12')},
+       {type:'PM Snack', name:'Banana', detail:'45 min before session. Carbs matter tonight.', macros:macro('90','1','23','')},
+       {type:'Eve Snack', name:'Apple or orange', detail:'Post-session.', macros:macro('70','1','18','')},
+       {type:'Dinner', name:'Gousto — strongest pick of the week', detail:'~680 kcal, 52g+ protein. Lowest pre-dinner protein day — Gousto must deliver. Chicken thighs, beef or salmon. Not a pasta-only dish.', macros:macro('680','52','68','22')}
+     ],
+     preDinP:94, note:'⚠ Weakest pre-dinner day (94g). Make this Gousto count — choose chicken or beef, not a veggie/pasta option.', noteWarn:true},
+
+    {name:'Friday', badge:'badge-ride', type:'Outdoor Bike 60 min', kcal:'~2,150 kcal',
+     meals:[
+       {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Same morning routine.', macros:macro('330','35','39','7')},
+       {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning.', macros:macro('200','10','15','9')},
+       {type:'Lunch', name:'Asda Egg Fried Rice + Chicken 240g', detail:'Full chicken pack. Strong protein lunch without needing GetPro.', macros:macro('550','58','58','10')},
+       {type:'PM Snack', name:'Banana', detail:'45 min before ride.', macros:macro('90','1','23','')},
+       {type:'Eve Snack', name:'Apple or orange', detail:'Post-ride.', macros:macro('70','1','18','')},
+       {type:'Dinner', name:'Gousto — end of week treat feel', detail:'~650 kcal, 44g+ protein. Any favourite Gousto today — you\'ve earned it. Stay under 700 kcal.', macros:macro('650','44','65','18')}
+     ],
+     preDinP:105, note:'Strong day. Any Gousto hits 150g+ protein total. Enjoy the Friday pick.'},
+
+    {name:'Saturday', badge:'badge-ruck', type:'Rucking 60–90 min', kcal:'~2,200 kcal',
+     meals:[
+       {type:'Breakfast', name:'Porridge 80g + Milk + 2 Eggs + Banana', detail:'Home cook. 80g oats with semi-skimmed milk. 2 eggs on the side. Banana. Eat 60–90 min before setting off.', macros:macro('530','22','72','14')},
+       {type:'Pre-Ruck', name:'Nature Valley Crunchy Bar (carbs)', detail:'15–20 min before. Crunchy bar is a carb tool here, not a protein source.', macros:macro('200','4','28','8')},
+       {type:'Lunch', name:'3 Scrambled Eggs on 2 Slices Wholegrain Toast + Salad', detail:'Home post-ruck. Fast protein recovery. Add half tin baked beans if hungrier than usual.', macros:macro('490','22','44','18')},
+       {type:'PM Snack', name:'Banana + Apple', detail:'Afternoon.', macros:macro('160','2','41','')},
+       {type:'Dinner', name:'Gousto — Saturday treat pick', detail:'~720 kcal, 48g protein. This is your treat meal of the week. Butter chicken, BBQ pork, slow-cooked lamb. Stay under 750 kcal.', macros:macro('720','48','72','22')}
+     ],
+     preDinP:50, note:'Lower protein day by structure — Saturday relies heavily on Gousto. Add GetPro to breakfast or lunch if you want to boost.'},
+
+    {name:'Sunday', badge:'badge-long', type:'Long Ride — Building to 3h30', kcal:'~2,350 kcal',
+     meals:[
+       {type:'Breakfast', name:'Big Porridge + 2 Eggs + Banana + PB Toast', detail:'80g oats, milk, 2 eggs, 1 banana, 1 slice wholegrain toast with peanut butter. Eat 2–2.5 hrs before rolling. No new foods today.', macros:macro('620','38','78','18')},
+       {type:'On-Bike', name:'Banana every 45 min + Crunchy bars', detail:'40g carbs per hour minimum on rides over 75 min. Banana at 45 min, Crunchy bar at 90 min, banana at 135 min. Drink 500–750ml per hour.', macros:macro('380','6','75','8')},
+       {type:'Recovery', name:'Chicken 150g + Rice Pouch + Salad + Chocolate Milk', detail:'Within 45 min of finishing. Non-negotiable. Chocolate milk first (fast carbs + protein). Then the plate. This feeds tomorrow\'s rest day recovery.', macros:macro('650','50','70','12')},
+       {type:'Dinner', name:'Gousto — protein-rich recovery', detail:'~700 kcal, 52g+ protein. Slow-cooked beef ragu, Thai chicken, lemon herb salmon. This meal feeds Monday\'s rest day.', macros:macro('700','52','70','18')}
+     ],
+     preDinP:94, note:'Recovery plate within 45 min of finishing is critical. Chocolate milk goes in first while the plate is being assembled.'}
+  ]
+},
+
+w2:{
+  banner:'<strong>Week 2 — Rice variety rotation.</strong> Same structure as Week 1 with Monday and Friday rice swapped for variety. All protein targets and calorie tiers identical.',
+  riceSwap:{mon:'Ben\'s Mexican Rice', fri:'Ben\'s Golden Vegetable Rice'}
+},
+
+w3:{
+  banner:'<strong>Week 3 — Further rotation.</strong> Monday takes Golden Veg, Tuesday takes Mexican, Friday returns to Egg Fried. Same structure, same macros.',
+  riceSwap:{mon:'Ben\'s Golden Vegetable Rice', tue:'Ben\'s Mexican Rice', fri:'Asda Egg Fried Rice'}
+},
+
+w4:{
+  banner:'<strong>Week 4 — Recovery Week.</strong> Lower volume, lighter food. Calorie targets drop 150–200 kcal. Snacks reduce to 1–2 per day. Lighter Gousto picks (under 500 kcal). Protein may land at 130–145g — acceptable during deload.',
+  recovery:true,
+  days:[
+    {name:'Mon–Fri', badge:'badge-recovery', type:'Recovery week — reduced training', kcal:'~1,850–2,000 kcal',
+     meals:[
+       {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt (same)', detail:'Keep breakfast identical. The calorie reduction comes from smaller portions elsewhere, not breakfast.', macros:macro('330','35','39','7')},
+       {type:'Snack', name:'1–2 snacks only (vs 3)', detail:'Keep protein snacks. Drop the afternoon apple/orange on rest days. Protein bar on training days only.', macros:macro('200','10','15','9')},
+       {type:'Lunch', name:'Same lunch choices — no change', detail:'Lunch stays identical to Weeks 1–3. The slight calorie cut comes from reduced snacks and lighter Gousto. Don\'t cut lunch back.', macros:macro('500','45','60','10')},
+       {type:'Dinner', name:'Gousto — lighter pick', detail:'Under 500 kcal this week. Thai prawn salad, baked cod with greens, chicken & courgette bowl. Lean protein, less carb.', macros:macro('500','42','48','14')}
+     ],
+     preDinP:90, note:'Recovery week target: 130–145g total protein is fine. Trust the lower volume. Body adapts during rest.'},
+
+    {name:'Saturday', badge:'badge-ruck', type:'Easy 60 min ruck — recovery pace', kcal:'~2,050 kcal',
+     meals:[
+       {type:'Breakfast', name:'60g Porridge (slightly smaller) + 2 Eggs', detail:'60g oats instead of 80g. Skip the banana. It\'s an easier ruck — don\'t over-fuel.', macros:macro('420','28','48','14')},
+       {type:'Lunch', name:'2 Eggs on Toast + Large Salad', detail:'Lighter post-ruck. It\'s a recovery ruck, not a full load effort.', macros:macro('380','22','38','14')},
+       {type:'Dinner', name:'Gousto — light treat', detail:'~600 kcal. End of week — enjoy it but keep it lighter than normal Saturday.', macros:macro('600','44','58','18')}
+     ],
+     preDinP:50, note:'Recovery Saturday — intentionally lighter.'},
+
+    {name:'Sunday', badge:'badge-long', type:'Shorter ride — 75–90 min recovery pace', kcal:'~2,100 kcal',
+     meals:[
+       {type:'Breakfast', name:'Full Sunday Porridge returns', detail:'Back to 80g oats + 2 eggs + banana — even a 75 min ride needs proper fuel. Eat 2 hrs before.', macros:macro('540','34','70','12')},
+       {type:'On-Bike', name:'1 banana at 40–45 min', detail:'Shorter ride = 1 banana sufficient. No need for extra bars.', macros:macro('90','1','23','')},
+       {type:'Recovery', name:'Lighter Recovery Plate', detail:'120g chicken (not 150g), half rice pouch, salad, chocolate milk. Shorter ride = lighter recovery.', macros:macro('530','48','56','10')},
+       {type:'Dinner', name:'Gousto — end-of-cycle pick', detail:'~630 kcal. Final meal before the cycle repeats. Salmon, chicken or beef. Worth marking the end of 4 weeks.', macros:macro('630','48','62','16')}
+     ],
+     preDinP:75, note:'End of 4-week cycle. Sunday morning: weight check. Review how the 4 weeks felt before repeating.'}
+  ]
+}
+};
+
+// ── RENDER WEEKS ─────────────────────────────────────────────────────────────
+
+function renderDay(day){
+  const barPct = Math.min(100, Math.round(day.preDinP/160*100));
+  const barColor = day.preDinP >= 110 ? 'var(--accent)' : day.preDinP >= 90 ? 'var(--protein)' : 'var(--accent2)';
+  const noteClass = day.noteWarn ? 'pb-note pb-warn' : 'pb-note';
+  return `
+<div class="day-card" onclick="toggleDay(this)">
+  <div class="day-header">
+    <div class="day-header-left">
+      <div class="day-name">${day.name}</div>
+      <div>
+        <span class="badge ${day.badge}">${day.type}</span>
+        <div class="day-type" style="margin-top:3px">${day.kcal}</div>
+      </div>
+    </div>
+    <span class="day-chevron">▾</span>
+  </div>
+  <div class="day-body">
+    <table class="meal-table">
+      ${day.meals.map(m=>`
+      <tr>
+        <td class="meal-type-cell">${m.type}</td>
+        <td>
+          <div class="meal-name">${m.name}${m.extras||''}</div>
+          <div class="meal-detail">${m.detail}</div>
+          <div class="meal-macros">${m.macros}</div>
+        </td>
+      </tr>`).join('')}
+    </table>
+    <div class="protein-bar-row">
+      <span class="pb-label">PRE-DINNER P</span>
+      <div class="pb-track"><div class="pb-fill" style="width:${barPct}%;background:${barColor}"></div></div>
+      <span class="pb-val">${day.preDinP}g</span>
+      <span class="${noteClass}">${day.note}</span>
+    </div>
+  </div>
+</div>`;
+}
+
+function buildWeek1(){
+  const w = WEEKS.w1;
+  return `<div class="week-banner"><p>${w.banner}</p></div>${w.days.map(renderDay).join('')}`;
+}
+
+function buildWeek2(){
+  const w1 = WEEKS.w1;
+  const swap = WEEKS.w2.riceSwap;
+  const days = JSON.parse(JSON.stringify(w1.days));
+  days[0].meals[2].name = `${swap.mon} + Chicken 240g + GetPro`;
+  days[4].meals[2].name = `${swap.fri} + Chicken 240g`;
+  return `<div class="week-banner"><p>${WEEKS.w2.banner}</p></div>${days.map(renderDay).join('')}`;
+}
+
+function buildWeek3(){
+  const w1 = WEEKS.w1;
+  const swap = WEEKS.w3.riceSwap;
+  const days = JSON.parse(JSON.stringify(w1.days));
+  days[0].meals[2].name = `${swap.mon} + Chicken 240g + GetPro`;
+  if(swap.tue) days[1].meals[2].name = `${swap.tue} + Chicken 240g`;
+  days[4].meals[2].name = `${swap.fri} + Chicken 240g`;
+  return `<div class="week-banner"><p>${WEEKS.w3.banner}</p></div>${days.map(renderDay).join('')}`;
+}
+
+function buildWeek4(){
+  const w = WEEKS.w4;
+  return `<div class="week-banner recovery"><p>${w.banner}</p></div>${w.days.map(renderDay).join('')}`;
+}
+
+document.getElementById('w1').innerHTML = buildWeek1();
+document.getElementById('w2').innerHTML = buildWeek2();
+document.getElementById('w3').innerHTML = buildWeek3();
+document.getElementById('w4').innerHTML = buildWeek4();
+
+// Auto-select the correct week of the 4-week cycle
+if (AUTO_WEEK > 0) {
+  const _allTabs   = document.querySelectorAll('.wtab');
+  const _allPanels = document.querySelectorAll('.week-panel');
+  _allTabs[0].classList.remove('active');
+  _allPanels[0].classList.remove('active');
+  if (_allTabs[AUTO_WEEK]) { _allTabs[AUTO_WEEK].classList.add('active'); }
+  if (_allPanels[AUTO_WEEK]) { _allPanels[AUTO_WEEK].classList.add('active'); }
+}
+
+// ── SHOPPING LIST DATA ────────────────────────────────────────────────────────
+
+const SHOP_W1 = [
+  {cat:'Breakfasts', items:[
+    {name:'Fuel10k Protein Breakfast Drink 330ml', note:'Mon–Fri mornings. Grab-and-go.', qty:'×5', unit:'£1.28', total:6.40, conf:true},
+    {name:'GetPro High Protein Yoghurt 160g', note:'5 for breakfast + 3 at lunch Mon/Wed/Thu', qty:'×8', unit:'£1.00', total:8.00, conf:true}
+  ]},
+  {cat:'Lunches — Carb Base', items:[
+    {name:'Ben\'s Original Egg Fried Rice 220g', note:'Mon · Tue · Fri lunches', qty:'×3', unit:'£1.32', total:3.96, conf:true},
+    {name:'Ben\'s Original Paella 250g ★', note:'Thursday — favourite, non-negotiable', qty:'×1', unit:'£2.47', total:2.47, conf:true},
+    {name:'Batchelors Pasta & Sauce Tomato & Basil', note:'Wednesday lunch base', qty:'×1', unit:'£1.20', total:1.20, conf:true}
+  ]},
+  {cat:'Lunches — Protein', items:[
+    {name:'Asda Just Essentials Chunky Chicken Breast 240g', note:'3 for lunch + 1 for Sunday recovery plate', qty:'×4', unit:'£1.99', total:7.96, conf:true},
+    {name:'Asda Cooked & Peeled Prawns 150g', note:'Thursday — stir into paella cold', qty:'×1', unit:'£1.75', total:1.75, conf:false},
+    {name:'Asda Tuna Chunks in Spring Water 145g', note:'Wednesday — stir into pasta', qty:'×1', unit:'£0.85', total:0.85, conf:false}
+  ]},
+  {cat:'Weekend — Home Meals', items:[
+    {name:'Free Range Eggs (10-pack)', note:'Sat B ×2 · Sat L ×3 · Sun B ×2 = 7 per week', qty:'×1', unit:'£2.75', total:2.75, conf:false},
+    {name:'Wholegrain Bread (small loaf)', note:'Saturday lunch toast + Sunday pre-ride toast', qty:'×1', unit:'£1.10', total:1.10, conf:false},
+    {name:'Asda Scottish Porridge Oats 1kg', note:'Sat & Sun breakfast. Lasts 3–4 weeks.', qty:'×1', unit:'£1.25', total:1.25, conf:true},
+    {name:'Microwave Basmati Rice Pouch 250g', note:'Sunday recovery plate alongside chicken', qty:'×1', unit:'£0.75', total:0.75, conf:false},
+    {name:'Peanut Butter (small jar)', note:'Sunday pre-ride toast. Lasts several weeks.', qty:'×1', unit:'£1.75', total:1.75, conf:false},
+    {name:'Chocolate Milk 500ml', note:'Sunday — within 45 min of finishing ride', qty:'×1', unit:'£0.70', total:0.70, conf:false},
+    {name:'Semi-Skimmed Milk 2L', note:'Porridge + drinks', qty:'×1', unit:'£1.45', total:1.45, conf:false}
+  ]},
+  {cat:'Snacks & Fruit', items:[
+    {name:'Nature Valley Protein Bars 4×40g', note:'1 per weekday AM. Training days especially.', qty:'×2', unit:'£2.50', total:5.00, conf:true},
+    {name:'Bananas (loose, ~1.2kg)', note:'PM snack + pre-session + on-bike Sunday', qty:'×10', unit:'~9p', total:0.90, conf:false},
+    {name:'Apples or oranges', note:'Evening snack Mon–Fri. Rest days especially.', qty:'×6', unit:'~20p', total:1.20, conf:false}
+  ]}
+];
+
+const SHOP_W23 = [
+  {cat:'Breakfasts — 2 weeks', items:[
+    {name:'Fuel10k Protein Breakfast Drink 330ml', note:'5 per week', qty:'×10', unit:'£1.28', total:12.80, conf:true},
+    {name:'GetPro High Protein Yoghurt 160g', note:'8 per week (5 breakfast + 3 lunch)', qty:'×16', unit:'£1.00', total:16.00, conf:true}
+  ]},
+  {cat:'Lunches — Carb Base (rotated varieties)', items:[
+    {name:'Ben\'s Original Egg Fried Rice 220g', note:'Tue W2 · Fri W3', qty:'×2', unit:'£1.32', total:2.64, conf:true},
+    {name:'Ben\'s Original Mexican Rice 220g', note:'Mon W2 · Tue W3', qty:'×2', unit:'£1.32', total:2.64, conf:true},
+    {name:'Ben\'s Original Golden Vegetable Rice 220g', note:'Fri W2 · Mon W3', qty:'×2', unit:'£1.32', total:2.64, conf:true},
+    {name:'Ben\'s Original Paella 250g ★', note:'Thursday both weeks', qty:'×2', unit:'£2.47', total:4.94, conf:true},
+    {name:'Batchelors Pasta & Sauce Tomato & Basil', note:'Wednesday both weeks', qty:'×2', unit:'£1.20', total:2.40, conf:true}
+  ]},
+  {cat:'Lunches — Protein (2 weeks)', items:[
+    {name:'Asda Just Essentials Chunky Chicken Breast 240g', note:'3 lunch + 1 Sunday × 2 weeks', qty:'×8', unit:'£1.99', total:15.92, conf:true},
+    {name:'Asda Cooked & Peeled Prawns 150g', note:'Thursday both weeks', qty:'×2', unit:'£1.75', total:3.50, conf:false},
+    {name:'Asda Tuna Chunks in Spring Water 145g', note:'Wednesday both weeks', qty:'×2', unit:'£0.85', total:1.70, conf:false}
+  ]},
+  {cat:'Weekend — 2 weeks', items:[
+    {name:'Free Range Eggs (14 total)', note:'Buy 1×12-pack + 1×6-pack or 2×6-packs + extras', qty:'×14', unit:'~27p', total:3.78, conf:false},
+    {name:'Wholegrain Bread (small loaf)', note:'1 per week', qty:'×2', unit:'£1.10', total:2.20, conf:false},
+    {name:'Microwave Basmati Rice Pouch 250g', note:'Sunday recovery each week', qty:'×2', unit:'£0.75', total:1.50, conf:false},
+    {name:'Chocolate Milk 500ml', note:'Sunday recovery each week', qty:'×2', unit:'£0.70', total:1.40, conf:false},
+    {name:'Semi-Skimmed Milk 2L', note:'1 per week', qty:'×2', unit:'£1.45', total:2.90, conf:false}
+  ]},
+  {cat:'Snacks & Fruit — 2 weeks', items:[
+    {name:'Nature Valley Protein Bars (8-pack if available, else 2×4)', note:'5 bars/week × 2 weeks', qty:'×2 packs', unit:'£2.50', total:5.00, conf:true},
+    {name:'Bananas (loose)', note:'~10 per week', qty:'×20', unit:'~9p', total:1.80, conf:false},
+    {name:'Apples or oranges', note:'~6 per week', qty:'×12', unit:'~20p', total:2.40, conf:false}
+  ]}
+];
+
+function buildShopList(data, elId){
+  let html = '';
+  let grandTotal = 0;
+  data.forEach(section=>{
+    let subtotal = 0;
+    html += `<div class="shop-cat-label">${section.cat}</div>`;
+    html += `<table class="shop-table">`;
+    section.items.forEach((item,i)=>{
+      subtotal += item.total;
+      grandTotal += item.total;
+      const tag = item.conf ? '<span class="conf-tag">CONF</span>' : '<span class="est-tag">EST</span>';
+      html += `<tr onclick="tickRow(this)">
+        <td class="shop-check">○</td>
+        <td class="shop-name">${item.name}${tag}<span class="shop-note">${item.note}</span></td>
+        <td class="shop-qty">${item.qty}</td>
+        <td class="shop-unit">${item.unit}</td>
+        <td class="shop-total">£${item.total.toFixed(2)}</td>
+      </tr>`;
     });
-  </script>
+    html += `</table>`;
+    html += `<div class="shop-subtotal"><span class="shop-subtotal-label">${section.cat} subtotal</span><span class="shop-subtotal-val">£${subtotal.toFixed(2)}</span></div>`;
+  });
+  html += `<div class="shop-grand"><div><div class="shop-grand-label">Weekly total</div><div class="shop-grand-note">Confirmed prices from trolley.co.uk · Estimated items within ±20p</div></div><div class="shop-grand-val">£${grandTotal.toFixed(2)}</div></div>`;
+  document.getElementById(elId).innerHTML = html;
+}
+
+buildShopList(SHOP_W1, 'shopList');
+buildShopList(SHOP_W23, 'shopList23');
+
+// ── COST OPTIMISER DATA ───────────────────────────────────────────────────────
+
+const SWAPS = [
+  {title:'Protein yoghurt — skyr swap', saving:'SAVE £5.50/WK', savingClass:'sp-big',
+   from:{name:'GetPro yoghurt 160g × 8', price:'£8.00', priceClass:'sp-old'},
+   to:{name:'Arla Skyr 450g × 2 pots', price:'£2.50', priceClass:'sp-new', note:'£1.25/pot at Asda. Portion into 8 × 112g containers Sunday. 15g protein per portion — identical to GetPro. Massive saving, minimal effort.', effort:2}},
+  {title:'Chicken — batch cook raw thighs', saving:'SAVE ~£4.00/WK', savingClass:'sp-big',
+   from:{name:'Just Essentials cooked chicken 240g × 4', price:'£7.96', priceClass:'sp-old'},
+   to:{name:'Boneless chicken thighs 1kg (raw)', price:'~£4.00', priceClass:'sp-new', note:'Asda boneless thighs ~£3.50–4/kg. Season and roast Sunday 200°C, 25 min. Portion 3 × 240g lunch pots + 150g Sunday. More flavour with rice too.', effort:3}},
+  {title:'Morning snack — oatcakes + peanut butter', saving:'SAVE £3.25/WK', savingClass:'sp-med',
+   from:{name:'Nature Valley Protein bars 2×4-pack', price:'£5.00', priceClass:'sp-old'},
+   to:{name:'Asda oatcakes pack + peanut butter portion', price:'~£1.75', priceClass:'sp-new', note:'3 oatcakes + 1 tbsp PB = ~6g protein at ~£0.25/day. Less protein per snack — consider keeping 1 pack for Tue/Thu training days only.', effort:1}},
+  {title:'Microwave rice — Asda own brand', saving:'SAVE £1.71/WK', savingClass:'sp-med',
+   from:{name:'Ben\'s Egg Fried Rice 220g × 3', price:'£3.96', priceClass:'sp-old'},
+   to:{name:'Asda Egg Fried Micro Rice 250g × 3', price:'£2.25', priceClass:'sp-new', note:'£0.75/pack confirmed. Bigger pack (250g vs 220g). Same quick-heat format. Ben\'s Paella stays — that\'s Thursday and that\'s that.', effort:1}},
+  {title:'Fuel10k breakfast drink', saving:'NO CLEAR SWAP', savingClass:'sp-keep',
+   from:{name:'Fuel10k 330ml × 5', price:'£6.40', priceClass:''},
+   to:{name:'Porridge oats at home if time allows', price:'~£1.50', priceClass:'sp-new', note:'Fuel10k is already at Asda\'s floor price (£1.28). If you have 10 min in the morning, 80g oats + Skyr portion = ~£0.30/day. Only swap if convenient.', effort:3}},
+  {title:'Ben\'s Paella — kept', saving:'NOT CHANGING', savingClass:'sp-keep',
+   from:{name:'Ben\'s Original Paella × 1', price:'£2.47', priceClass:''},
+   to:{name:'Thursday is Paella Thursday.', price:'£2.47', priceClass:'', note:'Worth every penny. Asda own paella-style rice exists at £0.75 if you ever want to trial it. Not recommended.', effort:0}}
+];
+
+function effortDots(n){
+  let html = '<div class="effort-dots"><span class="ed-label">Effort</span>';
+  for(let i=1;i<=3;i++) html += `<div class="dot${i<=n?' on':''}"></div>`;
+  html += '</div>';
+  return html;
+}
+
+const swapHtml = SWAPS.map(s=>`
+<div class="swap-card">
+  <div class="swap-header">
+    <span class="swap-title">${s.title}</span>
+    <span class="saving-pill ${s.savingClass}">${s.saving}</span>
+  </div>
+  <div class="swap-body">
+    <div class="swap-side left">
+      <div class="swap-side-label">Current</div>
+      <div class="swap-item-name">${s.from.name}</div>
+      <div class="swap-price ${s.from.priceClass}">${s.from.price}</div>
+    </div>
+    <div class="swap-side">
+      <div class="swap-side-label">Cheaper option</div>
+      <div class="swap-item-name">${s.to.name}</div>
+      <div class="swap-price ${s.to.priceClass}">${s.to.price}</div>
+      <div class="swap-note-text">${s.to.note}</div>
+      ${s.to.effort > 0 ? effortDots(s.to.effort) : ''}
+    </div>
+  </div>
+</div>`).join('');
+
+document.getElementById('swapCards').innerHTML = swapHtml;
+
+// ── INTERACTIONS ──────────────────────────────────────────────────────────────
+
+function showWeek(id, btn){
+  document.querySelectorAll('.week-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.wtab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toggleDay(card){
+  card.classList.toggle('open');
+}
+
+function tickRow(row){
+  row.classList.toggle('ticked');
+  const chk = row.querySelector('.shop-check');
+  if(row.classList.contains('ticked')){ chk.textContent='✓'; chk.classList.add('on'); }
+  else { chk.textContent='○'; chk.classList.remove('on'); }
+}
+
+</script>
 </body>
 </html>

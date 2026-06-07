@@ -1112,62 +1112,21 @@ async def compliance_view(request: Request):
 
 @app.get("/nutrition", response_class=HTMLResponse)
 async def nutrition_plan(request: Request):
-    weeks = _calendar_weeks()
-    unique_sessions = list({(d["type"], d["dur_min"]) for w in weeks for d in w["days"]})
-    nut_targets = prefetch_nutrition_targets(unique_sessions)
+    today = _today()
+    days_since_start = (today - _PLAN_START).days
+    cycle_week = max(0, days_since_start // 7) % 4  # 0-indexed: 0=w1, 1=w2, 2=w3, 3=w4
 
-    # In-ride fuelling for qualifying endurance sessions, scaled to latest body weight.
-    body_rows = load_body_metrics(days=120)
-    weights = [r["weight_kg"] for r in body_rows if r.get("weight_kg")]
-    latest_weight = weights[-1] if weights else None
-    fuel_plans = prefetch_fuelling_plans(unique_sessions, weight_kg=latest_weight)
-
-    today = date.today()
-    current_week = max(0, min(11, (today - _PLAN_START).days // 7))
-
-    # Actual kcal burned per date from Garmin activities
-    plan_end = weeks[-1]["days"][-1]["date"]
-    acts_by_date = load_activities_by_date(_PLAN_START - timedelta(days=1), plan_end)
-    actual_kcal_by_date: dict[str, int] = {
-        d: int(sum(a.get("calories") or 0 for a in day_acts))
-        for d, day_acts in acts_by_date.items()
-        if any(a.get("calories") for a in day_acts)
-    }
-
-    # Enrich each plan day with nutrition target + actual burn
-    for week in weeks:
-        for day in week["days"]:
-            key = f"{day['type']}_{day['dur_min']}"
-            target = nut_targets.get(key, {})
-            day["kcal"] = target.get("kcal")
-            day["protein_g"] = target.get("protein_g")
-            day["carbs_g"] = target.get("carbs_g")
-            day["fat_g"] = target.get("fat_g")
-            day["nut_brief"] = target.get("brief")
-            day["actual_kcal"] = actual_kcal_by_date.get(day["date"].isoformat())
-            day["fuelling"] = fuel_plans.get(key)
-
-    # Camp days with kcal targets by intensity
-    _CAMP_KCAL = {"hard": 3200, "medium": 2700, "easy": 2200, "rest": 1900, "travel": 1900}
-    camp_days = [
-        {
-            **cd,
-            "kcal_target": _CAMP_KCAL.get(cd["intensity"], 2000),
-            "actual_kcal": actual_kcal_by_date.get(cd["date"].isoformat()),
-            "is_today": cd["date"] == today,
-            "is_past": cd["date"] < today,
-        }
-        for cd in TENERIFE_DAYS
-    ]
+    recent = raw_history(3)
+    today_nut = next((r for r in reversed(recent) if r.get("calories_consumed") is not None), None)
 
     return TEMPLATES.TemplateResponse(
         request=request,
         name="nutrition.html",
         context={
-            "weeks": weeks,
-            "current_week": current_week,
             "today": today.isoformat(),
-            "camp_days": camp_days,
+            "cycle_week": cycle_week,
+            "cal_today": int(today_nut["calories_consumed"]) if today_nut and today_nut.get("calories_consumed") else None,
+            "tdee_today": int(today_nut["calorie_goal_adjusted"]) if today_nut and today_nut.get("calorie_goal_adjusted") else None,
         },
     )
 
