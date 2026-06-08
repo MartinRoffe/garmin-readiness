@@ -401,6 +401,18 @@ def session_for_date_extended(d: date) -> tuple[str, str, int] | None:
     return None
 
 
+def _enrich_kb_spec(spec: dict | None) -> dict | None:
+    if not spec:
+        return None
+    return {
+        **spec,
+        "exercises": [
+            {**ex, "video_url": KB_VIDEO_URLS.get(ex["name"])}
+            for ex in spec["exercises"]
+        ],
+    }
+
+
 def build_calendar_weeks() -> list[dict]:
     today = date.today()
     weeks = []
@@ -418,32 +430,45 @@ def build_calendar_weeks() -> list[dict]:
                 else:
                     dur_fmt = f"{dur // 60}h"
             compound = COMPOUND_SESSIONS.get(label)
-            sub_sessions = (
-                [{"label": s["label"], "garmin_key": s["garmin_key"], "completed": None, "actual_min": None}
-                 for s in compound]
-                if compound else None
-            )
+            # Day-level specs for non-compound sessions
             maxi_intervals = None
-            if stype == "strength" and "MaxiClimber" in label:
-                maxi_intervals = MAXI_INTERVALS.get(wk_idx + 1)
             ruck_spec = None
             kb_spec = None
             if stype == "ruck":
                 ruck_spec = RUCK_SPECS.get(wk_idx + 1)
-                if label == "Ruck + KB":
-                    kb_spec = KB_SPECS.get(wk_idx + 1)
+                if not compound:
+                    kb_spec = _enrich_kb_spec(KB_SPECS.get(wk_idx + 1))
             elif stype == "strength" and "MaxiClimber" in label:
-                kb_spec = KB_FULL_SPECS.get(wk_idx + 1)
+                maxi_intervals = MAXI_INTERVALS.get(wk_idx + 1)
+                if not compound:
+                    kb_spec = _enrich_kb_spec(KB_FULL_SPECS.get(wk_idx + 1))
             elif stype == "strength":
-                kb_spec = KB_SPECS.get(wk_idx + 1)
-            if kb_spec:
-                kb_spec = {
-                    **kb_spec,
-                    "exercises": [
-                        {**ex, "video_url": KB_VIDEO_URLS.get(ex["name"])}
-                        for ex in kb_spec["exercises"]
-                    ],
-                }
+                kb_spec = _enrich_kb_spec(KB_SPECS.get(wk_idx + 1))
+            # Build sub-sessions with per-sub modal data for compound sessions
+            if compound:
+                sub_sessions = []
+                for s in compound:
+                    sub: dict = {
+                        "label": s["label"],
+                        "garmin_key": s["garmin_key"],
+                        "completed": None,
+                        "actual_min": None,
+                        "maxi_intervals": None,
+                        "kb_spec": None,
+                        "ruck_spec": None,
+                    }
+                    if s["label"] == "MaxiClimber":
+                        mi = MAXI_INTERVALS.get(wk_idx + 1)
+                        sub["maxi_intervals"] = ({**mi, "kb": False} if mi else None)
+                    elif s["label"] == "Kettlebell" and "MaxiClimber" in label:
+                        sub["kb_spec"] = _enrich_kb_spec(KB_FULL_SPECS.get(wk_idx + 1))
+                    elif s["label"] == "Kettlebell":
+                        sub["kb_spec"] = _enrich_kb_spec(KB_SPECS.get(wk_idx + 1))
+                    elif s["label"] == "Ruck":
+                        sub["ruck_spec"] = RUCK_SPECS.get(wk_idx + 1)
+                    sub_sessions.append(sub)
+            else:
+                sub_sessions = None
             days.append({
                 "date": d,
                 "day_num": d.day,

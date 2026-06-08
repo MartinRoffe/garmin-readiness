@@ -171,16 +171,17 @@
       {% if week.phase == 'plan' %}
         {% set is_clickable = day.type in ['bike', 'tempo', 'ftp', 'long', 'strength', 'ruck'] %}
         {% set is_missed = day.completed == false and day.type != 'rest' and not day.is_today %}
+        {% set is_compound = day.sub_sessions is not none %}
         <div class="rounded border p-1.5 min-h-[64px] flex flex-col sess-{{ day.type }}
                     {% if day.is_today %}today-ring{% endif %}
                     {% if day.is_past %}is-past{% endif %}
-                    {% if is_missed or (is_clickable and not is_missed) %}clickable-session{% endif %}"
+                    {% if is_missed or (is_clickable and not is_missed and not is_compound) %}clickable-session{% endif %}"
              {% if is_missed %}
                data-date="{{ day.date.isoformat() }}"
                data-label="{{ day.label }}"
                data-dur-fmt="{{ day.dur_fmt }}"
                onclick="openRecoveryModal(this)"
-             {% elif is_clickable %}
+             {% elif is_clickable and not is_compound %}
                data-label="{{ day.label }}"
                data-dur="{{ day.dur_min }}"
                data-dur-fmt="{{ day.dur_fmt }}"
@@ -194,30 +195,41 @@
             <span class="text-[12px] opacity-80">{{ day.month_abbr }} {{ day.day_num }}</span>
             {% if day.coach_note %}
               <span class="text-[11px] text-amber-400 font-semibold leading-none" title="AI coach recommendation">✦</span>
-            {% elif day.completed == true %}
-              <span class="text-[13px] text-emerald-400 font-bold leading-none" title="Completed">✓</span>
-            {% elif day.completed == false %}
-              <span class="text-[13px] text-red-500 font-bold leading-none" title="Missed — click for recovery advice">✗</span>
             {% elif day.is_today %}
               <span class="text-[11px] text-sky-400 font-semibold">TODAY</span>
+            {% elif not is_compound and day.completed == true %}
+              <span class="text-[13px] text-emerald-400 font-bold leading-none" title="Completed">✓</span>
+            {% elif not is_compound and day.completed == false %}
+              <span class="text-[13px] text-red-500 font-bold leading-none" title="Missed — click for recovery advice">✗</span>
             {% endif %}
           </div>
           {% if day.type != 'rest' %}
-            {% if day.sub_sessions %}
-              <div style="flex:1;display:flex;flex-direction:column;gap:4px;margin-bottom:2px">
+            {% if is_compound %}
+              <div style="flex:1;display:flex;flex-direction:column;gap:3px">
                 {% for sub in day.sub_sessions %}
-                <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
-                  <span class="text-[12px] font-semibold leading-tight">{{ sub.label }}</span>
-                  {% if sub.completed == true %}
-                    <span class="text-[11px] text-emerald-400 font-bold flex-shrink-0">✓</span>
-                  {% elif sub.completed == false %}
-                    <span class="text-[11px] text-red-500 font-bold flex-shrink-0">✗</span>
-                  {% endif %}
+                {% set sub_cls = 'sess-ruck' if sub.garmin_key == 'rucking' else 'sess-strength' %}
+                <div class="clickable-session {{ sub_cls }} rounded"
+                     style="padding:3px 6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1)"
+                     data-label="{{ sub.label }}"
+                     data-dur="{{ day.dur_min }}"
+                     data-dur-fmt=""
+                     {% if sub.maxi_intervals %}data-maxi-intervals='{{ sub.maxi_intervals | tojson }}'{% endif %}
+                     {% if sub.kb_spec %}data-kb-spec='{{ sub.kb_spec | tojson }}'{% endif %}
+                     {% if sub.ruck_spec %}data-ruck-spec='{{ sub.ruck_spec | tojson }}'{% endif %}
+                     onclick="event.stopPropagation(); openModal(this)">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:2px">
+                    <span class="text-[11px] font-semibold leading-tight">{{ sub.label }}</span>
+                    {% if sub.completed == true %}
+                      <span class="text-[10px] text-emerald-400 font-bold flex-shrink-0">✓</span>
+                    {% elif sub.completed == false %}
+                      <span class="text-[10px] text-red-500 font-bold flex-shrink-0">✗</span>
+                    {% endif %}
+                  </div>
                 </div>
                 {% endfor %}
               </div>
               {% if day.dur_fmt %}
-                <p class="text-[12px] opacity-70 mt-auto">{{ day.dur_fmt }}</p>
+                <p class="text-[12px] opacity-70 mt-1">{{ day.dur_fmt }}</p>
               {% endif %}
             {% else %}
               <p class="text-[12px] font-semibold leading-tight flex-1">{{ day.label }}{% if day.interference %}&nbsp;<span data-tip="Strength training within 24 h of a quality bike session can blunt the adaptations from the ride (interference effect). If possible, do strength after your bike session, or separate them by a full day." style="font-size:10px;background:#92400e;color:#fcd34d;padding:1px 4px;border-radius:3px;vertical-align:middle;cursor:default">⚠</span>{% endif %}</p>
