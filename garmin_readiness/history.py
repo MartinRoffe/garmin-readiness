@@ -33,6 +33,7 @@ NUMERIC_FIELDS = [
 _UNSCORED = {
     "training_load_chronic", "vo2_max", "total_steps", "active_calories",
     "calories_consumed", "calorie_goal", "calorie_goal_adjusted",
+    "carbs_consumed", "protein_consumed",
     # timestamps — large absolute values destroy z-score baseline
     "sleep_start_ts", "sleep_end_ts",
     # sleep detail — sleep_score already summarises these for the composite
@@ -388,7 +389,8 @@ def raw_history(days: int = 14) -> list[dict]:
         rows = con.execute(
             """SELECT date, hrv_last_night, sleep_score, avg_stress,
                       total_steps, active_calories,
-                      calories_consumed, calorie_goal, calorie_goal_adjusted
+                      calories_consumed, calorie_goal, calorie_goal_adjusted,
+                      carbs_consumed, protein_consumed
                FROM daily_metrics
                WHERE date >= ? AND date <= ?
                ORDER BY date""",
@@ -409,6 +411,8 @@ def raw_history(days: int = 14) -> list[dict]:
             "calories_consumed":       row.get("calories_consumed"),
             "calorie_goal":            row.get("calorie_goal"),
             "calorie_goal_adjusted":   row.get("calorie_goal_adjusted"),
+            "carbs_consumed":          row.get("carbs_consumed"),
+            "protein_consumed":        row.get("protein_consumed"),
         })
     return result
 

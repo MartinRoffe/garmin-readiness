@@ -252,6 +252,38 @@
       </div>
       {% endif %}
 
+      {% if cal_ctx.today_carbs is defined %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Carbs Today</p>
+        <p style="font-family:var(--font-d);font-size:28px;color:#a3e635;letter-spacing:0.04em;line-height:1">{{ cal_ctx.today_carbs }}</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:3px">g</p>
+      </div>
+      {% endif %}
+
+      {% if cal_ctx.avg_carbs is defined %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">{{ cal_ctx.days_logged }}-Day Avg Carbs</p>
+        <p style="font-family:var(--font-d);font-size:28px;color:#a3e635;letter-spacing:0.04em;line-height:1;opacity:0.65">{{ cal_ctx.avg_carbs }}</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:3px">g / day</p>
+      </div>
+      {% endif %}
+
+      {% if cal_ctx.today_protein is defined %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Protein Today</p>
+        <p style="font-family:var(--font-d);font-size:28px;color:#38bdf8;letter-spacing:0.04em;line-height:1">{{ cal_ctx.today_protein }}</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:3px">g · target 160g+</p>
+      </div>
+      {% endif %}
+
+      {% if cal_ctx.avg_protein is defined %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">{{ cal_ctx.days_logged }}-Day Avg Protein</p>
+        <p style="font-family:var(--font-d);font-size:28px;color:#38bdf8;letter-spacing:0.04em;line-height:1;opacity:0.65">{{ cal_ctx.avg_protein }}</p>
+        <p style="font-family:var(--font-m);font-size:11px;color:var(--muted);margin-top:3px">g / day</p>
+      </div>
+      {% endif %}
+
     </div>
 
     {% if cal_values %}

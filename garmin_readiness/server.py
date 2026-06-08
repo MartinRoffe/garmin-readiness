@@ -442,6 +442,19 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
         except Exception:
             pass
 
+    # Nutrition snapshot for readiness tab
+    nutrition_today = None
+    if m.calories_consumed is not None:
+        nutrition_today = {
+            "calories": int(m.calories_consumed),
+            "tdee":     int(m.calorie_goal_adjusted) if m.calorie_goal_adjusted else None,
+            "goal":     int(m.calorie_goal) if m.calorie_goal else None,
+            "carbs":    round(m.carbs_consumed) if m.carbs_consumed is not None else None,
+            "protein":  round(m.protein_consumed) if m.protein_consumed is not None else None,
+        }
+        if nutrition_today["tdee"] and nutrition_today["calories"]:
+            nutrition_today["balance"] = nutrition_today["tdee"] - nutrition_today["calories"]
+
     return {
         "date": date_key,
         "date_long": target.strftime("%A, %-d %B %Y"),
@@ -467,6 +480,7 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
         "fatigue_alerts": fatigue_alerts,
         "weekly_briefing": weekly_briefing,
         "is_monday": is_monday,
+        "nutrition_today": nutrition_today,
     }
 
 
@@ -1271,8 +1285,10 @@ async def nutrition_plan(request: Request):
         context={
             "today": today.isoformat(),
             "cycle_week": cycle_week,
-            "cal_today": int(today_nut["calories_consumed"]) if today_nut and today_nut.get("calories_consumed") else None,
-            "tdee_today": int(today_nut["calorie_goal_adjusted"]) if today_nut and today_nut.get("calorie_goal_adjusted") else None,
+            "cal_today":     int(today_nut["calories_consumed"])    if today_nut and today_nut.get("calories_consumed")    else None,
+            "tdee_today":    int(today_nut["calorie_goal_adjusted"]) if today_nut and today_nut.get("calorie_goal_adjusted") else None,
+            "carbs_today":   round(today_nut["carbs_consumed"])     if today_nut and today_nut.get("carbs_consumed")       else None,
+            "protein_today": round(today_nut["protein_consumed"])   if today_nut and today_nut.get("protein_consumed")     else None,
         },
     )
 
@@ -1493,6 +1509,17 @@ def _body_context() -> dict[str, Any]:
         cal_ctx["today_consumed"] = today_nut.get("calories_consumed")
         cal_ctx["today_tdee"]     = today_nut.get("calorie_goal_adjusted")
         cal_ctx["today_goal"]     = today_nut.get("calorie_goal")
+        if today_nut.get("carbs_consumed") is not None:
+            cal_ctx["today_carbs"] = round(today_nut["carbs_consumed"])
+        if today_nut.get("protein_consumed") is not None:
+            cal_ctx["today_protein"] = round(today_nut["protein_consumed"])
+    # 14-day macro averages
+    carbs_vals   = [r["carbs_consumed"]   for r in recent_metrics if r.get("carbs_consumed")   is not None]
+    protein_vals = [r["protein_consumed"] for r in recent_metrics if r.get("protein_consumed") is not None]
+    if carbs_vals:
+        cal_ctx["avg_carbs"]   = round(sum(carbs_vals) / len(carbs_vals))
+    if protein_vals:
+        cal_ctx["avg_protein"] = round(sum(protein_vals) / len(protein_vals))
 
     # Calorie chart (last 14 days) — convert date objects to ISO strings for _short()
     _cal_rows   = [r for r in recent_metrics if r.get("calories_consumed") is not None]
@@ -1834,11 +1861,35 @@ def _build_coach_context() -> str:
         if con_vals:
             avg_consumed = round(sum(con_vals) / len(con_vals))
             avg_tdee     = round(sum(adj_vals) / len(adj_vals)) if adj_vals else None
-            body_parts += ["## Calorie Intake (Garmin food log)"]
+            body_parts += ["## Calorie & Macro Intake (Garmin food log)"]
             body_parts.append(f"Avg consumed (last {len(con_vals)} days): {avg_consumed:,} kcal/day")
             if avg_tdee:
                 deficit = avg_tdee - avg_consumed
                 body_parts.append(f"Avg TDEE: {avg_tdee:,} kcal  |  Avg deficit: {deficit:+,} kcal/day")
+            carbs_vals   = [r["carbs_consumed"]   for r in history_14 if r.get("carbs_consumed")   is not None]
+            protein_vals = [r["protein_consumed"] for r in history_14 if r.get("protein_consumed") is not None]
+            if carbs_vals:
+                avg_c = round(sum(carbs_vals) / len(carbs_vals))
+                avg_p = round(sum(protein_vals) / len(protein_vals)) if protein_vals else None
+                macro_line = f"Avg carbs: {avg_c}g/day"
+                if avg_p:
+                    macro_line += f"  |  Avg protein: {avg_p}g/day"
+                body_parts.append(macro_line)
+            # Today's macros
+            today_nut_c = next((r for r in reversed(history_14) if r.get("calories_consumed") is not None), None)
+            if today_nut_c:
+                today_c = int(today_nut_c["calories_consumed"])
+                today_carbs_c = round(today_nut_c["carbs_consumed"]) if today_nut_c.get("carbs_consumed") is not None else None
+                today_prot_c  = round(today_nut_c["protein_consumed"]) if today_nut_c.get("protein_consumed") is not None else None
+                today_tdee_c  = int(today_nut_c["calorie_goal_adjusted"]) if today_nut_c.get("calorie_goal_adjusted") else None
+                parts = [f"Today logged: {today_c:,} kcal"]
+                if today_tdee_c:
+                    parts.append(f"TDEE {today_tdee_c:,} ({today_tdee_c - today_c:+,})")
+                if today_carbs_c is not None:
+                    parts.append(f"carbs {today_carbs_c}g")
+                if today_prot_c is not None:
+                    parts.append(f"protein {today_prot_c}g")
+                body_parts.append("  |  ".join(parts))
 
         # Inject cached AI advisor text if available
         cached_body = get_cached_text(f"body_analysis_v1_{today.isoformat()}")

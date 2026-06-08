@@ -65,6 +65,8 @@ class DailyMetrics:
     calories_consumed: Optional[float] = None     # kcal logged by user
     calorie_goal: Optional[float] = None          # Garmin base daily goal
     calorie_goal_adjusted: Optional[float] = None # goal adjusted for activity (TDEE)
+    carbs_consumed: Optional[float] = None        # grams of carbohydrate logged
+    protein_consumed: Optional[float] = None      # grams of protein logged
 
 
 def _safe_get(d: dict, *keys, default=None):
@@ -221,6 +223,12 @@ def fetch_metrics(api, target_date: date) -> DailyMetrics:
             adj = goals.get("adjustedCalories")
             if adj is not None:
                 m.calorie_goal_adjusted = float(adj)
+            carbs = content.get("carbs") or content.get("totalCarbohydrates") or content.get("carbohydrates")
+            if carbs is not None:
+                m.carbs_consumed = float(carbs)
+            protein = content.get("protein") or content.get("totalProtein")
+            if protein is not None:
+                m.protein_consumed = float(protein)
     except Exception as e:
         logger.debug("Nutrition fetch failed: %s", e)
 

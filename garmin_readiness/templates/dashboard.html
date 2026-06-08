@@ -351,6 +351,56 @@
   </div>
   {% endif %}
 
+  <!-- ── Today's nutrition ───────────────────────────────────────── -->
+  {% if nutrition_today %}
+  {% set nt = nutrition_today %}
+  <div class="card" style="padding:14px 20px;margin-bottom:12px">
+    <p class="eyebrow" style="margin-bottom:10px">Today's Nutrition</p>
+    <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-end">
+
+      <div>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Logged</p>
+        <p style="font-family:var(--font-d);font-size:26px;color:var(--text);letter-spacing:0.04em;line-height:1">{{ "{:,}".format(nt.calories) }}</p>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:2px">kcal</p>
+      </div>
+
+      {% if nt.tdee %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">TDEE</p>
+        <p style="font-family:var(--font-d);font-size:26px;color:var(--text-dim);letter-spacing:0.04em;line-height:1">{{ "{:,}".format(nt.tdee) }}</p>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:2px">kcal</p>
+      </div>
+      {% endif %}
+
+      {% if nt.balance is defined %}
+      {% set bal_col = '#4ade80' if nt.balance > 0 else ('#fbbf24' if nt.balance > -500 else '#f87171') %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Balance</p>
+        <p style="font-family:var(--font-d);font-size:26px;color:{{ bal_col }};letter-spacing:0.04em;line-height:1">{% if nt.balance > 0 %}−{{ "{:,}".format(nt.balance) }}{% else %}+{{ "{:,}".format(-nt.balance) }}{% endif %}</p>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:2px">{% if nt.balance > 0 %}deficit{% else %}surplus{% endif %}</p>
+      </div>
+      {% endif %}
+
+      {% if nt.carbs %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Carbs</p>
+        <p style="font-family:var(--font-d);font-size:26px;color:#a3e635;letter-spacing:0.04em;line-height:1">{{ nt.carbs }}</p>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:2px">g</p>
+      </div>
+      {% endif %}
+
+      {% if nt.protein %}
+      <div>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px">Protein</p>
+        <p style="font-family:var(--font-d);font-size:26px;color:#38bdf8;letter-spacing:0.04em;line-height:1">{{ nt.protein }}</p>
+        <p style="font-family:var(--font-m);font-size:10px;color:var(--muted);margin-top:2px">g</p>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endif %}
+
   <!-- ── AI Advice ─────────────────────────────────────────────────── -->
   {% if advice %}
   <div class="card" style="padding:20px 24px;margin-bottom:12px;border-left:3px solid var(--accent)">
