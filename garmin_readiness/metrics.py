@@ -58,6 +58,11 @@ class DailyMetrics:
     training_load_acute: Optional[float] = None   # 7-day acute load
     training_load_chronic: Optional[float] = None # 28-day chronic load (context only)
     vo2_max: Optional[float] = None               # VO2 max (ml/kg/min)
+    # Heat / altitude acclimation (from get_training_status, when device provides it)
+    heat_acclimation_pct: Optional[float] = None  # 0–100 heat acclimatization %
+    altitude_acclimation: Optional[float] = None  # altitude acclimation (m or %)
+    # Resting heart rate
+    resting_hr: Optional[float] = None            # bpm (daily summary / RHR endpoint)
     # Daily activity (NEAT)
     total_steps: Optional[float] = None           # daily step count
     active_calories: Optional[float] = None       # non-BMR calories burned
@@ -195,18 +200,56 @@ def fetch_metrics(api, target_date: date) -> DailyMetrics:
             if vo2:
                 v = vo2.get("vo2MaxPreciseValue") or vo2.get("vo2MaxValue")
                 m.vo2_max = float(v) if v is not None else None
+
+            # Heat / altitude acclimation — DTO location and key names vary by
+            # device/firmware, so probe several candidates and take the first hit.
+            accl = (
+                ts.get("heatAltitudeAcclimationDTO")
+                or _safe_get(ts, "mostRecentTrainingStatus", "heatAltitudeAcclimationDTO")
+                or (primary.get("heatAltitudeAcclimationDTO") if primary else None)
+            )
+            if accl and isinstance(accl, dict):
+                logger.debug("Heat/altitude acclimation DTO: %s", accl)
+                for key in ("heatAcclimatizationPercentage", "heatAcclimationPercentage",
+                            "heatAcclimatization", "currentHeatAcclimatizationPercentage"):
+                    v = accl.get(key)
+                    if v is not None:
+                        m.heat_acclimation_pct = float(v)
+                        break
+                for key in ("altitudeAcclimatization", "altitudeAcclimatizationPercentage",
+                            "currentAltitude", "acclimatizationAltitude"):
+                    v = accl.get(key)
+                    if v is not None:
+                        m.altitude_acclimation = float(v)
+                        break
     except Exception as e:
         logger.debug("Training status fetch failed: %s", e)
 
-    # --- Daily summary (steps + active calories / NEAT) ---
+    # --- Daily summary (steps + active calories / NEAT + resting HR) ---
     try:
         daily = api.get_daily_summary(date_str)
         if isinstance(daily, dict):
             m.total_steps = daily.get("totalSteps")
             cals = daily.get("activeKilocalories") or daily.get("activeCalories")
             m.active_calories = float(cals) if cals is not None else None
+            rhr = daily.get("restingHeartRate")
+            if rhr is not None:
+                m.resting_hr = float(rhr)
     except Exception as e:
         logger.debug("Daily summary fetch failed: %s", e)
+
+    # --- Resting HR fallback (dedicated RHR endpoint) ---
+    if m.resting_hr is None:
+        try:
+            rhr_resp = api.get_rhr_day(date_str)
+            entries = _safe_get(rhr_resp, "allMetrics", "metricsMap") or {}
+            series = entries.get("WELLNESS_RESTING_HEART_RATE") or []
+            if series and isinstance(series, list):
+                v = (series[0] or {}).get("value")
+                if v is not None:
+                    m.resting_hr = float(v)
+        except Exception as e:
+            logger.debug("RHR fetch failed: %s", e)
 
     # --- Nutrition (food log) ---
     try:

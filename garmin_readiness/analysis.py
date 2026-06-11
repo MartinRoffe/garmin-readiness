@@ -113,6 +113,67 @@ def _extract_ftp_effort(api: Any, activity_id: int) -> dict:
         return {}
 
 
+_CYCLING_TYPES = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
+
+
+def _extract_durability(api: Any, activity: dict) -> Optional[dict]:
+    """Late-ride HR drift from lap splits: duration-weighted avg HR of the
+    final third of the ride vs the first third.
+
+    drift_pct = (final − first) / first × 100. Positive = HR rising late in
+    the ride at (assumed) constant effort — a durability/fatigue-resistance
+    signal. Returns None when fewer than 3 HR-bearing laps (e.g. single-lap
+    indoor rides) so callers can skip silently.
+    """
+    try:
+        splits = api.get_activity_splits(activity["activity_id"])
+        laps = splits.get("lapDTOs") or splits.get("laps") or []
+        hr_laps = [
+            l for l in laps
+            if (l.get("averageHR") or 0) > 0
+            and (l.get("duration") or l.get("elapsedDuration") or 0) > 0
+        ]
+        if len(hr_laps) < 3:
+            return None
+
+        def _dur(l: dict) -> float:
+            return float(l.get("duration") or l.get("elapsedDuration") or 0)
+
+        total = sum(_dur(l) for l in hr_laps)
+        third = total / 3.0
+
+        def _weighted_hr(lap_subset: list[dict]) -> Optional[float]:
+            secs = sum(_dur(l) for l in lap_subset)
+            if secs <= 0:
+                return None
+            return sum(float(l["averageHR"]) * _dur(l) for l in lap_subset) / secs
+
+        # Bucket laps into thirds by cumulative duration
+        first_laps, final_laps = [], []
+        elapsed = 0.0
+        for l in hr_laps:
+            mid = elapsed + _dur(l) / 2.0
+            if mid < third:
+                first_laps.append(l)
+            elif mid >= 2 * third:
+                final_laps.append(l)
+            elapsed += _dur(l)
+        first_hr = _weighted_hr(first_laps)
+        final_hr = _weighted_hr(final_laps)
+        if not first_hr or not final_hr:
+            return None
+        return {
+            "date": activity["date"],
+            "duration_min": round((activity.get("duration_seconds") or total) / 60),
+            "first_third_hr": round(first_hr, 1),
+            "final_third_hr": round(final_hr, 1),
+            "drift_pct": round((final_hr - first_hr) / first_hr * 100, 2),
+            "n_laps": len(hr_laps),
+        }
+    except Exception:
+        return None
+
+
 def fetch_activity_detail(api: Any, activity_id: int, activity: Optional[dict] = None,
                           session_label: Optional[str] = None) -> dict:
     """Return a merged dict of activity summary + HR zones.
@@ -514,6 +575,18 @@ def refresh_analyses(api: Any, days: int = 14) -> None:
         acts_by_date.setdefault(act["date"], []).append(act)
     for act in activities:
         act_id = act["activity_id"]
+        # Durability extraction is independent of the AI analysis — run it for
+        # any long cycling activity not yet measured (≥90 min, lap splits only).
+        try:
+            from .history import durability_exists, save_durability
+            if (act.get("type_key") in _CYCLING_TYPES
+                    and (act.get("duration_seconds") or 0) >= 90 * 60
+                    and not durability_exists(act_id)):
+                dur_row = _extract_durability(api, act)
+                if dur_row:
+                    save_durability(act_id, dur_row)
+        except Exception:
+            pass
         if load_analysis(act_id) is not None:
             continue  # already done
         try:

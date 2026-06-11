@@ -34,6 +34,8 @@ _UNSCORED = {
     "training_load_chronic", "vo2_max", "total_steps", "active_calories",
     "calories_consumed", "calorie_goal", "calorie_goal_adjusted",
     "carbs_consumed", "protein_consumed",
+    # acclimation + resting HR — consumed by illness/heat features, not the composite
+    "heat_acclimation_pct", "altitude_acclimation", "resting_hr",
     # timestamps — large absolute values destroy z-score baseline
     "sleep_start_ts", "sleep_end_ts",
     # sleep detail — sleep_score already summarises these for the composite
@@ -387,8 +389,8 @@ def raw_history(days: int = 14) -> list[dict]:
     with _conn() as con:
         _ensure_schema(con)
         rows = con.execute(
-            """SELECT date, hrv_last_night, sleep_score, avg_stress,
-                      total_steps, active_calories,
+            """SELECT date, hrv_last_night, sleep_score, avg_stress, rest_stress,
+                      resting_hr, total_steps, active_calories,
                       calories_consumed, calorie_goal, calorie_goal_adjusted,
                       carbs_consumed, protein_consumed
                FROM daily_metrics
@@ -406,6 +408,8 @@ def raw_history(days: int = 14) -> list[dict]:
             "hrv_last_night":          row.get("hrv_last_night"),
             "sleep_score":             row.get("sleep_score"),
             "avg_stress":              row.get("avg_stress"),
+            "rest_stress":             row.get("rest_stress"),
+            "resting_hr":              row.get("resting_hr"),
             "total_steps":             row.get("total_steps"),
             "active_calories":         row.get("active_calories"),
             "calories_consumed":       row.get("calories_consumed"),
@@ -893,6 +897,255 @@ def load_btb_summary() -> list[dict]:
             "note_2": n2.get("note"),
         })
     return pairs[:10]
+
+
+# ── Foster monotony & strain ─────────────────────────────────────────────────
+
+def weekly_monotony_strain(weeks: int = 8) -> list[dict]:
+    """Foster training monotony & strain, one dict per Mon–Sun week (oldest first).
+
+    daily_load = SUM(activities.training_load) per day; days with no training
+    count as 0.0 (monotony is about load *variability* across all 7 days).
+    monotony = mean(daily) / pstdev(daily)  (None when stdev == 0)
+    strain   = weekly_load * monotony
+    Falls back to duration_seconds/60 for trained days with no training_load.
+    """
+    import statistics
+
+    today = date.today()
+    this_monday = today - timedelta(days=today.weekday())
+    start = this_monday - timedelta(weeks=weeks - 1)
+    with _conn() as con:
+        _ensure_activities_schema(con)
+        rows = con.execute(
+            """SELECT date,
+                      SUM(training_load) AS load,
+                      SUM(duration_seconds) AS secs
+               FROM activities
+               WHERE date >= ?
+               GROUP BY date""",
+            (start.isoformat(),),
+        ).fetchall()
+
+    daily_load: dict[str, float] = {}
+    for r in rows:
+        load = r["load"]
+        if load is None and r["secs"]:
+            load = r["secs"] / 60.0  # fallback: minutes as load proxy
+        daily_load[r["date"]] = float(load or 0.0)
+
+    result = []
+    for w in range(weeks):
+        week_start = start + timedelta(weeks=w)
+        days = [week_start + timedelta(days=i) for i in range(7)]
+        loads = [daily_load.get(d.isoformat(), 0.0) for d in days]
+        # For the current (incomplete) week, only use elapsed days
+        if week_start == this_monday:
+            elapsed = (today - week_start).days + 1
+            loads = loads[:elapsed]
+        if not loads:
+            continue
+        weekly_load = sum(loads)
+        mean = statistics.mean(loads)
+        stdev = statistics.pstdev(loads)
+        monotony = round(mean / stdev, 2) if stdev > 0 else None
+        strain = round(weekly_load * monotony) if monotony is not None else None
+        result.append({
+            "week_start": week_start,
+            "label": week_start.strftime("%-d %b"),
+            "weekly_load": round(weekly_load),
+            "monotony": monotony,
+            "strain": strain,
+            "days_trained": sum(1 for v in loads if v > 0),
+        })
+    return result
+
+
+# ── Durability (late-ride HR drift) ──────────────────────────────────────────
+
+def _ensure_durability_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS activity_durability (
+            activity_id INTEGER PRIMARY KEY,
+            date TEXT NOT NULL,
+            duration_min INTEGER,
+            first_third_hr REAL,
+            final_third_hr REAL,
+            drift_pct REAL,
+            n_laps INTEGER,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def save_durability(activity_id: int, row: dict) -> None:
+    with _conn() as con:
+        _ensure_durability_schema(con)
+        con.execute(
+            """INSERT OR REPLACE INTO activity_durability
+               (activity_id, date, duration_min, first_third_hr, final_third_hr, drift_pct, n_laps)
+               VALUES (?,?,?,?,?,?,?)""",
+            (activity_id, row["date"], row.get("duration_min"),
+             row.get("first_third_hr"), row.get("final_third_hr"),
+             row.get("drift_pct"), row.get("n_laps")),
+        )
+
+
+def load_durability(days: int = 180) -> list[dict]:
+    start = (date.today() - timedelta(days=days - 1)).isoformat()
+    with _conn() as con:
+        _ensure_durability_schema(con)
+        rows = con.execute(
+            "SELECT * FROM activity_durability WHERE date >= ? ORDER BY date ASC",
+            (start,),
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def durability_exists(activity_id: int) -> bool:
+    with _conn() as con:
+        _ensure_durability_schema(con)
+        row = con.execute(
+            "SELECT 1 FROM activity_durability WHERE activity_id = ?", (activity_id,)
+        ).fetchone()
+    return row is not None
+
+
+# ── Estimated W/kg (no power meter — ACSM estimate from VO2max + weight) ─────
+
+def estimated_wkg_history(days: int = 180) -> list[dict]:
+    """Estimated FTP watts and W/kg per day with a VO2max reading.
+
+    p_vo2max = (vo2max − 7) × weight_kg / 10.8   (ACSM cycling formula)
+    est_ftp_w = 0.80 × p_vo2max
+    Weight is carried forward from the most recent body_metrics reading.
+    """
+    start = (date.today() - timedelta(days=days - 1)).isoformat()
+    with _conn() as con:
+        _ensure_schema(con)
+        _ensure_body_metrics_schema(con)
+        vo2_rows = con.execute(
+            "SELECT date, vo2_max FROM daily_metrics WHERE date >= ? AND vo2_max IS NOT NULL ORDER BY date",
+            (start,),
+        ).fetchall()
+        weight_rows = con.execute(
+            "SELECT date, weight_kg FROM body_metrics WHERE weight_kg IS NOT NULL ORDER BY date",
+        ).fetchall()
+
+    weights = [(r["date"], float(r["weight_kg"])) for r in weight_rows]
+    result = []
+    for r in vo2_rows:
+        d_iso = r["date"]
+        weight = None
+        for wd, wv in weights:
+            if wd <= d_iso:
+                weight = wv
+            else:
+                break
+        if weight is None or weight <= 0:
+            continue
+        vo2 = float(r["vo2_max"])
+        p_vo2max = (vo2 - 7.0) * weight / 10.8
+        est_ftp_w = 0.80 * p_vo2max
+        d = date.fromisoformat(d_iso)
+        result.append({
+            "date": d_iso,
+            "label": d.strftime("%-d %b"),
+            "vo2_max": vo2,
+            "weight_kg": round(weight, 1),
+            "est_ftp_w": round(est_ftp_w),
+            "wkg": round(est_ftp_w / weight, 2),
+        })
+    return result
+
+
+def latest_estimated_wkg() -> Optional[dict]:
+    hist = estimated_wkg_history(180)
+    return hist[-1] if hist else None
+
+
+# ── Heat / altitude acclimation ──────────────────────────────────────────────
+
+def acclimation_latest() -> Optional[dict]:
+    """Most recent daily_metrics row (last 14 days) with any acclimation value."""
+    start = (date.today() - timedelta(days=13)).isoformat()
+    with _conn() as con:
+        _ensure_schema(con)
+        row = con.execute(
+            """SELECT date, heat_acclimation_pct, altitude_acclimation
+               FROM daily_metrics
+               WHERE date >= ?
+                 AND (heat_acclimation_pct IS NOT NULL OR altitude_acclimation IS NOT NULL)
+               ORDER BY date DESC LIMIT 1""",
+            (start,),
+        ).fetchone()
+    return dict(row) if row else None
+
+
+# ── FTP retest due check ─────────────────────────────────────────────────────
+
+def ftp_retest_due(today: date, max_age_days: int = 42,
+                   plan_start: Optional[date] = None) -> Optional[dict]:
+    """Return {last_date, age_days} when the newest FTP test is older than
+    max_age_days. With an empty table, fires once today > plan_start + 21d
+    (only when plan_start is provided)."""
+    tests = load_ftp_tests()
+    if tests:
+        last = tests[-1]
+        try:
+            last_d = date.fromisoformat(last["date"])
+        except Exception:
+            return None
+        age = (today - last_d).days
+        if age > max_age_days:
+            return {"last_date": last["date"], "age_days": age}
+        return None
+    if plan_start is not None and today > plan_start + timedelta(days=21):
+        return {"last_date": None, "age_days": None}
+    return None
+
+
+# ── Fuelling compliance logs ─────────────────────────────────────────────────
+
+def _ensure_fuelling_log_schema(con: sqlite3.Connection) -> None:
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS fuelling_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            date TEXT NOT NULL,
+            activity_id INTEGER UNIQUE,
+            planned_carbs_g_per_hr REAL,
+            actual_carbs_g_per_hr REAL,
+            fluid_ok INTEGER,
+            note TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        )
+    """)
+
+
+def save_fuelling_log(log_date: str, activity_id: Optional[int],
+                      planned_carbs_g_per_hr: Optional[float],
+                      actual_carbs_g_per_hr: Optional[float],
+                      fluid_ok: bool, note: Optional[str] = None) -> None:
+    with _conn() as con:
+        _ensure_fuelling_log_schema(con)
+        con.execute(
+            """INSERT OR REPLACE INTO fuelling_logs
+               (date, activity_id, planned_carbs_g_per_hr, actual_carbs_g_per_hr, fluid_ok, note)
+               VALUES (?,?,?,?,?,?)""",
+            (log_date, activity_id, planned_carbs_g_per_hr,
+             actual_carbs_g_per_hr, 1 if fluid_ok else 0, note),
+        )
+
+
+def load_fuelling_logs(days: int = 90) -> list[dict]:
+    start = (date.today() - timedelta(days=days - 1)).isoformat()
+    with _conn() as con:
+        _ensure_fuelling_log_schema(con)
+        rows = con.execute(
+            "SELECT * FROM fuelling_logs WHERE date >= ? ORDER BY date DESC",
+            (start,),
+        ).fetchall()
+    return [dict(r) for r in rows]
 
 
 def get_coach_memory() -> Optional[dict]:
