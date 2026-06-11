@@ -160,6 +160,103 @@
   {% endfor %}
   {% endif %}
 
+  <!-- ── HRV traffic light + session modulation ───────────────────── -->
+  {% if traffic_light and traffic_light.status != 'unknown' %}
+  {% set tl = traffic_light %}
+  {% if modulation and modulation.label is defined %}
+  <div class="card" style="padding:14px 20px;margin-bottom:12px;border-left-width:3px;border-left-style:solid;
+    {% if tl.status == 'red' %}border-left-color:#f87171;background:rgba(248,113,113,0.05)
+    {% else %}border-left-color:#fbbf24;background:rgba(251,191,36,0.05){% endif %}">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <span style="font-size:18px">{% if tl.status == 'red' %}🔴{% else %}🟠{% endif %}</span>
+      <div style="flex:1">
+        <p style="font-family:var(--font-m);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;
+          {% if tl.status == 'red' %}color:#f87171{% else %}color:#fbbf24{% endif %};margin-bottom:3px">
+          {{ modulation.headline }} <button type="button" class="gr-tip-trigger" data-tip="HRV-guided training: when morning HRV drops well below your 30-day baseline, easing today's session protects the adaptations you've already built. Evidence: HRV-guided groups outperform fixed plans." aria-label="More info" aria-expanded="false">?</button>
+        </p>
+        <p style="font-size:12px;color:var(--text-dim);line-height:1.55;margin-bottom:8px">
+          {{ tl.reason }}. Suggested: <strong style="color:var(--text)">{{ modulation.label }} ({{ modulation.duration_min }} min)</strong>
+          instead of {{ modulation.planned_label }}.
+        </p>
+        <button onclick="applyModulation(this)" data-date="{{ modulation.date }}"
+                data-dur="{{ modulation.duration_min }}" data-type="{{ modulation.session_type }}"
+                data-label="{{ modulation.label }}" data-reason="HRV traffic light: {{ tl.reason }}"
+                style="font-family:var(--font-m);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:6px 14px;border:1px solid var(--border2);color:var(--text);background:var(--surface);border-radius:2px">
+          Apply to plan ✓
+        </button>
+      </div>
+    </div>
+  </div>
+  {% elif tl.status == 'green' %}
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:6px 12px">
+    <span style="font-size:12px">🟢</span>
+    <span style="font-family:var(--font-m);font-size:11px;color:#34d399;letter-spacing:0.08em">
+      HRV in range — session as planned
+    </span>
+  </div>
+  {% elif modulation %}
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:6px 12px">
+    <span style="font-size:12px">{% if tl.status == 'red' %}🔴{% else %}🟠{% endif %}</span>
+    <span style="font-family:var(--font-m);font-size:11px;color:#fbbf24;letter-spacing:0.08em">
+      {{ tl.reason }} — keep today genuinely easy
+    </span>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <!-- ── FTP retest prompt ───────────────────────────────────────────── -->
+  {% if ftp_retest %}
+  <div class="card" style="padding:14px 20px;margin-bottom:12px;border-left:3px solid #60a5fa;background:rgba(96,165,250,0.05)">
+    <div style="display:flex;align-items:flex-start;gap:10px">
+      <span style="font-size:18px">⏱</span>
+      <div style="flex:1">
+        <p style="font-family:var(--font-m);font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#60a5fa;margin-bottom:3px">
+          FTP re-test due <button type="button" class="gr-tip-trigger" data-tip="A stale LTHR makes every zone target slightly wrong. Re-test every ~6 weeks so zones track your fitness." aria-label="More info" aria-expanded="false">?</button>
+        </p>
+        <p style="font-size:12px;color:var(--text-dim);line-height:1.55;margin-bottom:8px">
+          {% if ftp_retest.age_days %}Last FTP test was {{ ftp_retest.age_days }} days ago ({{ ftp_retest.last_date }}).
+          {% else %}No FTP test logged yet.{% endif %}
+          {% if ftp_retest.slot %}Suggested slot: <strong style="color:var(--text)">{{ ftp_retest.slot.date_str }}</strong> (currently {{ ftp_retest.slot.current_label }}).{% endif %}
+        </p>
+        {% if ftp_retest.slot %}
+        <button onclick="applyModulation(this)" data-date="{{ ftp_retest.slot.date }}"
+                data-dur="60" data-type="ftp" data-label="FTP Re-test"
+                data-reason="Auto-suggested: last test >42 days old"
+                style="font-family:var(--font-m);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:6px 14px;border:1px solid var(--border2);color:var(--text);background:var(--surface);border-radius:2px">
+          Schedule re-test ⏱
+        </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <script>
+    async function applyModulation(btn) {
+      btn.disabled = true;
+      btn.textContent = 'Applying…';
+      try {
+        const res = await fetch('/apply-plan-change', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            date: btn.dataset.date,
+            duration_min: parseInt(btn.dataset.dur, 10),
+            session_type: btn.dataset.type,
+            label: btn.dataset.label,
+            reason: btn.dataset.reason,
+          }),
+        });
+        if (res.ok) { location.reload(); return; }
+        btn.textContent = 'Failed — retry?';
+        btn.disabled = false;
+      } catch (e) {
+        btn.textContent = 'Failed — retry?';
+        btn.disabled = false;
+      }
+    }
+  </script>
+
   <!-- ── Hero: Composite Score ──────────────────────────────────────── -->
   <div class="card" style="padding:32px 36px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
     <div style="flex:1;min-width:180px">

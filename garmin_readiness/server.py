@@ -33,15 +33,19 @@ from .report import generate_advice, generate_body_analysis, generate_dashboard_
 from .body import bp_classification, fetch_body_composition, fetch_blood_pressure
 from .history import (
     ACTIVITY_MATCH,
+    acclimation_latest,
     baseline_stats,
     clear_coach_history,
     composite_score,
     delete_advice,
     delete_plan_override,
+    estimated_wkg_history,
+    ftp_retest_due,
     get_coach_memory,
     get_plan_override,
     history_for_chart,
     intensity_distribution_by_week,
+    latest_estimated_wkg,
     list_plan_overrides,
     load,
     load_activities_by_date,
@@ -49,12 +53,16 @@ from .history import (
     load_blood_pressure,
     load_btb_summary,
     load_coach_history,
+    load_durability,
     load_ftp_tests,
+    load_fuelling_logs,
     load_recent_activities,
     load_session_rpe,
     pmc_history,
     save_btb_note,
+    save_fuelling_log,
     save_session_rpe,
+    weekly_monotony_strain,
     vo2_history,
     zone_distribution,
     raw_history,
@@ -423,6 +431,34 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
     # Fatigue alerts
     fatigue_alerts = check_fatigue_alerts(target)
 
+    # HRV traffic light + session modulation suggestion
+    traffic_light = None
+    modulation = None
+    try:
+        from .modulation import hrv_traffic_light, session_modulation
+        traffic_light = hrv_traffic_light(m, comp_z)
+        modulation = session_modulation(target, m, comp_z, light=traffic_light)
+    except Exception:
+        pass
+
+    # FTP retest prompt: last test stale → suggest a slot via the override flow
+    ftp_retest = None
+    try:
+        due = ftp_retest_due(target, plan_start=_PLAN_START)
+        if due:
+            slot = None
+            for offset in range(1, 11):
+                cand = target + timedelta(days=offset)
+                csess = session_for_date(cand)
+                if csess and csess[0] in ("tempo", "ftp", "bike"):
+                    slot = {"date": cand.isoformat(),
+                            "date_str": cand.strftime("%a %-d %b"),
+                            "current_label": csess[1]}
+                    break
+            ftp_retest = {**due, "slot": slot}
+    except Exception:
+        pass
+
     # Weekly briefing (Monday only)
     weekly_briefing: Optional[str] = None
     is_monday = target.weekday() == 0
@@ -478,6 +514,9 @@ def _build_context(target: date, force_fetch: bool = False) -> dict[str, Any]:
         "swap_suggestion": swap_suggestion,
         "event_tracker": event_tracker,
         "fatigue_alerts": fatigue_alerts,
+        "traffic_light": traffic_light,
+        "modulation": modulation,
+        "ftp_retest": ftp_retest,
         "weekly_briefing": weekly_briefing,
         "is_monday": is_monday,
         "nutrition_today": nutrition_today,
