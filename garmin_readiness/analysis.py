@@ -1030,6 +1030,11 @@ def _load_fuelling_plans() -> dict[str, dict]:
     return {r["session_key"]: dict(r) for r in rows}
 
 
+def fuelling_session_key(stype: str, dur_min: int) -> str:
+    """Single source of truth for fuelling_plans cache keys (plan type + planned minutes)."""
+    return f"{stype}_{dur_min}"
+
+
 def prefetch_fuelling_plans(sessions: list[tuple[str, int]], weight_kg: Optional[float] = None) -> dict[str, dict]:
     """Return {f"{type}_{dur}": fuelling_plan} for qualifying endurance sessions.
 
@@ -1046,7 +1051,7 @@ def prefetch_fuelling_plans(sessions: list[tuple[str, int]], weight_kg: Optional
         if t in _FUEL_TYPES and d >= _FUEL_MIN_DURATION
     ]
     existing = _load_fuelling_plans()
-    missing = [(t, d) for t, d in qualifying if f"{t}_{d}" not in existing]
+    missing = [(t, d) for t, d in qualifying if fuelling_session_key(t, d) not in existing]
     if not missing:
         return existing
 
@@ -1073,7 +1078,7 @@ def prefetch_fuelling_plans(sessions: list[tuple[str, int]], weight_kg: Optional
     ]
     for stype, dur in missing:
         desc = _SESSION_TYPE_DESC.get(stype, stype)
-        key = f"{stype}_{dur}"
+        key = fuelling_session_key(stype, dur)
         lines.append(f'"{key}": {desc}, {dur} min')
 
     try:
@@ -1113,3 +1118,106 @@ def prefetch_fuelling_plans(sessions: list[tuple[str, int]], weight_kg: Optional
         logging.getLogger(__name__).warning("fuelling plan generation failed: %s", exc)
 
     return existing
+
+
+# ── Haute Route per-stage pacing & fuelling plans ────────────────────────────
+
+def generate_hr_stage_plans() -> dict[int, dict]:
+    """Return {stage_day: plan_dict} for the 7 Haute Route Alpes stages.
+
+    Cached per stage in text_cache (key hr_stage_plan_v1_{day}, JSON string).
+    When any stage is missing and an API key is set, makes ONE batched
+    claude-sonnet-4-6 call for all missing stages, grounded in the athlete's
+    latest LTHR and estimated FTP. Returns whatever is cached on failure.
+    """
+    import json as _json
+    from .hr_plan import HR_EVENT_STAGES
+    from .history import get_cached_text, set_cached_text, load_ftp_tests, latest_estimated_wkg
+
+    plans: dict[int, dict] = {}
+    missing: list[dict] = []
+    for stage in HR_EVENT_STAGES:
+        cached = get_cached_text(f"hr_stage_plan_v1_{stage['day']}")
+        if cached:
+            try:
+                plans[stage["day"]] = _json.loads(cached)
+                continue
+            except Exception:
+                pass
+        missing.append(stage)
+
+    if not missing:
+        return plans
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        return plans
+
+    # Athlete context: LTHR from the most recent FTP test, estimated FTP watts
+    lthr_note = "LTHR unknown — express HR caps as % of LTHR"
+    try:
+        tests = load_ftp_tests()
+        if tests and tests[-1].get("ftp_hr"):
+            lthr_note = f"LTHR ≈ {tests[-1]['ftp_hr']} bpm (from FTP test {tests[-1]['date']})"
+    except Exception:
+        pass
+    ftp_note = ""
+    try:
+        wkg = latest_estimated_wkg()
+        if wkg:
+            ftp_note = f" Estimated FTP ≈ {wkg['est_ftp_w']} W ({wkg['wkg']} W/kg) — estimate only, no power meter."
+    except Exception:
+        pass
+
+    lines = [
+        "Plan pacing and in-ride fuelling for each stage of the Haute Route Alpes "
+        "(7-day amateur stage race, timed climbs, untimed descents).",
+        f"Athlete: male, 50+, HR-based training (no power meter). {lthr_note}.{ftp_note}",
+        "Key stage-race principles: the event is won in the final 3 stages, not the first 2 — "
+        "cap effort on day 1–2 climbs; fuel from the first 30 minutes; respect altitude above 2000 m "
+        "(HR runs higher for the same effort).",
+        "Reply ONLY with valid JSON: a dict mapping stage day number (as string) -> "
+        "{\"pacing\": \"2-3 sentence stage pacing strategy\", "
+        "\"hr_cap_first_climb\": \"specific HR cap or %LTHR for the first climb\", "
+        "\"carbs_g_per_hr\": int, \"total_carbs_g\": int, \"fluid_ml_per_hr\": int, "
+        "\"brief\": \"one-sentence key reminder\"}",
+        "No extra text, no markdown fences.",
+        "",
+        "Stages:",
+    ]
+    for s in missing:
+        lines.append(
+            f'Day {s["day"]}: {s["label"]} — {s["km"]} km, {s["elev_m"]} m climbing, '
+            f'key climb {s["key_climb"]}'
+        )
+
+    import anthropic
+    client = anthropic.Anthropic(api_key=api_key)
+    try:
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=3000,
+            system=(
+                "You are an experienced Haute Route coach who has guided many amateur "
+                "riders through multi-day alpine stage races. Be specific and practical."
+            ),
+            messages=[{"role": "user", "content": "\n".join(lines)}],
+        )
+        raw = msg.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            raw = raw.rsplit("```", 1)[0].strip()
+        result: dict = _json.loads(raw)
+        for day_str, plan in result.items():
+            if not isinstance(plan, dict):
+                continue
+            try:
+                day = int(day_str)
+            except (TypeError, ValueError):
+                continue
+            set_cached_text(f"hr_stage_plan_v1_{day}", _json.dumps(plan))
+            plans[day] = plan
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).warning("HR stage plan generation failed: %s", exc)
+
+    return plans

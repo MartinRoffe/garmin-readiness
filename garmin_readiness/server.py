@@ -654,6 +654,33 @@ async def analysis_view(request: Request):
     activities = _merge_compound_activities(activities)
     rpe_rows = load_session_rpe(30)
     rpe_by_activity = {str(r["activity_id"]): r for r in rpe_rows if r.get("activity_id") is not None}
+
+    # Fuelling compliance: attach the cached in-ride plan + any logged actuals
+    # to qualifying endurance rides (bike types, ≥75 min planned sessions).
+    try:
+        from .analysis import _load_fuelling_plans, fuelling_session_key
+        from .plan import session_for_date_extended
+        _BIKE_TYPES = {"road_biking", "cycling", "virtual_ride", "indoor_cycling", "mountain_biking"}
+        fuel_plans = _load_fuelling_plans()
+        fuel_logs = {str(r["activity_id"]): r for r in load_fuelling_logs(90)
+                     if r.get("activity_id") is not None}
+        for a in activities:
+            if a.get("type_key") not in _BIKE_TYPES:
+                continue
+            if (a.get("duration_seconds") or 0) < 75 * 60:
+                continue
+            try:
+                sess = session_for_date_extended(date.fromisoformat(a["date"]))
+            except Exception:
+                sess = None
+            if sess and sess[0] != "rest" and sess[2]:
+                plan = fuel_plans.get(fuelling_session_key(sess[0], sess[2]))
+                if plan:
+                    a["planned_fuel"] = plan
+            a["fuel_log"] = fuel_logs.get(str(a.get("activity_id")))
+    except Exception:
+        pass
+
     return TEMPLATES.TemplateResponse(
         request=request,
         name="analysis.html",
@@ -669,6 +696,20 @@ async def analysis_view(request: Request):
 async def log_rpe_endpoint(request: Request, _=Depends(_require_auth)):
     body = await request.json()
     save_session_rpe(body["date"], body.get("activity_id"), body["rpe"], body.get("note"))
+    return JSONResponse({"ok": True})
+
+
+@app.post("/log-fuelling")
+async def log_fuelling_endpoint(request: Request, _=Depends(_require_auth)):
+    body = await request.json()
+    save_fuelling_log(
+        body["date"],
+        body.get("activity_id"),
+        body.get("planned_carbs_g_per_hr"),
+        body.get("actual_carbs_g_per_hr"),
+        bool(body.get("fluid_ok")),
+        body.get("note"),
+    )
     return JSONResponse({"ok": True})
 
 
@@ -1463,6 +1504,13 @@ async def haute_route_view(request: Request):
         hr_proj_data = _hr_ctl_projection(hr_start_ctl)
         hr_event_ctl = hr_proj_data[-1]["ctl"] if hr_proj_data else None
 
+    stage_plans: dict = {}
+    try:
+        from .analysis import generate_hr_stage_plans
+        stage_plans = generate_hr_stage_plans()
+    except Exception:
+        pass
+
     ctx = {
         "active_tab":    "haute_route",
         "phases":        HR_PHASES,
@@ -1474,6 +1522,7 @@ async def haute_route_view(request: Request):
         "hr_start_ctl":  round(hr_start_ctl, 1) if hr_start_ctl is not None else None,
         "hr_event_ctl":  round(hr_event_ctl, 1) if hr_event_ctl is not None else None,
         "heat_protocol": HR_HEAT_PROTOCOL,
+        "stage_plans":   stage_plans,
     }
     return TEMPLATES.TemplateResponse(request=request, name="hr_calendar.html", context=ctx)
 
@@ -2052,6 +2101,21 @@ def _build_coach_context() -> str:
             note_str = f" — {r['note']}" if r.get("note") else ""
             rpe_parts.append(f"  {r['date']}: {rpe_str}{note_str}")
 
+    # Fuelling compliance logs
+    fuel_parts: list[str] = []
+    try:
+        fuel_rows = load_fuelling_logs(90)
+        if fuel_rows:
+            fuel_parts = ["## Fuelling Compliance (recent logged rides)"]
+            for r in fuel_rows[:5]:
+                planned = f"planned {r['planned_carbs_g_per_hr']:.0f}g/h" if r.get("planned_carbs_g_per_hr") else "no plan"
+                actual = f"actual {r['actual_carbs_g_per_hr']:.0f}g/h" if r.get("actual_carbs_g_per_hr") is not None else "actual not given"
+                fluid = "fluid ok" if r.get("fluid_ok") else "fluid short"
+                note_str = f" — {r['note']}" if r.get("note") else ""
+                fuel_parts.append(f"  {r['date']}: {planned} → {actual}, {fluid}{note_str}")
+    except Exception:
+        pass
+
     # Back-to-back training history
     btb_rows = load_btb_summary()
     btb_parts: list[str] = []
@@ -2086,6 +2150,7 @@ def _build_coach_context() -> str:
         "## Recent Activities (last 14 days)",
         *(act_lines or ["  None recorded"]),
         *([" ", *rpe_parts] if rpe_parts else []),
+        *([" ", *fuel_parts] if fuel_parts else []),
         *([" ", *btb_parts] if btb_parts else []),
     ]
     if ov_lines:

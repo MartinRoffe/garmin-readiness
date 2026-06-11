@@ -324,6 +324,44 @@
       </div>
     </div>
 
+    <!-- Fuelling compliance widget -->
+    {% if a.planned_fuel %}
+    {% set flog = a.fuel_log %}
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px"
+         data-fuel-container="{{ a.activity_id }}"
+         {% if flog %}data-logged="1"{% endif %}>
+      <p class="eyebrow" style="margin-bottom:8px">Fuelling <button type="button" class="gr-tip-trigger" data-tip="Closing the loop on in-ride fuelling: the plan said one thing — what did you actually take? Under-fuelling long rides is the most common self-sabotage in endurance training, and it shows up as late-ride HR drift and poor next-day readiness." aria-label="More info" aria-expanded="false">?</button></p>
+      <p style="font-family:var(--font-m);font-size:12px;color:var(--text-dim);margin-bottom:8px">
+        Planned: <strong style="color:var(--text)">{{ a.planned_fuel.carbs_g_per_hr }} g/h carbs</strong>
+        {% if a.planned_fuel.fluid_ml_per_hr %} · {{ a.planned_fuel.fluid_ml_per_hr }} ml/h fluid{% endif %}
+        {% if flog %}
+        <span style="color:{% if flog.actual_carbs_g_per_hr is not none and a.planned_fuel.carbs_g_per_hr and flog.actual_carbs_g_per_hr >= a.planned_fuel.carbs_g_per_hr * 0.8 %}#a3e635{% else %}#fbbf24{% endif %};margin-left:6px">
+          — logged {{ flog.actual_carbs_g_per_hr | round | int if flog.actual_carbs_g_per_hr is not none else "?" }} g/h
+          {% if flog.fluid_ok %}· fluid ✓{% else %}· fluid short{% endif %}
+        </span>
+        {% endif %}
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="number" min="0" max="150" placeholder="actual g/h"
+               value="{{ flog.actual_carbs_g_per_hr | round | int if flog and flog.actual_carbs_g_per_hr is not none else '' }}"
+               data-fuel-input="{{ a.activity_id }}"
+               style="width:90px;font-family:var(--font-m);font-size:12px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:3px">
+        <label style="font-family:var(--font-m);font-size:11px;color:var(--text-dim);display:flex;align-items:center;gap:5px;cursor:pointer">
+          <input type="checkbox" data-fuel-fluid="{{ a.activity_id }}" {% if flog and flog.fluid_ok %}checked{% endif %}> fluid ok
+        </label>
+        <input type="text" placeholder="note (optional)"
+               value="{{ flog.note if flog and flog.note else '' }}"
+               data-fuel-note="{{ a.activity_id }}"
+               style="flex:1;min-width:120px;font-family:var(--font-m);font-size:12px;padding:5px 8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:3px">
+        <button onclick="logFuelling({{ a.activity_id }}, '{{ a.date }}', {{ a.planned_fuel.carbs_g_per_hr or 'null' }})"
+                style="font-family:var(--font-m);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer;padding:6px 12px;border:1px solid var(--border2);color:var(--text);background:var(--surface);border-radius:2px">
+          Save
+        </button>
+        <span class="fuel-saved-note" style="font-family:var(--font-m);font-size:11px;color:var(--muted)"></span>
+      </div>
+    </div>
+    {% endif %}
+
   </div>
   {% endfor %}
   </div>
@@ -358,6 +396,29 @@
         container.appendChild(note);
       }
       note.textContent = 'RPE ' + rpeVal + '/5 saved';
+    });
+  }
+
+  function logFuelling(activityId, actDate, plannedCarbs) {
+    const container = document.querySelector('[data-fuel-container="' + activityId + '"]');
+    if (!container) return;
+    const actual = container.querySelector('[data-fuel-input="' + activityId + '"]').value;
+    const fluidOk = container.querySelector('[data-fuel-fluid="' + activityId + '"]').checked;
+    const note = container.querySelector('[data-fuel-note="' + activityId + '"]').value;
+    fetch('/log-fuelling', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        date: actDate,
+        activity_id: activityId,
+        planned_carbs_g_per_hr: plannedCarbs,
+        actual_carbs_g_per_hr: actual === '' ? null : parseFloat(actual),
+        fluid_ok: fluidOk,
+        note: note || null,
+      })
+    }).then(r => r.json()).then(() => {
+      const saved = container.querySelector('.fuel-saved-note');
+      if (saved) { saved.textContent = 'logged ✓'; saved.style.color = '#a3e635'; }
     });
   }
 </script>

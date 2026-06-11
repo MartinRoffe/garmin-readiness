@@ -266,6 +266,31 @@
       {% endfor %}
     </div>
 
+    <!-- ── Per-stage pacing & fuelling plans ───────────────────────────────── -->
+    {% if stage_plans %}
+    <div style="margin-top:24px">
+      <p style="font-family:'DM Mono',monospace;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:#0ea5e9;margin-bottom:10px">Stage Pacing &amp; Fuelling Plans</p>
+      {% for week in event_weeks %}{% for day in week.days %}{% if day.is_event and stage_plans.get(day.day_num_stage) %}
+      {% set sp = stage_plans[day.day_num_stage] %}
+      <details class="rounded border" style="border-color:#1e3a5f;background:rgba(14,165,233,0.04);margin-bottom:6px">
+        <summary style="cursor:pointer;padding:10px 14px;font-family:'DM Mono',monospace;font-size:12px;color:#7dd3fc;list-style-position:inside">
+          Stage {{ day.day_num_stage }} · {{ day.label }} — {{ day.km }} km / {{ day.elev_m | int }}m↑
+        </summary>
+        <div style="padding:4px 16px 14px 16px;font-size:12px;color:#d4d4d8;line-height:1.6">
+          {% if sp.pacing %}<p style="margin:0 0 6px 0"><span style="color:#7dd3fc;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.1em">Pacing</span><br>{{ sp.pacing }}</p>{% endif %}
+          {% if sp.hr_cap_first_climb %}<p style="margin:0 0 6px 0"><span style="color:#7dd3fc;font-family:'DM Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.1em">First-climb HR cap</span><br>{{ sp.hr_cap_first_climb }}</p>{% endif %}
+          <p style="margin:0 0 6px 0;font-family:'DM Mono',monospace;font-size:11px;color:#a1a1aa">
+            {% if sp.carbs_g_per_hr %}⛽ {{ sp.carbs_g_per_hr }} g/h carbs{% endif %}
+            {% if sp.total_carbs_g %} · {{ sp.total_carbs_g }} g total{% endif %}
+            {% if sp.fluid_ml_per_hr %} · 💧 {{ sp.fluid_ml_per_hr }} ml/h{% endif %}
+          </p>
+          {% if sp.brief %}<p style="margin:0;color:#a1a1aa">{{ sp.brief }}</p>{% endif %}
+        </div>
+      </details>
+      {% endif %}{% endfor %}{% endfor %}
+    </div>
+    {% endif %}
+
   </div>
 
 <!-- ── Session modal ──────────────────────────────────────────────────────── -->
