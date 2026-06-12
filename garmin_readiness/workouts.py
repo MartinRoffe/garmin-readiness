@@ -14,6 +14,7 @@ from garminconnect.workout import (
     ExecutableStep,
     WorkoutSegment,
     create_cooldown_step,
+    create_repeat_group,
     create_warmup_step,
     StepType,
     TargetType,
@@ -29,9 +30,6 @@ from .plan import (
 _SPORT        = {"sportTypeId": SportType.CYCLING,           "sportTypeKey": "cycling",           "displayOrder": 1}
 _FE_SPORT     = {"sportTypeId": SportType.FITNESS_EQUIPMENT, "sportTypeKey": "fitness_equipment",  "displayOrder": 6}
 _HIKE_SPORT   = {"sportTypeId": SportType.HIKING,            "sportTypeKey": "hiking",             "displayOrder": 7}
-# OTHER sport type allows HR zone targets on intervals; FITNESS_EQUIPMENT is treated as
-# strength by Garmin and strips HR zone guidance — wrong for cardio equipment like MaxiClimber.
-_CARDIO_SPORT = {"sportTypeId": SportType.OTHER,             "sportTypeKey": "other",              "displayOrder": 8}
 
 _BIKE_TYPES         = {"bike", "tempo", "ftp", "long"}
 _STRENGTH_RUCK_TYPES = {"strength", "ruck"}
@@ -111,13 +109,13 @@ def _make_fe(name: str, steps: list, dur_min: int) -> FitnessEquipmentWorkout:
     )
 
 
-def _make_cardio(name: str, steps: list, dur_min: int) -> FitnessEquipmentWorkout:
-    """Use OTHER sport type so Garmin treats this as cardio, not strength, enabling HR zone targets."""
-    return FitnessEquipmentWorkout(
+def _make_cardio(name: str, steps: list, dur_min: int) -> CyclingWorkout:
+    """Use cycling sport type for MaxiClimber — Garmin's only reliably cardio type with
+    full structured-workout support (warmup/repeat-group/cooldown + HR zone targets)."""
+    return CyclingWorkout(
         workoutName=name,
         estimatedDurationInSecs=dur_min * 60,
-        sportType=_CARDIO_SPORT,
-        workoutSegments=[WorkoutSegment(segmentOrder=1, sportType=_CARDIO_SPORT, workoutSteps=steps)],
+        workoutSegments=[WorkoutSegment(segmentOrder=1, sportType=_SPORT, workoutSteps=steps)],
     )
 
 
@@ -457,8 +455,13 @@ def _kb_light_workout(week_num: int, dur_min: int) -> FitnessEquipmentWorkout:
     return _make_fe(f"Light KB Wk{week_num} {dur_min}m", steps, dur_min)
 
 
-def _maxiclimber_workout(week_num: int, dur_min: int) -> FitnessEquipmentWorkout:
-    """Structured MaxiClimber intervals from MAXI_INTERVALS for the given week."""
+def _maxiclimber_workout(week_num: int, dur_min: int) -> CyclingWorkout:
+    """Structured MaxiClimber intervals from MAXI_INTERVALS for the given week.
+
+    Uses a RepeatGroup so Garmin displays '10 × interval (Xs rest)' rather
+    than 20 flat steps. Sport type is cycling so Garmin classifies this as
+    cardio and renders the structured warmup/intervals/cooldown with HR zones.
+    """
     spec = MAXI_INTERVALS.get(week_num)
     if not spec:
         steps = [
@@ -481,14 +484,19 @@ def _maxiclimber_workout(week_num: int, dur_min: int) -> FitnessEquipmentWorkout
     else:
         work_lo, work_hi = 2, 3
 
-    steps = [create_warmup_step(180.0, step_order=1)]
-    order = 2
-    for _ in range(sets):
-        steps.append(_interval(order, work_s, _hr_zone_target(), work_lo, work_hi))
-        order += 1
-        steps.append(_recovery(order, rest_s, _hr_zone_target(), 1, 1))
-        order += 1
-    steps.append(create_cooldown_step(180.0, step_order=order))
+    repeat = create_repeat_group(
+        iterations=sets,
+        workout_steps=[
+            _interval(1, work_s, _hr_zone_target(), work_lo, work_hi),
+            _recovery(2, rest_s, _hr_zone_target(), 1, 1),
+        ],
+        step_order=2,
+    )
+    steps = [
+        create_warmup_step(180.0, step_order=1),
+        repeat,
+        create_cooldown_step(180.0, step_order=3),
+    ]
 
     calculated_dur = math.ceil((sets * (spec["work_s"] + spec["rest_s"]) + 360) / 60)
     return _make_cardio(f"MaxiClimber Wk{week_num} {dur_min}m", steps, calculated_dur)
