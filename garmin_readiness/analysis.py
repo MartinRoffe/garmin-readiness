@@ -598,8 +598,27 @@ def refresh_analyses(api: Any, days: int = 14) -> None:
                     save_durability(act_id, dur_row)
         except Exception:
             pass
-        if load_analysis(act_id) is not None:
-            continue  # already done
+        # Backfill ftp_tests for already-analysed FTP sessions that pre-date the auto-population logic
+        existing = load_analysis(act_id)
+        if existing is not None:
+            try:
+                act_date = act.get("date")
+                if act_date:
+                    sess = session_for_date_extended(date.fromisoformat(act_date))
+                    session_label = sess[1] if sess else None
+                    if session_label in _FTP_SESSION_LABELS and existing.get("ftp_effort_avg_hr"):
+                        from .history import save_ftp_test, load_ftp_tests
+                        d_obj = date.fromisoformat(act_date)
+                        if not any(t["date"] == d_obj.isoformat() for t in load_ftp_tests()):
+                            save_ftp_test(
+                                d_obj.isoformat(), act_id,
+                                int(existing["ftp_effort_avg_hr"]),
+                                int(existing["ftp_effort_max_hr"]) if existing.get("ftp_effort_max_hr") else None,
+                                None,
+                            )
+            except Exception:
+                pass
+            continue  # already analysed — nothing more to do
         try:
             companion = _find_compound_companion(act, acts_by_date.get(act["date"], []))
             act_date = act.get("date")
