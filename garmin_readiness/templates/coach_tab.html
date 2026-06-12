@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Coach · Garmin Readiness</title>
+</head>
+<body>
+{% include 'nav.html' %}
+
+<div style="max-width:800px;margin:0 auto;padding:24px 16px">
+
+  <div style="margin-bottom:20px">
+    <p style="font-family:var(--font-d);font-size:28px;letter-spacing:0.08em;color:var(--text);margin-bottom:2px">AI COACH</p>
+    <p style="font-family:var(--font-m);font-size:11px;color:var(--muted)">Ask about training load, sessions, recovery, or request plan adjustments</p>
+  </div>
+
+  <!-- coach chat — override message area height for full-page view -->
+  <style>
+    #chat-messages { max-height: calc(100vh - 340px) !important; min-height: 300px !important; }
+  </style>
+  {% include 'coach_chat.html' %}
+
+</div>
+</body>
+</html>

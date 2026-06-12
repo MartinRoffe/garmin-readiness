@@ -2446,6 +2446,11 @@ async def coach_chat_stream(body: _CoachChatRequest):
     )
 
 
+@app.get("/coach")
+async def coach_tab_view(request: Request):
+    return TEMPLATES.TemplateResponse(request=request, name="coach_tab.html", context={"active_tab": "coach"})
+
+
 @app.get("/coach-history")
 async def get_coach_history():
     return JSONResponse(load_coach_history(limit=30))
