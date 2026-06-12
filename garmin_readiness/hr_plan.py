@@ -41,7 +41,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
     # Goal: aerobic engine, structural durability, gym strength. 7–11 hrs/wk.
     # 3:1 build:deload cadence. FTP baseline in wk 8.
 
-    # WK 01 — Transition · 7 hrs (Oct 5)
+    # WK 01 — Transition · 7 hrs (Oct 5)01
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -51,7 +51,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",              90),
     ],
-    # WK 02 — Base build · 8 hrs (Oct 12)
+    # WK 02 — Base build · 8 hrs (Oct 12)02
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -61,7 +61,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",             120),
     ],
-    # WK 03 — Base build · 9 hrs (Oct 19)
+    # WK 03 — Base build · 9 hrs (Oct 19)03
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -71,7 +71,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",             150),
     ],
-    # WK 04 — Deload · 6 hrs (Oct 26)
+    # WK 04 — Deload · 6 hrs (Oct 26)04
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Easy",                45),
@@ -81,7 +81,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Maintenance",      45),
         ("long",      "Long Ride (Easy)",       75),
     ],
-    # WK 05 — Base build · 9 hrs (Nov 2)
+    # WK 05 — Base build · 9 hrs (Nov 2)05
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -91,7 +91,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",             150),
     ],
-    # WK 06 — Base build · 10 hrs (Nov 9)
+    # WK 06 — Base build · 10 hrs (Nov 9)06
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -101,7 +101,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",             180),
     ],
-    # WK 07 — Base build · 10 hrs (Nov 16)
+    # WK 07 — Base build · 10 hrs (Nov 16)07
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -111,7 +111,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",             180),
     ],
-    # WK 08 — Deload + FTP Baseline · 7 hrs (Nov 23)
+    # WK 08 — Deload + FTP Baseline · 7 hrs (Nov 23)08
     [
         ("rest",      "Rest",                    0),
         ("ftp",       "FTP Baseline Test",      60),
@@ -121,7 +121,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Maintenance",      45),
         ("long",      "Long Ride (Easy)",       90),
     ],
-    # WK 09 — Base build · 10 hrs (Nov 30)
+    # WK 09 — Base build · 10 hrs (Nov 30)09
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -131,7 +131,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",             210),
     ],
-    # WK 10 — Base build · 11 hrs (Dec 7)
+    # WK 10 — Base build · 11 hrs (Dec 7)10
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -141,7 +141,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",             240),
     ],
-    # WK 11 — Base peak · 11 hrs (Dec 14)
+    # WK 11 — Base peak · 11 hrs (Dec 14)11
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -151,7 +151,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Strength",         60),
         ("long",      "Long Ride",             270),
     ],
-    # WK 12 — Christmas deload · 6 hrs (Dec 21)
+    # WK 12 — Christmas deload · 6 hrs (Dec 21)12
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Easy",                45),
@@ -161,7 +161,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("gym",       "Gym — Maintenance",      45),
         ("long",      "Long Ride (Easy)",       90),
     ],
-    # WK 13 — New Year transition · 8 hrs (Dec 28)
+    # WK 13 — New Year transition · 8 hrs (Dec 28)13
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -176,37 +176,37 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
     # Goal: raise FTP, extend TTE, VO2 max development. 10–14 hrs/wk.
     # VO2 replaces easy Z2 on Tuesdays. Sundays extend to 5+ hrs by end of phase.
 
-    # WK 14 — Build entry · 10 hrs (Jan 4)
+    # WK 14 — Build entry · 10 hrs (Jan 4)14
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 4×3 min",  60),
         ("sweetspot", "Low Cadence Sweetspot",  75),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Tempo Intervals 2×20",   90),
         ("endurance", "Z2 Endurance",           60),
         ("long",      "Long Ride",             180),
     ],
-    # WK 15 — Build · 11 hrs (Jan 11)
+    # WK 15 — Build · 11 hrs (Jan 11)15
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 5×3 min",  60),
         ("sweetspot", "Low Cadence Sweetspot",  75),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Tempo Intervals 2×20",   90),
         ("endurance", "Z2 Endurance",           60),
         ("long",      "Long Ride",             210),
     ],
-    # WK 16 — Build · 12 hrs (Jan 18)
+    # WK 16 — Build · 12 hrs (Jan 18)16
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 5×3 min",  60),
         ("sweetspot", "Low Cadence Sweetspot",  75),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Tempo Intervals 3×20",  105),
         ("endurance", "Z2 Endurance",           60),
         ("long",      "Long Ride",             240),
     ],
-    # WK 17 — Deload · 7 hrs (Jan 25)
+    # WK 17 — Deload · 7 hrs (Jan 25)17
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 4×3 min",  60),
@@ -216,37 +216,37 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("endurance", "Z2 Easy",                45),
         ("long",      "Long Ride (Easy)",       90),
     ],
-    # WK 18 — Build · 12 hrs (Feb 1)
+    # WK 18 — Build · 12 hrs (Feb 1)18
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 6×3 min",  60),
         ("sweetspot", "Low Cadence Sweetspot",  75),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Tempo Intervals 3×20",  105),
         ("endurance", "Z2 Endurance",           75),
         ("long",      "Long Ride",             270),
     ],
-    # WK 19 — Build · 12 hrs (Feb 8)
+    # WK 19 — Build · 12 hrs (Feb 8)19
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 6×3 min",  60),
         ("sweetspot", "Low Cadence Sweetspot",  90),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Tempo Intervals 3×20",  105),
         ("endurance", "Z2 Endurance",           75),
         ("long",      "Long Ride",             270),
     ],
-    # WK 20 — Build · 13 hrs (Feb 15)
+    # WK 20 — Build · 13 hrs (Feb 15)20
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 6×3 min",  60),
         ("sweetspot", "Low Cadence Sweetspot",  90),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Tempo Intervals 3×20",  105),
         ("endurance", "Z2 Endurance",           75),
         ("long",      "Long Ride",             300),
     ],
-    # WK 21 — Deload + FTP Re-test · 8 hrs (Feb 22)
+    # WK 21 — Deload + FTP Re-test · 8 hrs (Feb 22)21
     [
         ("rest",      "Rest",                    0),
         ("ftp",       "FTP Re-test",            60),
@@ -256,37 +256,37 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("endurance", "Z2 Easy",                60),
         ("long",      "Long Ride (Easy)",      105),
     ],
-    # WK 22 — Build · 13 hrs (Mar 1)
+    # WK 22 — Build · 13 hrs (Mar 1)22
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 5×4 min",  75),
         ("sweetspot", "Low Cadence Sweetspot",  90),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Under-Overs 3×10 min",  105),
         ("endurance", "Z2 Endurance",           90),
         ("long",      "Long Ride",             300),
     ],
-    # WK 23 — Build · 13 hrs (Mar 8)
+    # WK 23 — Build · 13 hrs (Mar 8)23
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 5×4 min",  75),
         ("sweetspot", "Low Cadence Sweetspot",  90),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Under-Overs 3×10 min",  105),
         ("endurance", "Z2 Endurance",           90),
         ("long",      "Long Ride",             330),
     ],
-    # WK 24 — Build peak · 14 hrs (Mar 15)
+    # WK 24 — Build peak · 14 hrs (Mar 15)24
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 5×4 min",  75),
         ("sweetspot", "Low Cadence Sweetspot",  90),
-        ("recovery",  "Recovery + Core",        60),
+        ("recovery",  "Strength + Core",        60),
         ("tempo",     "Under-Overs 3×10 min",  105),
         ("endurance", "Z2 Endurance",           90),
         ("long",      "Long Ride",             360),
     ],
-    # WK 25 — Deload · 8 hrs (Mar 22)
+    # WK 25 — Deload · 8 hrs (Mar 22)25
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Easy",                60),
@@ -301,37 +301,37 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
     # Goal: multi-day fatigue resistance, climbing volume, back-to-back days.
     # 5-day mountain training camp in wk 31. 14–16 hrs/wk at peak.
 
-    # WK 26 — Specific entry · 14 hrs (Mar 29)
+    # WK 26 — Specific entry · 14 hrs (Mar 29)26
     [
         ("rest",         "Rest",                    0),
         ("vo2",          "VO2 Intervals 5×4 min",  75),
         ("sweetspot",    "Low Cadence Sweetspot",  90),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("tempo",        "Under-Overs 3×10 min",  105),
         ("back_to_back", "Back-to-Back Day 1",    210),
         ("back_to_back", "Back-to-Back Day 2",    150),
     ],
-    # WK 27 — Specific · 15 hrs (Apr 5)
+    # WK 27 — Specific · 15 hrs (Apr 5)27
     [
         ("rest",         "Rest",                    0),
         ("vo2",          "VO2 Intervals 5×4 min",  75),
         ("sweetspot",    "Low Cadence Sweetspot",  90),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("tempo",        "Under-Overs 3×10 min",  105),
         ("back_to_back", "Back-to-Back Day 1",    240),
         ("back_to_back", "Back-to-Back Day 2",    180),
     ],
-    # WK 28 — Specific · 15 hrs (Apr 12)
+    # WK 28 — Specific · 15 hrs (Apr 12)28
     [
         ("rest",         "Rest",                    0),
         ("vo2",          "VO2 Intervals 5×4 min",  75),
         ("sweetspot",    "Low Cadence Sweetspot",  90),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("tempo",        "Under-Overs 3×10 min",  105),
         ("back_to_back", "Back-to-Back Day 1",    270),
         ("back_to_back", "Back-to-Back Day 2",    180),
     ],
-    # WK 29 — Deload · 9 hrs (Apr 19)
+    # WK 29 — Deload · 9 hrs (Apr 19)29
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 4×3 min",  60),
@@ -341,17 +341,17 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("endurance", "Z2 Endurance",           75),
         ("long",      "Long Ride (Easy)",      150),
     ],
-    # WK 30 — Specific build · 16 hrs (Apr 26)
+    # WK 30 — Specific build · 16 hrs (Apr 26)30
     [
         ("rest",         "Rest",                    0),
         ("vo2",          "VO2 Intervals 5×4 min",  75),
         ("sweetspot",    "Low Cadence Sweetspot",  90),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("tempo",        "Under-Overs 3×12 min",  105),
         ("back_to_back", "Back-to-Back Day 1",    300),
         ("back_to_back", "Back-to-Back Day 2",    210),
     ],
-    # WK 31 — MOUNTAIN TRAINING CAMP · Pyrenees / Alps (May 3)
+    # WK 31 — MOUNTAIN TRAINING CAMP · Pyrenees / Alps (May 3)31
     # 5 consecutive riding days; indicative sessions, adapt on the ground
     [
         ("long",     "Camp — Arrival + Leg Openers",    180),
@@ -362,7 +362,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("long",     "Camp — Back-to-Back Day 2",       300),
         ("rest",     "Camp — Rest / Travel Home",         0),
     ],
-    # WK 32 — Post-camp recovery + FTP Re-test · 9 hrs (May 10)
+    # WK 32 — Post-camp recovery + FTP Re-test · 9 hrs (May 10)32
     [
         ("rest",      "Rest",                    0),
         ("recovery",  "Recovery Spin",          60),
@@ -372,27 +372,27 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("endurance", "Z2 Endurance",           75),
         ("long",      "Long Ride (Easy)",      150),
     ],
-    # WK 33 — Specific · 16 hrs (May 17)
+    # WK 33 — Specific · 16 hrs (May 17)33
     [
         ("rest",         "Rest",                    0),
         ("vo2",          "VO2 Intervals 5×4 min",  75),
         ("sweetspot",    "Low Cadence Sweetspot",  90),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("tempo",        "Under-Overs 3×12 min",  105),
         ("back_to_back", "Back-to-Back Day 1",    300),
         ("back_to_back", "Back-to-Back Day 2",    240),
     ],
-    # WK 34 — Specific peak · 16 hrs (May 24)
+    # WK 34 — Specific peak · 16 hrs (May 24)34
     [
         ("rest",         "Rest",                    0),
         ("vo2",          "VO2 Intervals 5×4 min",  75),
         ("sweetspot",    "Low Cadence Sweetspot",  90),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("tempo",        "Under-Overs 3×12 min",  105),
         ("back_to_back", "Back-to-Back Day 1",    330),
         ("back_to_back", "Back-to-Back Day 2",    240),
     ],
-    # WK 35 — Deload · 9 hrs (May 31)
+    # WK 35 — Deload · 9 hrs (May 31)35
     [
         ("rest",      "Rest",                    0),
         ("vo2",       "VO2 Intervals 4×3 min",  60),
@@ -407,27 +407,27 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
     # Goal: event simulation, peak durability. Two 3-day simulation blocks.
     # 14–17 hrs/wk. Gym dropped to maintenance only.
 
-    # WK 36 — Peak entry · 15 hrs (Jun 7)
+    # WK 36 — Peak entry · 15 hrs (Jun 7)36
     [
         ("rest",         "Rest",                    0),
         ("tempo",        "Under-Overs 3×12 min",   90),
         ("sweetspot",    "Low Cadence Sweetspot",  75),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("endurance",    "Z2 Endurance",           90),
         ("back_to_back", "Simulation Day 1",      330),
         ("back_to_back", "Simulation Day 2",      270),
     ],
-    # WK 37 — Peak · 17 hrs — first 3-day block (Jun 14)
+    # WK 37 — Peak · 17 hrs — first 3-day block (Jun 14)37
     [
         ("rest",         "Rest",                    0),
         ("tempo",        "Under-Overs 3×12 min",   90),
         ("sweetspot",    "Low Cadence Sweetspot",  75),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("back_to_back", "Simulation Day 1",      330),
         ("back_to_back", "Simulation Day 2",      300),
         ("back_to_back", "Simulation Day 3",      210),
     ],
-    # WK 38 — Deload · 8 hrs (Jun 21)
+    # WK 38 — Deload · 8 hrs (Jun 21)38
     [
         ("rest",      "Rest",                    0),
         ("recovery",  "Recovery Spin",          60),
@@ -437,27 +437,27 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("endurance", "Z2 Endurance",           75),
         ("long",      "Long Ride (Easy)",      120),
     ],
-    # WK 39 — Peak · 17 hrs — second 3-day block (Jun 28)
+    # WK 39 — Peak · 17 hrs — second 3-day block (Jun 28)39
     [
         ("rest",         "Rest",                    0),
         ("tempo",        "Under-Overs 3×12 min",   90),
         ("sweetspot",    "Low Cadence Sweetspot",  75),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("back_to_back", "Simulation Day 1",      360),
         ("back_to_back", "Simulation Day 2",      330),
         ("back_to_back", "Simulation Day 3",      240),
     ],
-    # WK 40 — Peak · 17 hrs (Jul 5)
+    # WK 40 — Peak · 17 hrs (Jul 5)40
     [
         ("rest",         "Rest",                    0),
         ("tempo",        "Under-Overs 3×12 min",   90),
         ("sweetspot",    "Low Cadence Sweetspot",  75),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("back_to_back", "Simulation Day 1",      360),
         ("back_to_back", "Simulation Day 2",      330),
         ("back_to_back", "Simulation Day 3",      240),
     ],
-    # WK 41 — Peak + FTP Final Test · 13 hrs (Jul 12)
+    # WK 41 — Peak + FTP Final Test · 13 hrs (Jul 12)41
     [
         ("rest",      "Rest",                    0),
         ("ftp",       "FTP Final Test",         60),
@@ -467,17 +467,17 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("endurance", "Z2 Endurance",           90),
         ("long",      "Long Ride",             300),
     ],
-    # WK 42 — Peak final block · 16 hrs (Jul 19)
+    # WK 42 — Peak final block · 16 hrs (Jul 19)42
     [
         ("rest",         "Rest",                    0),
         ("tempo",        "Under-Overs 3×12 min",   90),
         ("sweetspot",    "Low Cadence Sweetspot",  75),
-        ("recovery",     "Recovery + Core",        60),
+        ("recovery",     "Strength + Core",        60),
         ("back_to_back", "Simulation Day 1",      330),
         ("back_to_back", "Simulation Day 2",      300),
         ("back_to_back", "Simulation Day 3",      210),
     ],
-    # WK 43 — Pre-taper deload · 9 hrs (Jul 26)
+    # WK 43 — Pre-taper deload · 9 hrs (Jul 26)43
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Z2 Endurance",           60),
@@ -491,7 +491,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
     # ── PHASE 5: TAPER ─────────────────────────────────────────────────────────
     # 60% → 40% → race-week volume. Same intensity, halved duration.
 
-    # WK 44 — Taper wk 1 · ~6 hrs (Aug 2)
+    # WK 44 — Taper wk 1 · ~6 hrs (Aug 2)44
     [
         ("rest",      "Rest",                    0),
         ("tempo",     "Under-Overs 2×10 min",   75),
@@ -501,7 +501,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("endurance", "Z2 Easy",                45),
         ("long",      "Long Ride (Moderate)",  180),
     ],
-    # WK 45 — Taper wk 2 · ~4 hrs (Aug 9)
+    # WK 45 — Taper wk 2 · ~4 hrs (Aug 9)45
     [
         ("rest",      "Rest",                    0),
         ("tempo",     "Tempo Sharpener",        60),
@@ -511,7 +511,7 @@ HR_TRAINING_WEEKS: list[list[tuple[str, str, int]]] = [
         ("endurance", "Z2 Easy",                45),
         ("long",      "Easy Endurance",        120),
     ],
-    # WK 46 — Race week · arrive fresh (Aug 16)
+    # WK 46 — Race week · arrive fresh (Aug 16)46
     [
         ("rest",      "Rest",                    0),
         ("endurance", "Easy Spin",              45),
