@@ -83,7 +83,7 @@ body {
   color: var(--muted);
   text-transform: uppercase;
 }
-.gr-nav a.tab {
+.gr-nav a.tab, .gr-nav button.tab {
   text-decoration: none;
   padding: 4px 12px 0;
   font-family: var(--font-b);
@@ -97,9 +97,61 @@ body {
   display: flex;
   align-items: center;
   white-space: nowrap;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  cursor: pointer;
+  height: 100%;
+  gap: 4px;
 }
-.gr-nav a.tab:hover { color: var(--text-dim); }
-.gr-nav a.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.gr-nav a.tab:hover, .gr-nav button.tab:hover { color: var(--text-dim); }
+.gr-nav a.tab.active, .gr-nav button.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ── Dropdown groups ─────────────────────────────────────────────── */
+.gr-nav-group {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+.gr-nav-chevron {
+  font-size: 9px;
+  opacity: 0.6;
+  transition: transform 0.15s;
+}
+.gr-nav-group.open .gr-nav-chevron { transform: rotate(180deg); }
+
+.gr-nav-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 1px);
+  left: 0;
+  min-width: 160px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  z-index: 200;
+  flex-direction: column;
+  padding: 4px 0;
+}
+.gr-nav-group.open .gr-nav-dropdown { display: flex; }
+
+.gr-nav-dropdown a {
+  text-decoration: none;
+  display: block;
+  padding: 9px 16px;
+  font-family: var(--font-b);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 400;
+  color: var(--muted);
+  transition: color 0.12s, background 0.12s;
+  white-space: nowrap;
+  border-left: 2px solid transparent;
+}
+.gr-nav-dropdown a:hover { color: var(--text); background: var(--surface2); }
+.gr-nav-dropdown a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); }
 
 /* ── Coaching tooltip ────────────────────────────────────────────── */
 .gr-tip-trigger {
@@ -129,22 +181,73 @@ body {
 
 <nav class="gr-nav">
   <div class="gr-nav-inner">
+    {% set perf_active   = active_tab in ['performance', 'analysis'] %}
+    {% set plan_active   = active_tab in ['calendar', 'training', 'compliance'] %}
+    {% set health_active = active_tab in ['nutrition', 'sleep', 'body'] %}
+    {% set events_active = active_tab in ['tenerife', 'haute_route'] %}
+
     <a href="/" class="tab {% if active_tab == 'readiness' %}active{% endif %}">Readiness</a>
-    <a href="/performance" class="tab {% if active_tab == 'performance' %}active{% endif %}">Performance</a>
-    <a href="/analysis" class="tab {% if active_tab == 'analysis' %}active{% endif %}">Analysis</a>
-    <a href="/calendar" class="tab {% if active_tab == 'calendar' %}active{% endif %}">Calendar</a>
-    <a href="/training" class="tab {% if active_tab == 'training' %}active{% endif %}">Training</a>
-    <a href="/compliance" class="tab {% if active_tab == 'compliance' %}active{% endif %}">Compliance</a>
-    <a href="/nutrition" class="tab {% if active_tab == 'nutrition' %}active{% endif %}">Nutrition</a>
-    <a href="/sleep" class="tab {% if active_tab == 'sleep' %}active{% endif %}">Sleep</a>
-    <a href="/body" class="tab {% if active_tab == 'body' %}active{% endif %}">Body</a>
-    <a href="/tenerife" class="tab {% if active_tab == 'tenerife' %}active{% endif %}">Tenerife</a>
-    <a href="/haute-route" class="tab {% if active_tab == 'haute_route' %}active{% endif %}">Haute Route</a>
+
+    <div class="gr-nav-group" id="grp-perf">
+      <button class="tab {% if perf_active %}active{% endif %}" onclick="toggleGroup('grp-perf')">
+        Performance <span class="gr-nav-chevron">▾</span>
+      </button>
+      <div class="gr-nav-dropdown">
+        <a href="/performance" class="{% if active_tab == 'performance' %}active{% endif %}">Performance</a>
+        <a href="/analysis"    class="{% if active_tab == 'analysis'    %}active{% endif %}">Analysis</a>
+      </div>
+    </div>
+
+    <div class="gr-nav-group" id="grp-plan">
+      <button class="tab {% if plan_active %}active{% endif %}" onclick="toggleGroup('grp-plan')">
+        Plan <span class="gr-nav-chevron">▾</span>
+      </button>
+      <div class="gr-nav-dropdown">
+        <a href="/calendar"    class="{% if active_tab == 'calendar'    %}active{% endif %}">Calendar</a>
+        <a href="/training"    class="{% if active_tab == 'training'    %}active{% endif %}">Training</a>
+        <a href="/compliance"  class="{% if active_tab == 'compliance'  %}active{% endif %}">Compliance</a>
+      </div>
+    </div>
+
+    <div class="gr-nav-group" id="grp-health">
+      <button class="tab {% if health_active %}active{% endif %}" onclick="toggleGroup('grp-health')">
+        Health <span class="gr-nav-chevron">▾</span>
+      </button>
+      <div class="gr-nav-dropdown">
+        <a href="/nutrition" class="{% if active_tab == 'nutrition' %}active{% endif %}">Nutrition</a>
+        <a href="/sleep"     class="{% if active_tab == 'sleep'     %}active{% endif %}">Sleep</a>
+        <a href="/body"      class="{% if active_tab == 'body'      %}active{% endif %}">Body</a>
+      </div>
+    </div>
+
+    <div class="gr-nav-group" id="grp-events">
+      <button class="tab {% if events_active %}active{% endif %}" onclick="toggleGroup('grp-events')">
+        Events <span class="gr-nav-chevron">▾</span>
+      </button>
+      <div class="gr-nav-dropdown">
+        <a href="/tenerife"    class="{% if active_tab == 'tenerife'    %}active{% endif %}">Tenerife</a>
+        <a href="/haute-route" class="{% if active_tab == 'haute_route' %}active{% endif %}">Haute Route</a>
+      </div>
+    </div>
+
     <a href="/coach" class="tab {% if active_tab == 'coach' %}active{% endif %}">Coach</a>
 
   </div>
 </nav>
 <script>
+// ── Dropdown group toggle ────────────────────────────────────────────
+function toggleGroup(id) {
+  const grp = document.getElementById(id);
+  const isOpen = grp.classList.contains('open');
+  document.querySelectorAll('.gr-nav-group.open').forEach(g => g.classList.remove('open'));
+  if (!isOpen) grp.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.gr-nav-group')) {
+    document.querySelectorAll('.gr-nav-group.open').forEach(g => g.classList.remove('open'));
+  }
+});
+
 (function () {
   const tip = document.createElement('div');
   tip.className = 'gr-tip-popup';
