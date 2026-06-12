@@ -21,13 +21,14 @@
     </div>
   </div>
 
-  <div style="display:flex;gap:8px">
-    <input id="coach-input" type="text" placeholder="e.g. How is my training load looking this week?"
-      style="flex:1;background:#111113;border:1px solid var(--border);color:var(--text);font-family:var(--font-m);font-size:13px;padding:10px 14px;outline:none;border-radius:2px"
+  <div style="display:flex;gap:8px;align-items:flex-end">
+    <textarea id="coach-input" rows="1" placeholder="e.g. How is my training load looking this week?"
+      style="flex:1;background:#111113;border:1px solid var(--border);color:var(--text);font-family:var(--font-m);font-size:13px;padding:10px 14px;outline:none;border-radius:2px;resize:none;overflow-y:hidden;line-height:1.5;min-height:40px;max-height:160px"
       onfocus="this.style.borderColor='rgba(99,102,241,0.5)'" onblur="this.style.borderColor='var(--border)'"
-      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoachMessage()}">
+      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,160)+'px'"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoachMessage()}"></textarea>
     <button id="send-btn" onclick="sendCoachMessage()"
-      style="font-family:var(--font-m);font-size:11px;letter-spacing:0.12em;background:var(--accent);color:var(--text);border:none;padding:10px 20px;cursor:pointer;border-radius:2px;white-space:nowrap">SEND</button>
+      style="font-family:var(--font-m);font-size:11px;letter-spacing:0.12em;background:var(--accent);color:var(--text);border:none;padding:10px 20px;cursor:pointer;border-radius:2px;white-space:nowrap;flex-shrink:0;height:40px">SEND</button>
   </div>
 </div>
 
@@ -120,6 +121,7 @@
     const text = input.value.trim();
     if (!text || btn.disabled) return;
     input.value = '';
+    input.style.height = 'auto';
     btn.disabled = true;
     btn.textContent = '…';
     dismissProposal();
