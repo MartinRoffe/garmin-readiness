@@ -303,11 +303,15 @@
       <div class="cal-cell">
         <div class="cal-label">Long ride Sunday</div>
         <div class="cal-val">2,350</div>
-        <div class="cal-sub">Max fuel day</div>
+        <div class="cal-sub">≥2 h baseline — scales up</div>
       </div>
     </div>
 
-    <div class="footer-note" style="margin-top:16px;border-left-color:var(--carbs)">
+    <div class="footer-note" style="margin-top:16px;border-left-color:var(--danger)">
+      <p><strong style="color:var(--danger)">Long-ride calories scale with duration.</strong> The ~2,350 kcal baseline assumes a ~2 h ride. Add <strong>150–200 kcal per ride-hour beyond 2 h</strong>, taken mostly as on-bike carbs: <strong>~2,350 at 2 h · ~2,700 at 3.5 h · ~3,000+ at 5 h.</strong> A 5 h Z2 ride burns ~2,500–3,000 kcal — fixing Sunday at 2,350 puts you 1,500+ kcal down on your biggest day and blunts the very adaptations weeks 9–11 exist to build.</p>
+    </div>
+
+    <div class="footer-note" style="margin-top:8px;border-left-color:var(--carbs)">
       <p><strong style="color:var(--carbs)">Gut training:</strong> the gut is trainable, and 60–90 g/hr only works if you rehearse it. Weeks 5–8, practise <strong style="color:var(--carbs)">60 g/hr</strong> on every ride ≥75 min. Weeks 9–11, push to <strong style="color:var(--carbs)">75–90 g/hr</strong> on the long rides so the stomach is ready for Tenerife and the 190 km charity day. Use your exact race-day mix now — no new products on event day.</p>
     </div>
 
@@ -465,7 +469,7 @@ w3:{
 },
 
 w4:{
-  banner:'<strong>Week 4 — Recovery Week.</strong> Lower volume, lighter food. Calorie targets drop 150–200 kcal. Snacks reduce to 1–2 per day. Lighter Gousto picks (under 500 kcal). Protein may land at 130–145g — acceptable during deload.',
+  banner:'<strong>Week 4 — Recovery Week.</strong> Lower volume, lighter food. Calorie targets drop 150–200 kcal. Snacks reduce to 1–2 per day. Lighter Gousto picks (under 500 kcal). Protein holds at 160g — in a calorie deficit it must not drop; the cut comes from carbs and fat only.',
   recovery:true,
   days:[
     {name:'Mon–Fri', badge:'badge-recovery', type:'Recovery week — reduced training', kcal:'~1,850–2,000 kcal',
@@ -475,7 +479,7 @@ w4:{
        {type:'Lunch', name:'Same lunch choices — no change', detail:'Lunch stays identical to Weeks 1–3. The slight calorie cut comes from reduced snacks and lighter Gousto. Don\'t cut lunch back.', macros:macro('500','45','60','10')},
        {type:'Dinner', name:'Gousto — lighter pick', detail:'Under 500 kcal this week. Thai prawn salad, baked cod with greens, chicken & courgette bowl. Lean protein, less carb.', macros:macro('500','42','48','14')}
      ],
-     preDinP:90, note:'Recovery week target: 130–145g total protein is fine. Trust the lower volume. Body adapts during rest.'},
+     preDinP:90, note:'Recovery week: hold protein at 160g — in a deficit it must not drop. The calorie cut comes from carbs/fat. Body adapts during rest.'},
 
     {name:'Saturday', badge:'badge-ruck', type:'Easy 60 min ruck — recovery pace', kcal:'~2,050 kcal',
      meals:[
