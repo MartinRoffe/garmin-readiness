@@ -235,22 +235,50 @@ body {
 </nav>
 <script>
 // ── Dropdown group toggle ────────────────────────────────────────────
+let _grpCloseTimer = null;
+
+function _openGroup(id) {
+  clearTimeout(_grpCloseTimer);
+  const grp = document.getElementById(id);
+  if (grp.classList.contains('open')) return;
+  document.querySelectorAll('.gr-nav-group.open').forEach(g => g.classList.remove('open'));
+  const btn = grp.querySelector('button');
+  const r = btn.getBoundingClientRect();
+  const dd = grp.querySelector('.gr-nav-dropdown');
+  dd.style.top  = r.bottom + 'px';
+  dd.style.left = r.left + 'px';
+  grp.classList.add('open');
+}
+
+function _closeAllGroups() {
+  document.querySelectorAll('.gr-nav-group.open').forEach(g => g.classList.remove('open'));
+}
+
+function _scheduleClose() {
+  clearTimeout(_grpCloseTimer);
+  _grpCloseTimer = setTimeout(_closeAllGroups, 150);
+}
+
 function toggleGroup(id) {
   const grp = document.getElementById(id);
-  const isOpen = grp.classList.contains('open');
-  document.querySelectorAll('.gr-nav-group.open').forEach(g => g.classList.remove('open'));
-  if (!isOpen) {
-    const btn = grp.querySelector('button');
-    const r = btn.getBoundingClientRect();
-    const dd = grp.querySelector('.gr-nav-dropdown');
-    dd.style.top  = r.bottom + 'px';
-    dd.style.left = r.left + 'px';
-    grp.classList.add('open');
-  }
+  grp.classList.contains('open') ? _closeAllGroups() : _openGroup(id);
 }
+
+// Hover open/close — mouseenter on group opens immediately; mouseleave starts a
+// 150ms timer so the cursor can travel to the fixed dropdown before it closes.
+document.querySelectorAll('.gr-nav-group').forEach(grp => {
+  grp.addEventListener('mouseenter', () => _openGroup(grp.id));
+  grp.addEventListener('mouseleave', _scheduleClose);
+  const dd = grp.querySelector('.gr-nav-dropdown');
+  if (dd) {
+    dd.addEventListener('mouseenter', () => clearTimeout(_grpCloseTimer));
+    dd.addEventListener('mouseleave', _scheduleClose);
+  }
+});
+
 document.addEventListener('click', e => {
-  if (!e.target.closest('.gr-nav-group')) {
-    document.querySelectorAll('.gr-nav-group.open').forEach(g => g.classList.remove('open'));
+  if (!e.target.closest('.gr-nav-group') && !e.target.closest('.gr-nav-dropdown')) {
+    _closeAllGroups();
   }
 });
 
