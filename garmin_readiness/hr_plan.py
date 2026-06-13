@@ -575,12 +575,18 @@ def hr_session_for_date(d: date) -> tuple[str, str, int] | None:
     delta = (d - HR_PLAN_START).days
     if delta < 0 or delta >= _HR_PLAN_DAYS:
         return None
+    from .history import get_plan_override
+    ov = get_plan_override(d.isoformat())
+    if ov:
+        return (ov["session_type"], ov["label"], ov["duration_min"])
     week_idx, day_idx = divmod(delta, 7)
     return HR_TRAINING_WEEKS[week_idx][day_idx]
 
 
 def build_hr_calendar_weeks() -> list[dict]:
     """Return one dict per training week for template rendering."""
+    from .history import list_plan_overrides
+    overrides = {o["date"]: o for o in list_plan_overrides()}
     today = date.today()
     weeks = []
     for wk_idx, sessions in enumerate(HR_TRAINING_WEEKS):
@@ -588,8 +594,17 @@ def build_hr_calendar_weeks() -> list[dict]:
         wk_start = HR_PLAN_START + timedelta(weeks=wk_idx)
         phase = phase_for_week(week_num)
         days = []
+        total_min = 0
         for day_offset, (stype, label, dur) in enumerate(sessions):
             d = wk_start + timedelta(days=day_offset)
+            ov = overrides.get(d.isoformat())
+            if ov:
+                dur = ov["duration_min"]
+                if ov.get("session_type"):
+                    stype = ov["session_type"]
+                if ov.get("label"):
+                    label = ov["label"]
+            total_min += dur
             days.append({
                 "date": d,
                 "day_num": d.day,
@@ -600,9 +615,8 @@ def build_hr_calendar_weeks() -> list[dict]:
                 "dur_min": dur,
                 "is_today": d == today,
                 "is_past": d < today,
+                "overridden": bool(ov),
             })
-        # weekly totals
-        total_min = sum(s[2] for s in sessions)
         weeks.append({
             "week_num": week_num,
             "start": wk_start,

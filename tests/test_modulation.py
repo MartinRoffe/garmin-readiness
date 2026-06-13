@@ -109,3 +109,45 @@ def test_rest_day_amber_shows_pill_without_swap(monkeypatch):
     mod = session_modulation(TODAY, _metrics(58.0), None, light=_light("amber"))
     assert mod is not None
     assert "label" not in mod  # no swap proposed, just the status pill
+
+
+# ── Haute Route plan fallback ────────────────────────────────────────────────
+# session_for_date_extended is stubbed to None by the autouse fixture, so these
+# exercise the hr_session_for_date fallback path.
+
+def test_hr_amber_vo2_swaps_to_z2_endurance(monkeypatch):
+    monkeypatch.setattr(modulation, "hr_session_for_date",
+                        lambda d: ("vo2", "VO2 Intervals 5×3 min", 60))
+    mod = session_modulation(TODAY, _metrics(58.0), None, light=_light("amber"))
+    assert (mod["session_type"], mod["label"], mod["duration_min"]) == ("endurance", "Z2 Endurance", 60)
+
+
+def test_hr_amber_back_to_back_swaps_to_easy_long(monkeypatch):
+    monkeypatch.setattr(modulation, "hr_session_for_date",
+                        lambda d: ("back_to_back", "Back-to-Back Day 1", 240))
+    mod = session_modulation(TODAY, _metrics(58.0), None, light=_light("amber"))
+    assert (mod["session_type"], mod["label"], mod["duration_min"]) == ("long", "Long Ride (Easy)", 240)
+
+
+def test_hr_red_swaps_to_recovery_type(monkeypatch):
+    # HR vocabulary: red uses type "recovery", not the 12-week plan's "bike"
+    monkeypatch.setattr(modulation, "hr_session_for_date",
+                        lambda d: ("sweetspot", "Low Cadence Sweetspot", 90))
+    mod = session_modulation(TODAY, _metrics(40.0), None, light=_light("red"))
+    assert (mod["session_type"], mod["label"], mod["duration_min"]) == ("recovery", "Recovery Spin", 30)
+
+
+def test_hr_amber_recovery_session_shows_pill_only(monkeypatch):
+    monkeypatch.setattr(modulation, "hr_session_for_date",
+                        lambda d: ("recovery", "Strength + Core", 60))
+    mod = session_modulation(TODAY, _metrics(58.0), None, light=_light("amber"))
+    assert mod is not None
+    assert "label" not in mod
+
+
+def test_hr_amber_already_easy_shows_pill_only(monkeypatch):
+    monkeypatch.setattr(modulation, "hr_session_for_date",
+                        lambda d: ("endurance", "Z2 Easy", 45))
+    mod = session_modulation(TODAY, _metrics(58.0), None, light=_light("amber"))
+    assert mod is not None
+    assert "label" not in mod

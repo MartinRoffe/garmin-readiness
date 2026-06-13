@@ -8,6 +8,7 @@ from datetime import timedelta
 from typing import Any
 
 from garminconnect.workout import (
+    BaseWorkout,
     CyclingWorkout,
     FitnessEquipmentWorkout,
     HikingWorkout,
@@ -30,6 +31,7 @@ from .plan import (
 _SPORT        = {"sportTypeId": SportType.CYCLING,           "sportTypeKey": "cycling",           "displayOrder": 1}
 _FE_SPORT     = {"sportTypeId": SportType.FITNESS_EQUIPMENT, "sportTypeKey": "fitness_equipment",  "displayOrder": 6}
 _HIKE_SPORT   = {"sportTypeId": SportType.HIKING,            "sportTypeKey": "hiking",             "displayOrder": 7}
+_CARDIO_SPORT = {"sportTypeId": 11,                          "sportTypeKey": "cardio",             "displayOrder": 11}
 
 _BIKE_TYPES         = {"bike", "tempo", "ftp", "long"}
 _STRENGTH_RUCK_TYPES = {"strength", "ruck"}
@@ -109,13 +111,13 @@ def _make_fe(name: str, steps: list, dur_min: int) -> FitnessEquipmentWorkout:
     )
 
 
-def _make_cardio(name: str, steps: list, dur_min: int) -> CyclingWorkout:
-    """Use cycling sport type for MaxiClimber — Garmin's only reliably cardio type with
-    full structured-workout support (warmup/repeat-group/cooldown + HR zone targets)."""
-    return CyclingWorkout(
+def _make_cardio(name: str, steps: list, dur_min: int) -> BaseWorkout:
+    """Cardio sport type for MaxiClimber — matches stair stepper activity profile on watch."""
+    return BaseWorkout(
         workoutName=name,
         estimatedDurationInSecs=dur_min * 60,
-        workoutSegments=[WorkoutSegment(segmentOrder=1, sportType=_SPORT, workoutSteps=steps)],
+        sportType=_CARDIO_SPORT,
+        workoutSegments=[WorkoutSegment(segmentOrder=1, sportType=_CARDIO_SPORT, workoutSteps=steps)],
     )
 
 
