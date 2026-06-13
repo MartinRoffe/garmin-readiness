@@ -2,6 +2,9 @@
 
 Encoded here so the AI coach can reference the exact prescribed meals for
 today rather than only seeing what was logged after the fact.
+
+Protein targets revised for 92 kg athlete at 2.0–2.2 g/kg = 185–200g/day.
+Previous plan was 30–90g short on most days; Saturday was 88g short.
 """
 from __future__ import annotations
 
@@ -9,41 +12,43 @@ from datetime import date
 
 # ── Calorie tiers ─────────────────────────────────────────────────────────────
 CALORIE_TIERS = {
-    "rest":     {"label": "Rest / Monday",       "kcal": 1980},
-    "training": {"label": "Training days (Tue–Fri)", "kcal": 2150},
-    "ruck":     {"label": "Ruck Saturday",        "kcal": 2200},
-    "long":     {"label": "Long ride Sunday",     "kcal": 2350,
+    "rest":     {"label": "Rest / Monday",            "kcal": 2050},
+    "training": {"label": "Training days (Tue–Fri)",  "kcal": 2350},
+    "ruck":     {"label": "Ruck Saturday",             "kcal": 2500},
+    "long":     {"label": "Long ride Sunday",          "kcal": 2700,
                  "note": "baseline ~2 h; +150–200 kcal per extra hour beyond 2 h"},
-    "recovery": {"label": "Recovery week Mon–Fri", "kcal": 1900},
+    "recovery": {"label": "Recovery week Mon–Fri",     "kcal": 2050},
 }
 
 # ── Principles ────────────────────────────────────────────────────────────────
 PRINCIPLES = [
-    "Protein-first: 160–180g/day. Every meal anchored to a protein source. "
-    "GetPro at lunch on Mon/Wed/Thu closes the office gap.",
+    "Protein target: 185–200g/day (2.0–2.2 g/kg at ~92 kg). Every meal anchored to a "
+    "protein source. GetPro at lunch on Mon/Tue/Wed/Thu, protein shake on Wed/Thu/Sat.",
     "Carbs around training: rice/pasta lunches on ride and KB days. Banana 45 min pre-session. "
     "Ben's Paella Thursday fuels evening kettlebell. Saturday's carb-rich Gousto dinner is the "
     "real pre-ride fuel for Sunday — not breakfast.",
     "Sunday fuelling: 100–150 kcal fast carbs on waking only. On-bike from minute 0: "
     "60 g carbs/hr for rides 1–2.5 h, 75–90 g/hr beyond 2.5 h. Recovery meal within 45 min "
-    "(chocolate milk first, then big porridge + eggs + banana + PB toast).",
+    "(chocolate milk first, then big porridge + GetPro + eggs + banana + PB toast).",
     "Gut training: weeks 5–8 practise 60 g/hr on every ride ≥75 min. "
     "Weeks 9–11 push to 75–90 g/hr on long rides.",
-    "Recovery week (W4): protein holds at 160g — cut comes from carbs/fat only. "
-    "Snacks reduce to 1–2/day. Lighter Gousto (<500 kcal).",
-    "Thursday warning: lowest pre-dinner protein day (94g). "
-    "Gousto must be chicken/beef/salmon — not a pasta-only dish.",
+    "Recovery week (W4): protein holds at 185g minimum — cut comes from carbs/fat only. "
+    "Snacks reduce to 1–2/day. Lighter Gousto (<550 kcal). Protein shake stays in.",
+    "Thursday warning: lowest pre-dinner protein day (119g). "
+    "Gousto MUST be chicken/beef/salmon ≥65g protein — not a pasta-only dish.",
+    "Saturday is the highest-risk protein day. Lunch must be chicken+rice (not eggs on toast). "
+    "GetPro at post-ruck breakfast. Protein shake as evening snack. These are non-negotiable.",
 ]
 
 # ── Day-type templates ────────────────────────────────────────────────────────
-# Each day type: list of (meal_slot, name, detail, kcal, protein_g, carbs_g)
+# Each meal: (slot, name, detail, kcal, protein_g, carbs_g)
 DAY_TYPES: dict[str, dict] = {
 
     "rest": {
         "label": "Rest day",
         "calorie_tier": "rest",
         "pre_dinner_protein_g": 120,
-        "protein_note": "Easiest day to hit 160g — 120g pre-dinner, any Gousto gets you there.",
+        "protein_note": "120g pre-dinner; Gousto must deliver 60g+ to hit 185g. Easiest day.",
         "meals": [
             ("Breakfast", "Fuel10k + GetPro Yoghurt",
              "Grab-and-go. Shake Fuel10k, eat GetPro on the way in.", 330, 35, 39),
@@ -52,160 +57,203 @@ DAY_TYPES: dict[str, dict] = {
              "Microwave rice. Chicken cold from pack. GetPro alongside.", 680, 73, 70),
             ("PM Snack", "Banana", "Afternoon energy.", 90, 1, 23),
             ("Eve Snack", "Apple or orange", "Light evening snack.", 70, 1, 18),
-            ("Dinner", "Gousto — medium protein pick",
-             "~600 kcal, target 44g+ protein. Rest day — any decent Gousto hits target.", 600, 44, 55),
+            ("Dinner", "Gousto — 60g+ protein pick",
+             "~660 kcal, 60g+ protein. Rest day — any strong Gousto (chicken, beef, salmon). "
+             "Veggie or pasta-only dishes don't hit target.", 660, 60, 55),
         ],
     },
 
     "training": {
         "label": "Kettlebell + MaxiClimber",
         "calorie_tier": "training",
-        "pre_dinner_protein_g": 105,
-        "protein_note": "Training day — pick a Gousto with 50g+ protein. Chicken thighs, beef ragu or salmon.",
+        "pre_dinner_protein_g": 120,
+        "protein_note": "120g pre-dinner (GetPro now added to lunch). Gousto at 65g closes the day at 185g.",
         "meals": [
             ("Breakfast", "Fuel10k + GetPro Yoghurt", "Same morning routine.", 330, 35, 39),
             ("AM Snack", "Nature Valley Protein Bar", "Mid-morning.", 200, 10, 15),
-            ("Lunch", "Asda Egg Fried Rice + Chicken 240g",
-             "Full 240g chicken pack. No GetPro needed — lunch protein is strong.", 550, 58, 58),
+            ("Lunch", "Asda Egg Fried Rice + Chicken 240g + GetPro",
+             "Full 240g chicken pack + GetPro alongside. Same as rest day lunch — protein floor "
+             "needs the GetPro on training days too.", 700, 73, 70),
             ("PM Snack", "Banana", "45 min before evening session.", 90, 1, 23),
             ("Eve Snack", "Apple or orange", "Post-session.", 70, 1, 18),
-            ("Dinner", "Gousto — high protein pick",
-             "~680 kcal, 50–55g protein. Chicken, beef or salmon. This is a training day.", 680, 52, 70),
+            ("Dinner", "Gousto — 65g protein pick",
+             "~730 kcal, 65g protein. Chicken thighs, beef ragu or salmon. Training day — "
+             "recovery depends on this meal.", 730, 65, 70),
         ],
     },
 
     "bike": {
         "label": "Outdoor Bike 60 min",
         "calorie_tier": "training",
-        "pre_dinner_protein_g": 100,
-        "protein_note": "Ride day — carb-leaning Gousto fine. Target 50g+ protein from dinner.",
+        "pre_dinner_protein_g": 125,
+        "protein_note": "125g pre-dinner (includes protein shake). Gousto at 65g closes the day at 190g.",
         "meals": [
             ("Breakfast", "Fuel10k + GetPro Yoghurt", "Same morning routine.", 330, 35, 39),
             ("AM Snack", "Nature Valley Protein Bar", "Mid-morning.", 200, 10, 15),
             ("Lunch", "Batchelors Pasta & Sauce + Tuna tin + GetPro",
              "Stir full tin of tuna into pasta. GetPro alongside. Good carbs for the afternoon ride.", 600, 53, 78),
             ("PM Snack", "Banana", "45 min before riding.", 90, 1, 23),
+            ("Protein Shake", "Whey/casein shake — 25g protein",
+             "Post-ride or between PM snack and dinner. Closes the protein gap on ride days "
+             "where lunch is tuna/pasta rather than the higher-protein chicken lunch.", 150, 25, 5),
             ("Eve Snack", "Apple or orange", "Post-ride.", 70, 1, 18),
-            ("Dinner", "Gousto — high protein, carb-friendly",
-             "~680 kcal, 50g+ protein. Pasta, rice or noodle Gousto works well on ride evenings.", 680, 52, 72),
+            ("Dinner", "Gousto — 65g protein pick",
+             "~730 kcal, 65g protein. Pasta, rice or noodle Gousto works on ride evenings "
+             "if the protein source is chicken, fish or beef.", 730, 65, 72),
         ],
     },
 
     "thursday": {
         "label": "Kettlebell + MaxiClimber — Paella Thursday",
         "calorie_tier": "training",
-        "pre_dinner_protein_g": 94,
-        "protein_note": "⚠ Weakest pre-dinner day (94g). Make Gousto count — choose chicken or beef, NOT a veggie/pasta option.",
+        "pre_dinner_protein_g": 119,
+        "protein_note": "⚠ 119g pre-dinner — lowest pre-dinner day. Gousto MUST be ≥65g protein. No exceptions.",
         "meals": [
             ("Breakfast", "Fuel10k + GetPro Yoghurt", "Same morning routine.", 330, 35, 39),
             ("AM Snack", "Nature Valley Protein Bar", "Mid-morning.", 200, 10, 15),
             ("Lunch", "Ben's Paella ★ + Prawns 150g + GetPro",
-             "Paella Thursday. Prawns stirred in cold. GetPro alongside. Excellent carb base for evening kettlebell.", 480, 47, 62),
+             "Paella Thursday. Prawns stirred in cold. GetPro alongside. Excellent carb base "
+             "for evening kettlebell.", 480, 47, 62),
             ("PM Snack", "Banana", "45 min before session. Carbs matter tonight.", 90, 1, 23),
+            ("Protein Shake", "Whey/casein shake — 25g protein",
+             "Between session and dinner — closes the protein gap left by the lower-protein "
+             "paella lunch. Non-negotiable on Thursdays.", 150, 25, 5),
             ("Eve Snack", "Apple or orange", "Post-session.", 70, 1, 18),
-            ("Dinner", "Gousto — strongest pick of the week",
-             "~680 kcal, 52g+ protein. Lowest pre-dinner protein day — Gousto must deliver. Not a pasta-only dish.", 680, 52, 68),
+            ("Dinner", "Gousto — strongest pick of the week, ≥65g protein",
+             "~730 kcal, 65g protein. Lowest pre-dinner protein day — Gousto must deliver. "
+             "Chicken, beef or salmon. NOT a pasta-only or veggie dish.", 730, 65, 68),
         ],
     },
 
     "ruck": {
         "label": "Rucking 60–90 min",
         "calorie_tier": "ruck",
-        "pre_dinner_protein_g": 49,
-        "protein_note": "Lower protein day — Saturday relies heavily on Gousto. Add GetPro to post-ruck plate or lunch if needed.",
+        "pre_dinner_protein_g": 137,
+        "protein_note": "Saturday was the biggest protein gap (old plan: 97g, need 197g). "
+                        "Chicken lunch + GetPro at breakfast + shake are all required to hit target.",
         "meals": [
             ("On Waking", "Banana out the door (or fasted)",
              "Very early start — fasted at easy pace is fine. Banana if you want fuel.", 150, 3, 30),
-            ("Post-Ruck", "Porridge 80g + Milk + 2 Eggs + Banana",
-             "On return — the recovery meal. 80g oats, semi-skimmed milk, 2 eggs, banana.", 530, 22, 72),
-            ("Lunch", "3 Scrambled Eggs on 2 Slices Wholegrain Toast + Salad",
-             "Lighter midday plate. Add half tin baked beans if hungrier.", 490, 22, 44),
-            ("PM Snack", "Banana + Apple", "Afternoon.", 160, 2, 41),
+            ("Post-Ruck", "Porridge 80g + Milk + 2 Eggs + Banana + GetPro Yoghurt",
+             "On return — the recovery meal. 80g oats, semi-skimmed milk, 2 eggs, banana, "
+             "GetPro pot. GetPro is essential here — without it Saturday protein collapses.", 680, 37, 72),
+            ("Lunch", "Chicken 240g + Rice Pouch + Salad",
+             "Full 240g chicken pack — NOT eggs on toast (22g vs 58g protein). "
+             "This single swap adds 36g protein to Saturday. Non-negotiable.", 550, 58, 46),
+            ("PM Snack", "Banana + Apple + Nature Valley Protein Bar",
+             "Afternoon. Add the protein bar on Saturday to keep the total moving.", 360, 12, 56),
+            ("Protein Shake", "Whey/casein shake — 25g protein",
+             "Evening, before dinner. Saturday's structure makes it hard to hit 185g without "
+             "a shake — treat this as a planned meal, not optional.", 150, 25, 5),
             ("Dinner", "Gousto — carb-rich pick (this is tomorrow's pre-ride meal)",
-             "~720 kcal, 48g protein. Bias to carb-rich tonight — butter chicken with rice, pasta, noodles, slow-cooked lamb. This dinner fuels Sunday's ride.", 720, 48, 82),
+             "~730 kcal, 62g protein. Bias to a carb-rich Gousto tonight — butter chicken with "
+             "rice, pasta, noodles, slow-cooked lamb. This dinner fuels Sunday's ride.", 730, 62, 82),
         ],
     },
 
     "long": {
         "label": "Long Ride — building to 3h30",
         "calorie_tier": "long",
-        "pre_dinner_protein_g": 97,
-        "protein_note": "Chocolate-milk-first recovery porridge replaces the pre-ride breakfast. Get it in within 45 min of finishing.",
+        "pre_dinner_protein_g": 126,
+        "protein_note": "126g pre-dinner (GetPro now in recovery meal + 240g chicken at lunch). "
+                        "Gousto at 65g closes the day at ~190g.",
         "meals": [
             ("On Waking", "Banana + honey toast, or carb drink in bottle 1",
-             "100–150 kcal fast carbs only, 10–20 min before rolling. Last night's Gousto dinner was the real pre-ride meal.", 160, 3, 32),
+             "100–150 kcal fast carbs only, 10–20 min before rolling. Last night's Gousto dinner "
+             "was the real pre-ride meal.", 160, 3, 32),
             ("On-Bike", "Carb drink mix + banana + Crunchy bars (from minute 0)",
-             "60 g carbs/hr for 1–2.5 h, 75–90 g/hr beyond 2.5 h. Start in first 15 min, something every 20–30 min. 500 ml bottle with 40–60 g carb drink, banana (~25 g), Crunchy bar (~28 g). 500–750 ml fluid/hr.", 450, 6, 104),
-            ("Recovery", "Big Porridge + 2 Eggs + Banana + PB Toast + Chocolate Milk",
-             "Within 45 min of finishing. Chocolate milk first, then 80g oats + eggs + banana + PB toast.", 700, 40, 82),
-            ("Lunch", "Chicken 150g + Rice Pouch + Salad",
-             "A few hours after the ride. Tops up protein and glycogen through the afternoon.", 500, 48, 56),
-            ("Dinner", "Gousto — protein-rich recovery",
-             "~650 kcal, 52g+ protein. Slow-cooked beef ragu, Thai chicken, lemon herb salmon.", 650, 52, 64),
+             "60 g carbs/hr for 1–2.5 h, 75–90 g/hr beyond 2.5 h. Start in first 15 min, "
+             "something every 20–30 min. 500 ml bottle with 40–60 g carb drink, banana (~25 g), "
+             "Crunchy bar (~28 g). 500–750 ml fluid/hr.", 450, 6, 104),
+            ("Recovery", "Big Porridge + GetPro + 2 Eggs + Banana + PB Toast + Chocolate Milk",
+             "Within 45 min of finishing. Chocolate milk first, then 80g oats + GetPro + "
+             "2 eggs + banana + PB toast. GetPro is added here — Sunday recovery meal was "
+             "40g protein before, now 55g.", 850, 55, 82),
+            ("Lunch", "Chicken 240g + Rice Pouch + Salad",
+             "A few hours after the ride. Increased from 150g to 240g chicken — adds 10g protein "
+             "and improves afternoon recovery before the next training day.", 550, 58, 56),
+            ("Dinner", "Gousto — 65g protein recovery pick",
+             "~700 kcal, 65g protein. Slow-cooked beef ragu, Thai chicken, lemon herb salmon. "
+             "Strong protein close to a big ride day.", 700, 65, 64),
         ],
     },
 
     "recovery_weekday": {
         "label": "Recovery week Mon–Fri",
         "calorie_tier": "recovery",
-        "pre_dinner_protein_g": 90,
-        "protein_note": "Recovery week: hold protein at 160g. The calorie cut comes from carbs/fat, not protein.",
+        "pre_dinner_protein_g": 115,
+        "protein_note": "Recovery week: protein holds at 185g minimum — cut from carbs/fat only. "
+                        "Protein shake stays in even on recovery week.",
         "meals": [
             ("Breakfast", "Fuel10k + GetPro Yoghurt (same)", "Keep breakfast identical.", 330, 35, 39),
-            ("Snack", "1–2 snacks only (vs 3)",
-             "Keep protein snacks. Drop afternoon apple/orange on rest days. Bar on training days only.", 200, 10, 15),
+            ("Snack", "Protein bar on training days, skip on rest days",
+             "Keep protein snacks. Drop fruit snacks on rest days. Bar on training days only.", 200, 10, 15),
             ("Lunch", "Same lunch choices — no change",
-             "Lunch stays identical. The calorie cut comes from reduced snacks and lighter Gousto.", 500, 45, 60),
-            ("Dinner", "Gousto — lighter pick",
-             "Under 500 kcal this week. Thai prawn salad, baked cod, chicken & courgette bowl.", 500, 42, 48),
+             "Lunch stays identical to Weeks 1–3. The calorie cut comes from lighter Gousto "
+             "and snack reduction, not lunch.", 500, 45, 60),
+            ("Protein Shake", "Whey/casein shake — 25g protein",
+             "Keep the shake even in recovery week — protein target doesn't drop.", 150, 25, 5),
+            ("Dinner", "Gousto — lighter pick, but still 55g+ protein",
+             "~560 kcal, 55g protein. Thai prawn salad, baked cod with greens, chicken & "
+             "courgette bowl. Lean protein, less carb. Don't pick a low-protein option "
+             "just because it's recovery week.", 560, 55, 48),
         ],
     },
 
     "recovery_saturday": {
         "label": "Recovery week Saturday — easy ruck",
         "calorie_tier": "recovery",
-        "pre_dinner_protein_g": 51,
-        "protein_note": "Recovery Saturday — intentionally lighter. Big breakfast after the ruck.",
+        "pre_dinner_protein_g": 117,
+        "protein_note": "Recovery Saturday still needs 165g+ protein. Chicken lunch and GetPro "
+                        "at breakfast are required — same rules as build-week Saturday.",
         "meals": [
             ("On Waking", "Fasted or banana", "Easy recovery ruck — fasted at easy pace is fine.", 90, 1, 23),
-            ("Post-Ruck", "60g Porridge + 2 Eggs",
-             "On return — smaller than a build week (60g oats vs 80g).", 420, 28, 48),
-            ("Lunch", "2 Eggs on Toast + Large Salad", "Lighter midday plate.", 380, 22, 38),
-            ("Dinner", "Gousto — light treat",
-             "~600 kcal. Keep lighter than normal Saturday, but bias carbs if Sunday is a longer ride.", 600, 44, 58),
+            ("Post-Ruck", "60g Porridge + 2 Eggs + GetPro Yoghurt",
+             "On return — smaller than a build week (60g oats vs 80g) but GetPro stays in.", 570, 43, 48),
+            ("Lunch", "Chicken 150g + Rice Pouch + Salad",
+             "Chicken not eggs on toast — same rule as build Saturday. 150g chicken (not 240g) "
+             "reflects the lighter recovery day.", 450, 40, 42),
+            ("Protein Shake", "Whey/casein shake — 25g protein",
+             "Saturday protein gap exists even in recovery week. Shake stays in.", 150, 25, 5),
+            ("Dinner", "Gousto — lighter recovery pick, still 58g+ protein",
+             "~650 kcal, 58g protein. Bias carbs if Sunday is still a ride.", 650, 58, 58),
         ],
     },
 
     "recovery_sunday": {
         "label": "Recovery week Sunday — shorter ride 75–90 min",
         "calorie_tier": "recovery",
-        "pre_dinner_protein_g": 87,
-        "protein_note": "Shorter recovery ride. Chocolate milk and porridge still the recovery meal.",
+        "pre_dinner_protein_g": 119,
+        "protein_note": "GetPro added to recovery meal; Gousto raised to 62g. "
+                        "Closes the day at ~165g — acceptable for recovery week.",
         "meals": [
             ("On Waking", "Banana or carb drink", "Small fast carbs only.", 150, 3, 32),
             ("On-Bike", "Carb drink or banana + half bar",
              "Even short recovery ride: ~40–60 g carbs/hr once it passes 75 min.", 150, 3, 32),
-            ("Recovery", "Full Sunday Porridge + 2 Eggs + Banana + Chocolate Milk",
-             "Chocolate milk first, then 80g oats + 2 eggs + banana.", 600, 36, 74),
-            ("Lunch", "Lighter recovery plate",
-             "120g chicken (not 150g), half rice pouch, salad.", 530, 48, 56),
-            ("Dinner", "Gousto — end-of-cycle pick",
-             "~630 kcal. Final meal before cycle repeats. Salmon, chicken or beef.", 630, 48, 62),
+            ("Recovery", "Full Sunday Porridge + GetPro + 2 Eggs + Banana + Chocolate Milk",
+             "Chocolate milk first, then 80g oats + GetPro + 2 eggs + banana. "
+             "GetPro added here — was missing from recovery Sunday.", 750, 51, 74),
+            ("Lunch", "Chicken 150g + Rice Pouch + Salad",
+             "Recovery ride: 150g chicken (lighter than build week 240g). "
+             "Still essential to get protein in post-ride.", 480, 42, 46),
+            ("Dinner", "Gousto — end-of-cycle pick, 62g+ protein",
+             "~680 kcal, 62g protein. Final meal before cycle repeats. Salmon, chicken or beef. "
+             "Raise the protein target vs old plan (was 48g, now 62g).", 680, 62, 62),
         ],
     },
 }
 
 # ── Day-of-week → day type mapping ────────────────────────────────────────────
 # weekday(): 0=Mon, 1=Tue, 2=Wed, 3=Thu, 4=Fri, 5=Sat, 6=Sun
-# cycle_week: 0=w1, 1=w2, 2=w3, 3=w4(recovery)
+# cycle_week: 0=w1, 1=w2, 2=w3, 3=w4 (recovery)
 _WEEKDAY_TO_TYPE_BUILD = {
-    0: "rest",       # Monday
-    1: "training",   # Tuesday
-    2: "bike",       # Wednesday
-    3: "thursday",   # Thursday
-    4: "bike",       # Friday
-    5: "ruck",       # Saturday
-    6: "long",       # Sunday
+    0: "rest",
+    1: "training",
+    2: "bike",
+    3: "thursday",
+    4: "bike",
+    5: "ruck",
+    6: "long",
 }
 
 _WEEKDAY_TO_TYPE_RECOVERY = {
@@ -220,13 +268,13 @@ _WEEKDAY_TO_TYPE_RECOVERY = {
 
 # Rice variety rotations (weeks 2+3 swap rice at Mon/Tue/Fri, same macros)
 _RICE_SWAP: dict[int, dict[int, str]] = {
-    1: {0: "Ben's Mexican Rice", 4: "Ben's Golden Vegetable Rice"},          # w2
-    2: {0: "Ben's Golden Vegetable Rice", 1: "Ben's Mexican Rice"},           # w3
+    1: {0: "Ben's Mexican Rice", 4: "Ben's Golden Vegetable Rice"},
+    2: {0: "Ben's Golden Vegetable Rice", 1: "Ben's Mexican Rice"},
 }
 
 
 def today_day_type(cycle_week: int, weekday: int) -> str:
-    if cycle_week == 3:  # w4 = recovery
+    if cycle_week == 3:
         return _WEEKDAY_TO_TYPE_RECOVERY[weekday]
     return _WEEKDAY_TO_TYPE_BUILD[weekday]
 
@@ -234,34 +282,33 @@ def today_day_type(cycle_week: int, weekday: int) -> str:
 def nutrition_coach_context(plan_start: date, today: date) -> str:
     """Return a compact text block describing today's prescribed nutrition."""
     days_since_start = (today - plan_start).days
-    cycle_week = max(0, days_since_start // 7) % 4  # 0-indexed
+    cycle_week = max(0, days_since_start // 7) % 4
     weekday = today.weekday()
     dtype = today_day_type(cycle_week, weekday)
     day_data = DAY_TYPES[dtype]
     tier = CALORIE_TIERS[day_data["calorie_tier"]]
     cycle_label = f"Week {cycle_week + 1}" + (" — Recovery" if cycle_week == 3 else "")
 
+    total_protein = sum(m[4] for m in day_data["meals"])
+
     lines = [
         "## Nutrition Plan — Today's Prescribed Meals",
         f"Cycle: {cycle_label}  |  Day type: {day_data['label']}  |  "
-        f"Target: {tier['kcal']} kcal" + (f" ({tier['note']})" if tier.get('note') else ""),
-        f"Pre-dinner protein target: {day_data['pre_dinner_protein_g']}g  — {day_data['protein_note']}",
+        f"Target: {tier['kcal']} kcal" + (f" ({tier['note']})" if tier.get("note") else ""),
+        f"Prescribed protein: {total_protein}g total  |  "
+        f"Pre-dinner: {day_data['pre_dinner_protein_g']}g  — {day_data['protein_note']}",
         "",
         "Meals:",
     ]
 
     for slot, name, detail, kcal, prot, carbs in day_data["meals"]:
-        # Note rice swaps for weeks 2/3
         swap = _RICE_SWAP.get(cycle_week, {}).get(weekday)
         if swap and "Rice" in name:
             name = swap
         lines.append(f"  {slot}: {name} — {kcal} kcal, {prot}g protein, {carbs}g carbs")
         lines.append(f"    {detail}")
 
-    lines += [
-        "",
-        "Key principles:",
-    ]
+    lines += ["", "Key principles:"]
     for p in PRINCIPLES:
         lines.append(f"  • {p}")
 

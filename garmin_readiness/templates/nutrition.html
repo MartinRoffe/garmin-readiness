@@ -206,7 +206,7 @@
     <h1>FUEL TO<br><span>PERFORM</span></h1>
     <p class="hero-sub">A 4-week repeatable nutrition plan built around Fuel10k breakfasts, Asda lunches, and Gousto dinners. Protein-first, carbs timed to training, and budget-conscious throughout.</p>
     <div class="hero-stats">
-      <div class="stat"><div class="stat-val">160g+</div><div class="stat-label">Daily Protein</div></div>
+      <div class="stat"><div class="stat-val">185g+</div><div class="stat-label">Daily Protein</div></div>
       <div class="stat"><div class="stat-val">~£49</div><div class="stat-label">Weekly shop</div></div>
       <div class="stat"><div class="stat-val">~£35</div><div class="stat-label">Optimised cost</div></div>
       <div class="stat"><div class="stat-val">4</div><div class="stat-label">Week cycle</div></div>
@@ -260,7 +260,7 @@
       <div class="principle-card pc-protein">
         <div class="principle-icon">🥩</div>
         <div class="principle-title">Protein First</div>
-        <p>160–180g daily protects muscle over 50. Every meal anchored to a protein source. GetPro at lunch on Mon/Wed/Thu closes the gap from the office food choices.</p>
+        <p>185–200g daily (2.0–2.2 g/kg at ~92 kg) protects muscle over 50. Every meal anchored to a protein source. GetPro at lunch Mon–Thu; protein shake added Wed/Thu/Fri evenings. Saturday: chicken lunch (not eggs) + GetPro post-ruck + evening shake.</p>
       </div>
       <div class="principle-card pc-carbs">
         <div class="principle-icon">🔋</div>
@@ -275,7 +275,7 @@
       <div class="principle-card pc-gousto">
         <div class="principle-icon">🍳</div>
         <div class="principle-title">Gousto Dinners</div>
-        <p>Dinners not specified here — planned separately via Gousto. Training days: aim 50–55g P, 680 kcal. Rest days: 44g P, 600 kcal. Thursday especially needs a strong pick.</p>
+        <p>Dinners not specified here — planned separately via Gousto. Training days: aim 65g P, 730 kcal. Rest days: 60g P, 660 kcal. Thursday and Saturday especially need a strong pick.</p>
       </div>
       <div class="principle-card pc-sunday">
         <div class="principle-icon">☀️</div>
@@ -287,28 +287,28 @@
     <div class="calorie-strip">
       <div class="cal-cell">
         <div class="cal-label">Rest days</div>
-        <div class="cal-val">1,980</div>
+        <div class="cal-val">2,050</div>
         <div class="cal-sub">Mon / recovery days</div>
       </div>
       <div class="cal-cell">
         <div class="cal-label">Training days</div>
-        <div class="cal-val">2,150</div>
+        <div class="cal-val">2,350</div>
         <div class="cal-sub">Tue · Wed · Thu · Fri</div>
       </div>
       <div class="cal-cell">
         <div class="cal-label">Ruck Saturday</div>
-        <div class="cal-val">2,200</div>
+        <div class="cal-val">2,500</div>
         <div class="cal-sub">60–90 min load carry</div>
       </div>
       <div class="cal-cell">
         <div class="cal-label">Long ride Sunday</div>
-        <div class="cal-val">2,350</div>
+        <div class="cal-val">2,700</div>
         <div class="cal-sub">≥2 h baseline — scales up</div>
       </div>
     </div>
 
     <div class="footer-note" style="margin-top:16px;border-left-color:var(--danger)">
-      <p><strong style="color:var(--danger)">Long-ride calories scale with duration.</strong> The ~2,350 kcal baseline assumes a ~2 h ride. Add <strong>150–200 kcal per ride-hour beyond 2 h</strong>, taken mostly as on-bike carbs: <strong>~2,350 at 2 h · ~2,700 at 3.5 h · ~3,000+ at 5 h.</strong> A 5 h Z2 ride burns ~2,500–3,000 kcal — fixing Sunday at 2,350 puts you 1,500+ kcal down on your biggest day and blunts the very adaptations weeks 9–11 exist to build.</p>
+      <p><strong style="color:var(--danger)">Long-ride calories scale with duration.</strong> The ~2,700 kcal baseline assumes a ~2 h ride. Add <strong>150–200 kcal per ride-hour beyond 2 h</strong>, taken mostly as on-bike carbs: <strong>~2,700 at 2 h · ~3,050 at 3.5 h · ~3,400+ at 5 h.</strong> A 5 h Z2 ride burns ~2,500–3,000 kcal — fixing Sunday at 2,350 puts you 1,500+ kcal down on your biggest day and blunts the very adaptations weeks 9–11 exist to build.</p>
     </div>
 
     <div class="footer-note" style="margin-top:8px;border-left-color:var(--carbs)">
@@ -316,7 +316,7 @@
     </div>
 
     <div class="footer-note" style="margin-top:8px">
-      <p><strong>Recovery Week (W4):</strong> Drop targets by ~150–200 kcal. 1–2 snacks instead of 3. Lighter Gousto picks. Protein holds at 160g — in a calorie deficit protein must hold or rise; take the cut from carbs and fat only.</p>
+      <p><strong>Recovery Week (W4):</strong> Drop targets by ~150–200 kcal. 1–2 snacks instead of 3. Lighter Gousto picks. Protein holds at 185g — in a calorie deficit protein must hold or rise; take the cut from carbs and fat only.</p>
     </div>
   </section>
 
@@ -379,82 +379,86 @@ function macro(kcal,p,c,f){ return `<span class="macro m-kcal">${kcal} kcal</spa
 const WEEKS = {
 
 w1:{
-  banner:'<strong>Weeks 1–3 — Training structure.</strong> Fuel10k + GetPro every morning. GetPro also at lunch on Mon, Wed, Thu. Asda Egg Fried Rice on Mon/Tue/Fri. Ben\'s Paella stays on Thursday.',
+  banner:'<strong>Weeks 1–3 — Training structure.</strong> Fuel10k + GetPro every morning. GetPro at lunch on Mon/Tue/Wed/Thu. Protein shake on Wed/Thu/Fri evenings. Saturday: chicken lunch (not eggs) + GetPro post-ruck + shake. Sunday: GetPro in recovery meal + 240g chicken at lunch.',
   days:[
-    {name:'Monday', badge:'badge-rest', type:'Rest day', kcal:'~1,980 kcal',
+    {name:'Monday', badge:'badge-rest', type:'Rest day', kcal:'~2,050 kcal',
      meals:[
        {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Grab-and-go. Shake the Fuel10k, eat the GetPro pot on the way in.', macros:macro('330','35','39','7')},
        {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning. 10g protein hit.', macros:macro('200','10','15','9')},
        {type:'Lunch', name:'Asda Egg Fried Rice + Chicken 240g + GetPro',extras:'<span class="getpro-tag">+GETPRO</span>', detail:'Microwave rice. Eat chicken cold from pack. GetPro alongside.', macros:macro('680','73','70','10')},
        {type:'PM Snack', name:'Banana', detail:'Afternoon energy.', macros:macro('90','1','23','')},
        {type:'Eve Snack', name:'Apple or orange', detail:'Light evening snack.', macros:macro('70','1','18','')},
-       {type:'Dinner', name:'Gousto — medium protein pick', detail:'~600 kcal, target 44g+ protein. Rest day — any decent meal hits target today.', macros:macro('600','44','55','18')}
+       {type:'Dinner', name:'Gousto — 60g+ protein pick', detail:'~660 kcal, 60g+ protein. Rest day — any strong Gousto (chicken, beef, salmon). Veggie or pasta-only dishes don\'t hit target.', macros:macro('660','60','55','18')}
      ],
-     preDinP:120, note:'Easiest day to hit 160g — 120g pre-dinner means any Gousto gets you there.'},
+     preDinP:120, note:'120g pre-dinner; any 60g+ Gousto closes the day at 185g. Easiest day to hit target.'},
 
-    {name:'Tuesday', badge:'badge-train', type:'Kettlebell + MaxiClimber', kcal:'~2,150 kcal',
+    {name:'Tuesday', badge:'badge-train', type:'Kettlebell + MaxiClimber', kcal:'~2,350 kcal',
      meals:[
        {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Same as Monday.', macros:macro('330','35','39','7')},
        {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning.', macros:macro('200','10','15','9')},
-       {type:'Lunch', name:'Asda Egg Fried Rice + Chicken 240g', detail:'Full 240g chicken pack. No GetPro needed today — lunch protein is strong.', macros:macro('550','58','58','10')},
+       {type:'Lunch', name:'Asda Egg Fried Rice + Chicken 240g + GetPro',extras:'<span class="getpro-tag">+GETPRO</span>', detail:'Full 240g chicken pack + GetPro alongside. GetPro added on training days too — lunch protein needs to reach 73g to hit 185g/day.', macros:macro('700','73','70','10')},
        {type:'PM Snack', name:'Banana', detail:'45 min before evening session.', macros:macro('90','1','23','')},
        {type:'Eve Snack', name:'Apple or orange', detail:'Post-session.', macros:macro('70','1','18','')},
-       {type:'Dinner', name:'Gousto — high protein pick', detail:'~680 kcal, 50–55g protein. Chicken, beef or salmon dish. This is a training day — fuel recovery properly.', macros:macro('680','52','70','20')}
+       {type:'Dinner', name:'Gousto — 65g protein pick', detail:'~730 kcal, 65g protein. Chicken thighs, beef ragu or salmon. Training day — recovery depends on this meal.', macros:macro('730','65','70','20')}
      ],
-     preDinP:105, note:'Training day — pick a Gousto with 50g+ protein. Chicken thighs, beef ragu or salmon.'},
+     preDinP:120, note:'120g pre-dinner (GetPro now added to lunch). Gousto at 65g closes the day at 185g.'},
 
-    {name:'Wednesday', badge:'badge-ride', type:'Outdoor Bike 60 min', kcal:'~2,150 kcal',
+    {name:'Wednesday', badge:'badge-ride', type:'Outdoor Bike 60 min', kcal:'~2,350 kcal',
      meals:[
        {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Same morning routine.', macros:macro('330','35','39','7')},
        {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning.', macros:macro('200','10','15','9')},
        {type:'Lunch', name:'Batchelors Pasta & Sauce + Tuna tin + GetPro', extras:'<span class="getpro-tag">+GETPRO</span>', detail:'Stir full tin of tuna into pasta. GetPro alongside. Good carbs for the afternoon ride.', macros:macro('600','53','78','8')},
        {type:'PM Snack', name:'Banana', detail:'45 min before riding.', macros:macro('90','1','23','')},
+       {type:'Protein Shake', name:'Whey/casein shake — 25g protein', detail:'Post-ride or between PM snack and dinner. Closes the protein gap on ride days where lunch is tuna/pasta rather than the higher-protein chicken lunch.', macros:macro('150','25','5','')},
        {type:'Eve Snack', name:'Apple or orange', detail:'Post-ride.', macros:macro('70','1','18','')},
-       {type:'Dinner', name:'Gousto — high protein, carb-friendly', detail:'~680 kcal, 50g+ protein. Pasta, rice or noodle Gousto works well on ride evenings.', macros:macro('680','52','72','18')}
+       {type:'Dinner', name:'Gousto — 65g protein pick, carb-friendly', detail:'~730 kcal, 65g protein. Pasta, rice or noodle Gousto works on ride evenings if the protein source is chicken, fish or beef.', macros:macro('730','65','72','18')}
      ],
-     preDinP:100, note:'Ride day — carb-leaning Gousto fine. Target 50g+ protein from dinner.'},
+     preDinP:125, note:'125g pre-dinner (includes protein shake). Gousto at 65g closes the day at 190g.'},
 
-    {name:'Thursday', badge:'badge-train', type:'Kettlebell + MaxiClimber', kcal:'~2,150 kcal',
+    {name:'Thursday', badge:'badge-train', type:'Kettlebell + MaxiClimber', kcal:'~2,350 kcal',
      meals:[
        {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Same morning routine.', macros:macro('330','35','39','7')},
        {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning.', macros:macro('200','10','15','9')},
-       {type:'Lunch', name:'Ben\'s Paella ★ + Prawns 150g + GetPro', extras:'<span class="fav-tag">★ FAV</span><span class="getpro-tag">+GETPRO</span>', detail:'Thursday is Paella Thursday. Prawns stirred in cold. GetPro alongside. Excellent carb base for evening kettlebell.', macros:macro('480','47','62','12')},
+       {type:'Lunch', name:'Ben\'s Paella ★ + Prawns 150g + GetPro', extras:'<span class="fav-tag">★ FAV</span><span class="getpro-tag">+GETPRO</span>', detail:'Paella Thursday. Prawns stirred in cold. GetPro alongside. Excellent carb base for evening kettlebell.', macros:macro('480','47','62','12')},
        {type:'PM Snack', name:'Banana', detail:'45 min before session. Carbs matter tonight.', macros:macro('90','1','23','')},
+       {type:'Protein Shake', name:'Whey/casein shake — 25g protein', detail:'Between session and dinner — closes the protein gap left by the lower-protein paella lunch. Non-negotiable on Thursdays.', macros:macro('150','25','5','')},
        {type:'Eve Snack', name:'Apple or orange', detail:'Post-session.', macros:macro('70','1','18','')},
-       {type:'Dinner', name:'Gousto — strongest pick of the week', detail:'~680 kcal, 52g+ protein. Lowest pre-dinner protein day — Gousto must deliver. Chicken thighs, beef or salmon. Not a pasta-only dish.', macros:macro('680','52','68','22')}
+       {type:'Dinner', name:'Gousto — strongest pick of the week, ≥65g protein', detail:'~730 kcal, 65g protein. Lowest pre-dinner protein day — Gousto must deliver. Chicken, beef or salmon. NOT a pasta-only or veggie dish.', macros:macro('730','65','68','22')}
      ],
-     preDinP:94, note:'⚠ Weakest pre-dinner day (94g). Make this Gousto count — choose chicken or beef, not a veggie/pasta option.', noteWarn:true},
+     preDinP:119, note:'⚠ 119g pre-dinner — lowest pre-dinner day. Gousto MUST be ≥65g protein. No exceptions.', noteWarn:true},
 
-    {name:'Friday', badge:'badge-ride', type:'Outdoor Bike 60 min', kcal:'~2,150 kcal',
+    {name:'Friday', badge:'badge-ride', type:'Outdoor Bike 60 min', kcal:'~2,350 kcal',
      meals:[
        {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt', detail:'Same morning routine.', macros:macro('330','35','39','7')},
        {type:'AM Snack', name:'Nature Valley Protein Bar', detail:'Mid-morning.', macros:macro('200','10','15','9')},
-       {type:'Lunch', name:'Asda Egg Fried Rice + Chicken 240g', detail:'Full chicken pack. Strong protein lunch without needing GetPro.', macros:macro('550','58','58','10')},
+       {type:'Lunch', name:'Asda Egg Fried Rice + Chicken 240g', detail:'Full chicken pack. Strong protein lunch — rice+chicken gives 58g without needing GetPro.', macros:macro('550','58','58','10')},
        {type:'PM Snack', name:'Banana', detail:'45 min before ride.', macros:macro('90','1','23','')},
+       {type:'Protein Shake', name:'Whey/casein shake — 25g protein', detail:'Post-ride or between PM snack and dinner. Brings pre-dinner total to 130g so any 65g+ Gousto hits 195g.', macros:macro('150','25','5','')},
        {type:'Eve Snack', name:'Apple or orange', detail:'Post-ride.', macros:macro('70','1','18','')},
-       {type:'Dinner', name:'Gousto — end of week treat feel', detail:'~650 kcal, 44g+ protein. Any favourite Gousto today — you\'ve earned it. Stay under 700 kcal.', macros:macro('650','44','65','18')}
+       {type:'Dinner', name:'Gousto — 65g protein pick, end-of-week treat', detail:'~730 kcal, 65g protein. Any favourite chicken, fish or beef Gousto today — you\'ve earned it.', macros:macro('730','65','65','18')}
      ],
-     preDinP:105, note:'Strong day. Any Gousto hits 150g+ protein total. Enjoy the Friday pick.'},
+     preDinP:130, note:'130g pre-dinner (shake included, strong chicken lunch). 65g Gousto = 195g total. Enjoy the Friday pick.'},
 
-    {name:'Saturday', badge:'badge-ruck', type:'Rucking 60–90 min', kcal:'~2,150 kcal',
+    {name:'Saturday', badge:'badge-ruck', type:'Rucking 60–90 min', kcal:'~2,500 kcal',
      meals:[
-       {type:'On Waking', name:'Banana out the door (or fasted)', detail:'Very early start — at easy pace, fasted is fine. If you want fuel, a banana on the way out is plenty (add the Crunchy bar if not fasted). It\'s a 60–90 min ruck, not a ride.', macros:macro('150','3','30','5')},
-       {type:'Post-Ruck', name:'Porridge 80g + Milk + 2 Eggs + Banana', detail:'On return — the big breakfast is the recovery meal now. 80g oats with semi-skimmed milk, 2 eggs, banana. Fast protein + carbs to refill.', macros:macro('530','22','72','14')},
-       {type:'Lunch', name:'3 Scrambled Eggs on 2 Slices Wholegrain Toast + Salad', detail:'Lighter midday plate. Add half tin baked beans if hungrier than usual.', macros:macro('490','22','44','18')},
-       {type:'PM Snack', name:'Banana + Apple', detail:'Afternoon.', macros:macro('160','2','41','')},
-       {type:'Dinner', name:'Gousto — carb-rich pick (this is tomorrow\'s pre-ride meal)', detail:'~720 kcal, 48g protein. Bias to a carb-rich Gousto tonight — before an early Sunday long ride this dinner is the real pre-ride meal. Butter chicken with rice, a pasta or noodle dish, slow-cooked lamb. Stay under 750 kcal.', macros:macro('720','48','82','20')}
+       {type:'On Waking', name:'Banana out the door (or fasted)', detail:'Very early start — at easy pace, fasted is fine. Banana if you want fuel.', macros:macro('150','3','30','5')},
+       {type:'Post-Ruck', name:'Porridge 80g + Milk + 2 Eggs + Banana + GetPro Yoghurt',extras:'<span class="getpro-tag">+GETPRO</span>', detail:'On return — the recovery meal. 80g oats, semi-skimmed milk, 2 eggs, banana, GetPro pot. GetPro is essential here — without it Saturday protein collapses.', macros:macro('680','37','72','14')},
+       {type:'Lunch', name:'Chicken 240g + Rice Pouch + Salad', detail:'Full 240g chicken pack — NOT eggs on toast (22g vs 58g protein). This single swap adds 36g protein to Saturday. Non-negotiable.', macros:macro('550','58','46','8')},
+       {type:'PM Snack', name:'Banana + Apple + Nature Valley Protein Bar', detail:'Afternoon. Add the protein bar on Saturday to keep the total moving.', macros:macro('360','12','56','')},
+       {type:'Protein Shake', name:'Whey/casein shake — 25g protein', detail:'Evening, before dinner. Saturday\'s structure makes it hard to hit 185g without a shake — treat this as a planned meal, not optional.', macros:macro('150','25','5','')},
+       {type:'Dinner', name:'Gousto — carb-rich pick (this is tomorrow\'s pre-ride meal)', detail:'~730 kcal, 62g protein. Bias to a carb-rich Gousto tonight — butter chicken with rice, pasta, noodles, slow-cooked lamb. This dinner fuels Sunday\'s ride.', macros:macro('730','62','82','20')}
      ],
-     preDinP:49, note:'Lower protein day by structure — Saturday relies heavily on Gousto. Add GetPro to the post-ruck plate or lunch if you want to boost.'},
+     preDinP:135, note:'Saturday was the biggest protein gap in the old plan. Chicken lunch + GetPro post-ruck + shake are all required. 135g pre-dinner + 62g Gousto = 197g.'},
 
-    {name:'Sunday', badge:'badge-long', type:'Long Ride — Building to 3h30', kcal:'~2,350 kcal',
+    {name:'Sunday', badge:'badge-long', type:'Long Ride — Building to 3h30', kcal:'~2,700 kcal',
      meals:[
        {type:'On Waking', name:'Banana + honey toast, or carb drink in bottle 1', detail:'100–150 kcal fast carbs only, 10–20 min before rolling. Last night\'s carb-rich Gousto dinner was the real pre-ride meal — no big breakfast needed before an early start. No new foods today.', macros:macro('160','3','32','2')},
        {type:'On-Bike', name:'Carb drink mix + banana + Crunchy bars (from minute 0)', detail:'60 g carbs/hr for rides 1–2.5 h, 75–90 g/hr beyond 2.5 h. Start fuelling in the first 15 min, then take something every 20–30 min. A 500 ml bottle with 40–60 g carb drink mix does most of the work; banana (~25 g) and a Crunchy bar (~28 g) top it up. 500–750 ml fluid/hr.', macros:macro('450','6','104','4')},
-       {type:'Recovery', name:'Big Porridge + 2 Eggs + Banana + PB Toast + Chocolate Milk', detail:'Within 45 min of finishing. Chocolate milk first (fast carbs + protein), then the plate. The big breakfast is now your recovery meal — 80g oats, milk, 2 eggs, banana, PB toast — refilling glycogen for Monday\'s rest day.', macros:macro('700','40','82','18')},
-       {type:'Lunch', name:'Chicken 150g + Rice Pouch + Salad', detail:'A few hours after the ride. Keeps protein and glycogen topped up through the afternoon.', macros:macro('500','48','56','10')},
-       {type:'Dinner', name:'Gousto — protein-rich recovery', detail:'~650 kcal, 52g+ protein. Slow-cooked beef ragu, Thai chicken, lemon herb salmon. This meal feeds Monday\'s rest day.', macros:macro('650','52','64','16')}
+       {type:'Recovery', name:'Big Porridge + GetPro + 2 Eggs + Banana + PB Toast + Chocolate Milk',extras:'<span class="getpro-tag">+GETPRO</span>', detail:'Within 45 min of finishing. Chocolate milk first, then the plate. 80g oats + GetPro + 2 eggs + banana + PB toast. GetPro added here — Sunday recovery was only 40g protein before, now 55g.', macros:macro('850','55','82','18')},
+       {type:'Lunch', name:'Chicken 240g + Rice Pouch + Salad', detail:'A few hours after the ride. Increased from 150g to 240g chicken — adds 10g protein and improves afternoon recovery before the next training day.', macros:macro('550','58','56','10')},
+       {type:'Dinner', name:'Gousto — 65g protein recovery pick', detail:'~700 kcal, 65g protein. Slow-cooked beef ragu, Thai chicken, lemon herb salmon. Strong protein close to a big ride day.', macros:macro('700','65','64','16')}
      ],
-     preDinP:97, note:'On an early start the chocolate-milk-first recovery porridge replaces the pre-ride breakfast. Get it in within 45 min of finishing.'}
+     preDinP:122, note:'122g pre-dinner (GetPro in recovery + 240g chicken at lunch). Gousto at 65g = 187g total. Get the recovery meal in within 45 min of finishing.'}
   ]
 },
 
@@ -469,36 +473,38 @@ w3:{
 },
 
 w4:{
-  banner:'<strong>Week 4 — Recovery Week.</strong> Lower volume, lighter food. Calorie targets drop 150–200 kcal. Snacks reduce to 1–2 per day. Lighter Gousto picks (under 500 kcal). Protein holds at 160g — in a calorie deficit it must not drop; the cut comes from carbs and fat only.',
+  banner:'<strong>Week 4 — Recovery Week.</strong> Lower volume, lighter food. Calorie targets drop 150–200 kcal. Snacks reduce to 1–2 per day. Lighter Gousto picks (under 600 kcal). Protein holds at 185g minimum — the shake stays in. Cut comes from carbs and fat only.',
   recovery:true,
   days:[
-    {name:'Mon–Fri', badge:'badge-recovery', type:'Recovery week — reduced training', kcal:'~1,850–2,000 kcal',
+    {name:'Mon–Fri', badge:'badge-recovery', type:'Recovery week — reduced training', kcal:'~2,000–2,100 kcal',
      meals:[
-       {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt (same)', detail:'Keep breakfast identical. The calorie reduction comes from smaller portions elsewhere, not breakfast.', macros:macro('330','35','39','7')},
-       {type:'Snack', name:'1–2 snacks only (vs 3)', detail:'Keep protein snacks. Drop the afternoon apple/orange on rest days. Protein bar on training days only.', macros:macro('200','10','15','9')},
-       {type:'Lunch', name:'Same lunch choices — no change', detail:'Lunch stays identical to Weeks 1–3. The slight calorie cut comes from reduced snacks and lighter Gousto. Don\'t cut lunch back.', macros:macro('500','45','60','10')},
-       {type:'Dinner', name:'Gousto — lighter pick', detail:'Under 500 kcal this week. Thai prawn salad, baked cod with greens, chicken & courgette bowl. Lean protein, less carb.', macros:macro('500','42','48','14')}
+       {type:'Breakfast', name:'Fuel10k + GetPro Yoghurt (same)', detail:'Keep breakfast identical. The calorie reduction comes from lighter Gousto and fewer snacks, not breakfast.', macros:macro('330','35','39','7')},
+       {type:'Snack', name:'Protein bar on training days, skip on rest days', detail:'Keep protein snacks. Drop fruit snacks on rest days. Bar on training days only.', macros:macro('200','10','15','9')},
+       {type:'Lunch', name:'Same lunch choices — no change', detail:'Lunch stays identical to Weeks 1–3. The calorie cut comes from lighter Gousto and snack reduction, not lunch.', macros:macro('500','45','60','10')},
+       {type:'Protein Shake', name:'Whey/casein shake — 25g protein', detail:'Keep the shake even in recovery week — protein target doesn\'t drop.', macros:macro('150','25','5','')},
+       {type:'Dinner', name:'Gousto — lighter pick, but still 55g+ protein', detail:'~560 kcal, 55g protein. Thai prawn salad, baked cod with greens, chicken & courgette bowl. Lean protein, less carb. Don\'t pick a low-protein option just because it\'s recovery week.', macros:macro('560','55','48','14')}
      ],
-     preDinP:90, note:'Recovery week: hold protein at 160g — in a deficit it must not drop. The calorie cut comes from carbs/fat. Body adapts during rest.'},
+     preDinP:115, note:'Recovery week: protein holds at 185g minimum — shake stays in. The calorie cut comes from carbs/fat. Body adapts during rest.'},
 
-    {name:'Saturday', badge:'badge-ruck', type:'Easy 60 min ruck — recovery pace', kcal:'~2,050 kcal',
+    {name:'Saturday', badge:'badge-ruck', type:'Easy 60 min ruck — recovery pace', kcal:'~2,150 kcal',
      meals:[
-       {type:'On Waking', name:'Fasted, or a banana out the door', detail:'Easy recovery ruck on an early start — fasted at easy pace is fine. A banana if you want it.', macros:macro('90','1','23','')},
-       {type:'Post-Ruck', name:'60g Porridge + 2 Eggs', detail:'On return — the recovery meal. 60g oats (smaller than a build week) plus 2 eggs.', macros:macro('420','28','48','14')},
-       {type:'Lunch', name:'2 Eggs on Toast + Large Salad', detail:'Lighter midday plate. It\'s a recovery ruck, not a full load effort.', macros:macro('380','22','38','14')},
-       {type:'Dinner', name:'Gousto — light treat (carb-rich if a long Sunday follows)', detail:'~600 kcal. End of week — keep it lighter than a normal Saturday, but bias carbs if Sunday is a longer ride.', macros:macro('600','44','58','18')}
+       {type:'On Waking', name:'Fasted or banana', detail:'Easy recovery ruck — fasted at easy pace is fine.', macros:macro('90','1','23','')},
+       {type:'Post-Ruck', name:'60g Porridge + 2 Eggs + GetPro Yoghurt',extras:'<span class="getpro-tag">+GETPRO</span>', detail:'On return — smaller than a build week (60g oats vs 80g) but GetPro stays in. Same protein rules apply even in recovery week.', macros:macro('570','43','48','14')},
+       {type:'Lunch', name:'Chicken 150g + Rice Pouch + Salad', detail:'Chicken not eggs on toast — same rule as build Saturday. 150g chicken (not 240g) reflects the lighter recovery day.', macros:macro('450','40','42','8')},
+       {type:'Protein Shake', name:'Whey/casein shake — 25g protein', detail:'Saturday protein gap exists even in recovery week. Shake stays in.', macros:macro('150','25','5','')},
+       {type:'Dinner', name:'Gousto — lighter recovery pick, still 58g+ protein', detail:'~650 kcal, 58g protein. Bias carbs if Sunday is still a ride.', macros:macro('650','58','58','18')}
      ],
-     preDinP:51, note:'Recovery Saturday — intentionally lighter. Big breakfast moves to after the ruck.'},
+     preDinP:109, note:'Recovery Saturday: same protein rules as build week — chicken lunch and GetPro at breakfast are required. 109g pre-dinner + 58g Gousto = 167g.'},
 
-    {name:'Sunday', badge:'badge-long', type:'Shorter ride — 75–90 min recovery pace', kcal:'~2,100 kcal',
+    {name:'Sunday', badge:'badge-long', type:'Shorter ride — 75–90 min recovery pace', kcal:'~2,150 kcal',
      meals:[
-       {type:'On Waking', name:'Banana or carb drink, 10–20 min before', detail:'Even the short recovery ride starts early — small fast carbs only. The big breakfast moves to after the ride.', macros:macro('150','3','32','2')},
-       {type:'On-Bike', name:'Carb drink or banana + half a bar (from the start)', detail:'Even the short recovery ride needs ~40–60 g carbs/hr once it passes 75 min. A 500 ml carb drink, or a banana plus half a Crunchy bar, started early — keep practising the habit.', macros:macro('150','3','32','3')},
-       {type:'Recovery', name:'Full Sunday Porridge + 2 Eggs + Banana + Chocolate Milk', detail:'On return — the big porridge is the recovery meal. Chocolate milk first, then 80g oats + 2 eggs + banana.', macros:macro('600','36','74','14')},
-       {type:'Lunch', name:'Lighter recovery plate', detail:'120g chicken (not 150g), half rice pouch, salad, a few hours later. Shorter ride = lighter top-up.', macros:macro('530','48','56','10')},
-       {type:'Dinner', name:'Gousto — end-of-cycle pick', detail:'~630 kcal. Final meal before the cycle repeats. Salmon, chicken or beef. Worth marking the end of 4 weeks.', macros:macro('630','48','62','16')}
+       {type:'On Waking', name:'Banana or carb drink, 10–20 min before', detail:'Small fast carbs only. The big breakfast moves to after the ride.', macros:macro('150','3','32','2')},
+       {type:'On-Bike', name:'Carb drink or banana + half a bar (from the start)', detail:'Even the short recovery ride needs ~40–60 g carbs/hr once past 75 min. Keep practising the habit.', macros:macro('150','3','32','3')},
+       {type:'Recovery', name:'Full Sunday Porridge + GetPro + 2 Eggs + Banana + Chocolate Milk',extras:'<span class="getpro-tag">+GETPRO</span>', detail:'Chocolate milk first, then 80g oats + GetPro + 2 eggs + banana. GetPro added here — recovery Sunday was missing it before.', macros:macro('750','51','74','14')},
+       {type:'Lunch', name:'Chicken 150g + Rice Pouch + Salad', detail:'Recovery ride: 150g chicken (lighter than build week 240g). Still essential to get protein in post-ride.', macros:macro('480','42','46','8')},
+       {type:'Dinner', name:'Gousto — end-of-cycle pick, 62g+ protein', detail:'~680 kcal, 62g protein. Final meal before the cycle repeats. Salmon, chicken or beef. Raise the target vs old plan (was 48g, now 62g).', macros:macro('680','62','62','16')}
      ],
-     preDinP:90, note:'End of 4-week cycle. Sunday morning: weight check. Review how the 4 weeks felt before repeating.'}
+     preDinP:99, note:'End of 4-week cycle. GetPro now in recovery meal. 99g pre-dinner + 62g Gousto = 161g — acceptable for recovery week. Sunday morning: weight check.'}
   ]
 }
 };
@@ -506,8 +512,8 @@ w4:{
 // ── RENDER WEEKS ─────────────────────────────────────────────────────────────
 
 function renderDay(day){
-  const barPct = Math.min(100, Math.round(day.preDinP/160*100));
-  const barColor = day.preDinP >= 110 ? 'var(--accent)' : day.preDinP >= 90 ? 'var(--protein)' : 'var(--accent2)';
+  const barPct = Math.min(100, Math.round(day.preDinP/185*100));
+  const barColor = day.preDinP >= 120 ? 'var(--accent)' : day.preDinP >= 100 ? 'var(--protein)' : 'var(--accent2)';
   const noteClass = day.noteWarn ? 'pb-note pb-warn' : 'pb-note';
   return `
 <div class="day-card" onclick="toggleDay(this)">
@@ -592,29 +598,30 @@ if (AUTO_WEEK > 0) {
 const SHOP_W1 = [
   {cat:'Breakfasts', items:[
     {name:'Fuel10k Protein Breakfast Drink 330ml', note:'Mon–Fri mornings. Grab-and-go.', qty:'×5', unit:'£1.28', total:6.40, conf:true},
-    {name:'GetPro High Protein Yoghurt 160g', note:'5 for breakfast + 3 at lunch Mon/Wed/Thu', qty:'×8', unit:'£1.00', total:8.00, conf:true}
+    {name:'GetPro High Protein Yoghurt 160g', note:'5 breakfast + 4 lunch Mon–Thu + 1 post-ruck Sat + 1 Sun recovery = 11/wk', qty:'×11', unit:'£1.00', total:11.00, conf:true}
   ]},
   {cat:'Lunches — Carb Base', items:[
     {name:'Ben\'s Original Egg Fried Rice 220g', note:'Mon · Tue · Fri lunches', qty:'×3', unit:'£1.32', total:3.96, conf:true},
+    {name:'Microwave Basmati Rice Pouch 250g', note:'Sat lunch (chicken+rice) + Sun recovery plate', qty:'×2', unit:'£0.75', total:1.50, conf:false},
     {name:'Ben\'s Original Paella 250g ★', note:'Thursday — favourite, non-negotiable', qty:'×1', unit:'£2.47', total:2.47, conf:true},
     {name:'Batchelors Pasta & Sauce Tomato & Basil', note:'Wednesday lunch base', qty:'×1', unit:'£1.20', total:1.20, conf:true}
   ]},
   {cat:'Lunches — Protein', items:[
-    {name:'Asda Just Essentials Chunky Chicken Breast 240g', note:'3 for lunch + 1 for Sunday recovery plate', qty:'×4', unit:'£1.99', total:7.96, conf:true},
+    {name:'Asda Just Essentials Chunky Chicken Breast 240g', note:'Mon/Tue/Fri lunch ×3 + Sat lunch ×1 + Sun recovery ×1 = 5/wk', qty:'×5', unit:'£1.99', total:9.95, conf:true},
     {name:'Asda Cooked & Peeled Prawns 150g', note:'Thursday — stir into paella cold', qty:'×1', unit:'£1.75', total:1.75, conf:false},
     {name:'Asda Tuna Chunks in Spring Water 145g', note:'Wednesday — stir into pasta', qty:'×1', unit:'£0.85', total:0.85, conf:false}
   ]},
   {cat:'Weekend — Home Meals', items:[
-    {name:'Free Range Eggs (10-pack)', note:'Sat B ×2 · Sat L ×3 · Sun B ×2 = 7 per week', qty:'×1', unit:'£2.75', total:2.75, conf:false},
-    {name:'Wholegrain Bread (small loaf)', note:'Saturday lunch toast + Sunday pre-ride toast', qty:'×1', unit:'£1.10', total:1.10, conf:false},
+    {name:'Free Range Eggs (6-pack)', note:'Sat post-ruck ×2 + Sun recovery ×2 = 4 per week (Sat lunch now chicken, not eggs)', qty:'×1', unit:'£1.65', total:1.65, conf:false},
+    {name:'Wholegrain Bread (small loaf)', note:'Sunday pre-ride toast only (Sat lunch is now chicken+rice, not toast)', qty:'×1', unit:'£1.10', total:1.10, conf:false},
     {name:'Asda Scottish Porridge Oats 1kg', note:'Sat & Sun breakfast. Lasts 3–4 weeks.', qty:'×1', unit:'£1.25', total:1.25, conf:true},
-    {name:'Microwave Basmati Rice Pouch 250g', note:'Sunday recovery plate alongside chicken', qty:'×1', unit:'£0.75', total:0.75, conf:false},
     {name:'Peanut Butter (small jar)', note:'Sunday pre-ride toast. Lasts several weeks.', qty:'×1', unit:'£1.75', total:1.75, conf:false},
     {name:'Chocolate Milk 500ml', note:'Sunday — within 45 min of finishing ride', qty:'×1', unit:'£0.70', total:0.70, conf:false},
     {name:'Semi-Skimmed Milk 2L', note:'Porridge + drinks', qty:'×1', unit:'£1.45', total:1.45, conf:false}
   ]},
   {cat:'Snacks & Fruit', items:[
-    {name:'Nature Valley Protein Bars 4×40g', note:'1 per weekday AM. Training days especially.', qty:'×2', unit:'£2.50', total:5.00, conf:true},
+    {name:'Nature Valley Protein Bars 4×40g', note:'1 per weekday AM + 1 Sat PM snack = 6/wk', qty:'×2', unit:'£2.50', total:5.00, conf:true},
+    {name:'Protein Powder (whey or casein) 25g scoops', note:'4 shakes/wk: Wed/Thu/Fri eve + Sat eve. ~25g protein, 150 kcal per shake.', qty:'×4 scoops', unit:'~50p', total:2.00, conf:false},
     {name:'Bananas (loose, ~1.2kg)', note:'PM snack + pre-session + on-bike Sunday', qty:'×10', unit:'~9p', total:0.90, conf:false},
     {name:'Apples or oranges', note:'Evening snack Mon–Fri. Rest days especially.', qty:'×6', unit:'~20p', total:1.20, conf:false}
   ]}
@@ -623,7 +630,7 @@ const SHOP_W1 = [
 const SHOP_W23 = [
   {cat:'Breakfasts — 2 weeks', items:[
     {name:'Fuel10k Protein Breakfast Drink 330ml', note:'5 per week', qty:'×10', unit:'£1.28', total:12.80, conf:true},
-    {name:'GetPro High Protein Yoghurt 160g', note:'8 per week (5 breakfast + 3 lunch)', qty:'×16', unit:'£1.00', total:16.00, conf:true}
+    {name:'GetPro High Protein Yoghurt 160g', note:'11/wk (5 breakfast + 4 lunch Mon–Thu + 1 Sat post-ruck + 1 Sun recovery) × 2 wks', qty:'×22', unit:'£1.00', total:22.00, conf:true}
   ]},
   {cat:'Lunches — Carb Base (rotated varieties)', items:[
     {name:'Ben\'s Original Egg Fried Rice 220g', note:'Tue W2 · Fri W3', qty:'×2', unit:'£1.32', total:2.64, conf:true},
@@ -633,19 +640,20 @@ const SHOP_W23 = [
     {name:'Batchelors Pasta & Sauce Tomato & Basil', note:'Wednesday both weeks', qty:'×2', unit:'£1.20', total:2.40, conf:true}
   ]},
   {cat:'Lunches — Protein (2 weeks)', items:[
-    {name:'Asda Just Essentials Chunky Chicken Breast 240g', note:'3 lunch + 1 Sunday × 2 weeks', qty:'×8', unit:'£1.99', total:15.92, conf:true},
+    {name:'Asda Just Essentials Chunky Chicken Breast 240g', note:'5/wk (Mon/Tue/Fri lunch + Sat lunch + Sun recovery) × 2 weeks', qty:'×10', unit:'£1.99', total:19.90, conf:true},
     {name:'Asda Cooked & Peeled Prawns 150g', note:'Thursday both weeks', qty:'×2', unit:'£1.75', total:3.50, conf:false},
     {name:'Asda Tuna Chunks in Spring Water 145g', note:'Wednesday both weeks', qty:'×2', unit:'£0.85', total:1.70, conf:false}
   ]},
   {cat:'Weekend — 2 weeks', items:[
-    {name:'Free Range Eggs (14 total)', note:'Buy 1×12-pack + 1×6-pack or 2×6-packs + extras', qty:'×14', unit:'~27p', total:3.78, conf:false},
+    {name:'Free Range Eggs (8 total)', note:'4/wk (Sat post-ruck ×2 + Sun recovery ×2) × 2 weeks — Sat lunch now chicken', qty:'×8', unit:'~27p', total:2.16, conf:false},
     {name:'Wholegrain Bread (small loaf)', note:'1 per week', qty:'×2', unit:'£1.10', total:2.20, conf:false},
-    {name:'Microwave Basmati Rice Pouch 250g', note:'Sunday recovery each week', qty:'×2', unit:'£0.75', total:1.50, conf:false},
+    {name:'Microwave Basmati Rice Pouch 250g', note:'Sat lunch + Sun recovery = 2/wk × 2 weeks', qty:'×4', unit:'£0.75', total:3.00, conf:false},
     {name:'Chocolate Milk 500ml', note:'Sunday recovery each week', qty:'×2', unit:'£0.70', total:1.40, conf:false},
     {name:'Semi-Skimmed Milk 2L', note:'1 per week', qty:'×2', unit:'£1.45', total:2.90, conf:false}
   ]},
   {cat:'Snacks & Fruit — 2 weeks', items:[
-    {name:'Nature Valley Protein Bars (8-pack if available, else 2×4)', note:'5 bars/week × 2 weeks', qty:'×2 packs', unit:'£2.50', total:5.00, conf:true},
+    {name:'Nature Valley Protein Bars (8-pack if available, else 2×4)', note:'6 bars/week × 2 weeks = 12 bars (5 AM snack + 1 Sat PM)', qty:'×3 packs', unit:'£2.50', total:7.50, conf:true},
+    {name:'Protein Powder (whey or casein)', note:'4 shakes/wk (Wed/Thu/Fri + Sat eve) × 2 weeks = 8 scoops at 25g each', qty:'×8 scoops', unit:'~50p', total:4.00, conf:false},
     {name:'Bananas (loose)', note:'~10 per week', qty:'×20', unit:'~9p', total:1.80, conf:false},
     {name:'Apples or oranges', note:'~6 per week', qty:'×12', unit:'~20p', total:2.40, conf:false}
   ]}
