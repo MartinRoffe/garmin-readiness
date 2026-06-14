@@ -11,25 +11,25 @@ pip install .
 pip install --force-reinstall .
 
 # CLI — fetch today's data and display in terminal
-garmin-readiness
+endurance-coach
 
 # Web dashboard at http://127.0.0.1:8743
-garmin-readiness --serve
+endurance-coach --serve
 
 # Send daily readiness email (or --dry-run to preview)
-garmin-readiness --email [--dry-run]
+endurance-coach --email [--dry-run]
 
 # Backfill historical data to build a 30-day baseline
-garmin-readiness --backfill 30
+endurance-coach --backfill 30
 
 # Upload/schedule structured Garmin workouts from the training plan
-garmin-readiness --workouts [--dry-run]
+endurance-coach --workouts [--dry-run]
 
 # Install launchd agents (macOS): daily 7am email + always-on server
-garmin-readiness --setup-schedule
+endurance-coach --setup-schedule
 
 # Restart the launchd server after code changes
-launchctl kickstart -k "gui/$(id -u)/com.garmin-readiness.server"
+launchctl kickstart -k "gui/$(id -u)/com.ai-endurance-coach-over50.server"
 ```
 
 ## Architecture
@@ -63,7 +63,7 @@ The app has two interfaces sharing the same data layer:
 
 **Data layer:**
 - `metrics.py` — `DailyMetrics` dataclass + `fetch_metrics()`/`fetch_activities()` calling the `garminconnect` API. Nutrition fields (`calories_consumed`, `calorie_goal`, `calorie_goal_adjusted`, `carbs_consumed`, `protein_consumed`) are populated from `get_nutrition_daily_food_log(date)`. The Garmin API returns `content["carbs"]` and `content["protein"]` (not `totalCarbohydrates`/`totalProtein`). Also fetches `resting_hr` (daily summary `restingHeartRate`, falling back to `get_rhr_day`) and probes `get_training_status` for a `heatAltitudeAcclimationDTO` → `heat_acclimation_pct` / `altitude_acclimation` (field names unverified — multi-candidate defensive probing, logs the raw DTO at DEBUG).
-- `history.py` — SQLite persistence at `~/.garmin_readiness/history.db`. Tables: `daily_metrics` (auto-migrating schema), `activities`, `body_metrics`, `blood_pressure`, `daily_advice`, `text_cache`, `coach_conversations`, `plan_overrides`, `coach_memory`, `session_rpe`, `ftp_tests`, `btb_notes`, `activity_durability`, `fuelling_logs`. Provides `baseline_stats()` (30-day rolling window), `composite_score()` (mean z-score across scored fields), `z_score()` (sign-flipped for lower-is-better fields), `intensity_distribution_by_week()`, `load_session_rpe()`, `save_session_rpe()`, `load_ftp_tests()`, `save_ftp_test()`, `load_btb_summary()`, `save_btb_note()`, `weekly_monotony_strain()` (Foster monotony/strain per week), `save_durability()`/`load_durability()`/`durability_exists()`, `estimated_wkg_history()`/`latest_estimated_wkg()` (ACSM estimate from VO2max + weight: `est_ftp_w = 0.80 × (vo2max − 7) × kg / 10.8`), `acclimation_latest()`, `ftp_retest_due()`, `save_fuelling_log()`/`load_fuelling_logs()`. `raw_history()` returns `carbs_consumed`, `protein_consumed`, `rest_stress`, and `resting_hr` alongside the other daily fields.
+- `history.py` — SQLite persistence at `~/.ai_endurance_coach_over50/history.db`. Tables: `daily_metrics` (auto-migrating schema), `activities`, `body_metrics`, `blood_pressure`, `daily_advice`, `text_cache`, `coach_conversations`, `plan_overrides`, `coach_memory`, `session_rpe`, `ftp_tests`, `btb_notes`, `activity_durability`, `fuelling_logs`. Provides `baseline_stats()` (30-day rolling window), `composite_score()` (mean z-score across scored fields), `z_score()` (sign-flipped for lower-is-better fields), `intensity_distribution_by_week()`, `load_session_rpe()`, `save_session_rpe()`, `load_ftp_tests()`, `save_ftp_test()`, `load_btb_summary()`, `save_btb_note()`, `weekly_monotony_strain()` (Foster monotony/strain per week), `save_durability()`/`load_durability()`/`durability_exists()`, `estimated_wkg_history()`/`latest_estimated_wkg()` (ACSM estimate from VO2max + weight: `est_ftp_w = 0.80 × (vo2max − 7) × kg / 10.8`), `acclimation_latest()`, `ftp_retest_due()`, `save_fuelling_log()`/`load_fuelling_logs()`. `raw_history()` returns `carbs_consumed`, `protein_consumed`, `rest_stress`, and `resting_hr` alongside the other daily fields.
 - `modulation.py` — HRV-guided traffic light. `hrv_traffic_light(m, comp_z)` classifies the day green/amber/red/unknown from last-night HRV z-score vs 30-day baseline (+ 7d/30d ratio + composite backstop). `session_modulation(target, m, comp_z, light=)` turns amber/red into a concrete session swap (amber: variant map, duration kept; red: Recovery Spin 30 min) applied via the existing `/apply-plan-change` override flow. Returns None when green/unknown, rest day, or an override already exists. Covers `session_for_date_extended` (12-week plan + Tenerife + event prep + charity ride) and falls back to `hr_session_for_date` for Haute Route plan dates. Two amber maps: `EASIER_VARIANT` (12-week vocabulary) and `HR_EASIER_VARIANT` (HR vocabulary — `vo2`/`sweetspot`/`tempo`/`ftp`→Z2 Endurance, `endurance`→Z2 Easy, `long`/`back_to_back`→Long Ride (Easy); `recovery`/`gym` absent = pill only). Kept separate so HR-plan overrides stay within the types/labels `hr_calendar.html` colours and modals key off. Red day on an HR date uses type `recovery` (not `bike`) for the same reason. `hr_session_for_date()` and `build_hr_calendar_weeks()` honour `plan_overrides` (days carry an `overridden` flag and weekly `total_hrs` reflects overridden durations); `_hr_ctl_projection` iterates `HR_TRAINING_WEEKS` directly, so projected CTL deliberately ignores overrides.
 - `display.py` — `FIELD_LABELS`, `fmt_value()`, `readiness_label()`, `enrich_activity()` (duration/distance/pace formatting).
 - `client.py` — wraps `garminconnect` session/token handling. All `get_api()` calls go through here.
@@ -129,7 +129,7 @@ The Performance tab additionally renders: durability drift chart (`activity_dura
 
 ## Configuration
 
-Copy `.env.example` to `.env`. Env vars are also loaded from `~/.garmin_readiness/.env` (used by launchd since it runs without shell environment).
+Copy `.env.example` to `.env`. Env vars are also loaded from `~/.ai_endurance_coach_over50/.env` (used by launchd since it runs without shell environment).
 
 Key vars: `GARMIN_EMAIL`, `GARMIN_PASSWORD`, `ANTHROPIC_API_KEY`, `GMAIL_ADDRESS`, `GMAIL_APP_PASSWORD`, `REPORT_TO`, `DASHBOARD_USER`, `DASHBOARD_PASSWORD`.
 

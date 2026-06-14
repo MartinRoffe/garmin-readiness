@@ -1,4 +1,4 @@
-# Garmin Readiness Dashboard
+# AI Endurance Coach Dashboard
 
 Personal training readiness dashboard powered by Garmin Connect data and Claude AI.
 Fetches daily metrics (HRV, sleep, stress, recovery), scores them against a 30-day
@@ -57,10 +57,10 @@ rolling baseline, and delivers a daily email briefing and live web dashboard.
 
 ```bash
 git clone <repo-url>
-cd garmin-readiness
+cd ai-endurance-coach-over50
 cp .env.example .env        # fill in credentials (see Configuration below)
 pip install .
-garmin-readiness --backfill 30   # build 30-day baseline on first run
+endurance-coach --backfill 30   # build 30-day baseline on first run
 ```
 
 ## Configuration
@@ -78,34 +78,34 @@ Copy `.env.example` to `.env` and populate:
 | `DASHBOARD_USER` | — | Basic auth username (dashboard is open if unset) |
 | `DASHBOARD_PASSWORD` | — | Basic auth password |
 
-On macOS with launchd, also copy `.env` to `~/.garmin_readiness/.env` (launchd runs without a shell environment).
+On macOS with launchd, also copy `.env` to `~/.ai_endurance_coach_over50/.env` (launchd runs without a shell environment).
 
 ## Usage
 
 ```bash
 # Terminal readiness report
-garmin-readiness
+endurance-coach
 
 # Web dashboard at http://127.0.0.1:8743
-garmin-readiness --serve
+endurance-coach --serve
 
 # Send daily email (add --dry-run to preview without sending)
-garmin-readiness --email [--dry-run]
+endurance-coach --email [--dry-run]
 
 # Backfill historical data to build the 30-day baseline
-garmin-readiness --backfill 30
+endurance-coach --backfill 30
 
 # Upload structured cycling workouts to Garmin Connect
-garmin-readiness --workouts [--dry-run]
+endurance-coach --workouts [--dry-run]
 
 # Install launchd agents (macOS): 7 am email + always-on web server
-garmin-readiness --setup-schedule
+endurance-coach --setup-schedule
 ```
 
 ## Architecture
 
 ```
-garmin_readiness/
+ai_endurance_coach_over50/
 ├── cli.py           Entry point; argument dispatch
 ├── client.py        Garmin Connect session/token handling
 ├── metrics.py       Garmin API calls → DailyMetrics dataclass
@@ -130,7 +130,7 @@ garmin_readiness/
 └── templates/       HTML templates for each dashboard tab
 ```
 
-Data is stored in `~/.garmin_readiness/history.db` (SQLite, auto-migrating schema).
+Data is stored in `~/.ai_endurance_coach_over50/history.db` (SQLite, auto-migrating schema).
 
 ## How the readiness score works
 
@@ -158,8 +158,8 @@ Post-workout analysis also uses Claude Sonnet. Recovery suggestions, workout des
 
 ```bash
 # Install: runs daily 7 am email + persistent web server
-garmin-readiness --setup-schedule
+endurance-coach --setup-schedule
 
 # Restart the server after code changes
-launchctl kickstart -k "gui/$(id -u)/com.garmin-readiness.server"
+launchctl kickstart -k "gui/$(id -u)/com.ai-endurance-coach-over50.server"
 ```

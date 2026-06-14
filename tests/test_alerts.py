@@ -7,8 +7,8 @@ from datetime import date, timedelta
 
 import pytest
 
-import garmin_readiness.alerts as alerts
-from garmin_readiness.alerts import _signal_z, check_fatigue_alerts
+import ai_endurance_coach_over50.alerts as alerts
+from ai_endurance_coach_over50.alerts import _signal_z, check_fatigue_alerts
 
 TODAY = date(2026, 6, 10)
 

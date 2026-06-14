@@ -202,7 +202,7 @@ def _require_auth(credentials: Optional[HTTPBasicCredentials] = Depends(_securit
 
 
 app = FastAPI(
-    title="Daily Readiness",
+    title="AI Endurance Coach (50+)",
     docs_url=None,
     redoc_url=None,
     dependencies=[Depends(_require_auth)],
@@ -542,7 +542,7 @@ def dashboard(request: Request, date: Optional[str] = None, msg: Optional[str] =
 def send_email_now():
     from pathlib import Path
     today = _today()
-    sentinel = Path.home() / ".garmin_readiness" / f"sent_{today.isoformat()}"
+    sentinel = Path.home() / ".ai_endurance_coach_over50" / f"sent_{today.isoformat()}"
     if sentinel.exists():
         return RedirectResponse(url="/?msg=already_sent", status_code=303)
 

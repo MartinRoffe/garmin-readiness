@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "garmin-readiness"
+name = "ai-endurance-coach-over50"
 version = "0.1.0"
-description = "Daily training readiness dashboard powered by Garmin Connect data and Claude AI"
+description = "AI endurance coaching dashboard for the 50+ athlete, powered by Garmin Connect data and Claude AI"
 requires-python = ">=3.10"
 dependencies = [
     "garminconnect>=0.3.6",  # 0.3.6 added get_scheduled_workouts/unschedule_workout (per-date push) and renumbered SportType/TargetType
@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [project.scripts]
-garmin-readiness = "garmin_readiness.cli:main"
+endurance-coach = "ai_endurance_coach_over50.cli:main"
 
 [tool.hatch.build.targets.wheel]
-packages = ["garmin_readiness"]
+packages = ["ai_endurance_coach_over50"]

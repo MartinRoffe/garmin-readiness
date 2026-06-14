@@ -11,7 +11,7 @@ from typing import Optional
 
 from .metrics import DailyMetrics, TEXT_FIELDS
 
-DB_PATH = Path.home() / ".garmin_readiness" / "history.db"
+DB_PATH = Path.home() / ".ai_endurance_coach_over50" / "history.db"
 
 # Garmin type_key values that satisfy each plan session type
 ACTIVITY_MATCH: dict[str, set[str]] = {

@@ -1,6 +1,6 @@
 # User Guide
 
-A complete walkthrough of the Garmin Readiness dashboard — what every tab shows,
+A complete walkthrough of the AI Endurance Coach dashboard — what every tab shows,
 how to read each chart, and what the buttons do. If you just want to install and
 run the app, start with the [project README](../README.md); come here when you
 want to understand and use it day to day.

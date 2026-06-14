@@ -1,14 +1,14 @@
 """Boundary tests for the plan-date lookups in plan.py and hr_plan.py."""
 from datetime import timedelta
 
-from garmin_readiness.history import set_plan_override
-from garmin_readiness.hr_plan import (
+from ai_endurance_coach_over50.history import set_plan_override
+from ai_endurance_coach_over50.hr_plan import (
     _HR_PLAN_DAYS,
     HR_PLAN_START,
     HR_TRAINING_WEEKS,
     hr_session_for_date,
 )
-from garmin_readiness.plan import _PLAN_DAYS, PLAN_START, TRAINING_WEEKS, session_for_date
+from ai_endurance_coach_over50.plan import _PLAN_DAYS, PLAN_START, TRAINING_WEEKS, session_for_date
 
 
 def test_plan_starts_on_monday():

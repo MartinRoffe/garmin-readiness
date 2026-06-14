@@ -33,7 +33,7 @@ python3 - "${FILES[@]}" <<'PY' | pandoc \
     --toc --toc-depth=2 \
     -V geometry:margin=1in \
     -V colorlinks=true \
-    --metadata title="Garmin Readiness — User Guide"
+    --metadata title="AI Endurance Coach — User Guide"
 import sys
 import unicodedata
 

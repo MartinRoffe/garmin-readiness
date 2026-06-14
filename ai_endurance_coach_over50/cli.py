@@ -192,14 +192,14 @@ def main() -> None:
         load_dotenv(_env_path)
     else:
         load_dotenv()  # tries CWD/.env first
-        _fallback = Path.home() / ".garmin_readiness" / ".env"
+        _fallback = Path.home() / ".ai_endurance_coach_over50" / ".env"
         if _fallback.exists():
             load_dotenv(_fallback, override=False)
     logging.basicConfig(level=logging.WARNING)
 
     import argparse
 
-    parser = argparse.ArgumentParser(description="Garmin → Daily Readiness")
+    parser = argparse.ArgumentParser(description="AI Endurance Coach (50+) — Garmin-powered readiness & coaching")
     parser.add_argument(
         "--date",
         default=date.today().isoformat(),
@@ -350,7 +350,7 @@ def main() -> None:
     if args.email:
         from .report import run_report
 
-        sentinel = Path.home() / ".garmin_readiness" / f"sent_{target.isoformat()}"
+        sentinel = Path.home() / ".ai_endurance_coach_over50" / f"sent_{target.isoformat()}"
         if sentinel.exists() and not args.dry_run:
             console.print(f"[dim]Email already sent for {target}, skipping.[/dim]")
             sys.exit(0)
@@ -396,14 +396,14 @@ def _setup_schedule() -> None:
 
     python = sys.executable
     project_dir = str(Path(__file__).parent.parent)
-    # Use ~/.garmin_readiness/.env — accessible to launchd without Full Disk Access
-    env_file = Path.home() / ".garmin_readiness" / ".env"
+    # Use ~/.ai_endurance_coach_over50/.env — accessible to launchd without Full Disk Access
+    env_file = Path.home() / ".ai_endurance_coach_over50" / ".env"
     src_env = Path.cwd() / ".env"
     if not env_file.exists() and src_env.exists():
         import shutil as _shutil
         _shutil.copy2(src_env, env_file)
         env_file.chmod(0o600)
-    scripts_dir = Path.home() / ".garmin_readiness"
+    scripts_dir = Path.home() / ".ai_endurance_coach_over50"
     scripts_dir.mkdir(parents=True, exist_ok=True)
 
     # Write wrapper scripts — more reliable than EnvironmentVariables in plists
@@ -414,7 +414,7 @@ def _setup_schedule() -> None:
         f"#!/bin/bash\n"
         f"export PYTHONPATH={project_dir}\n"
         f"export DOTENV_PATH={env_file}\n"
-        f"exec {python} -m garmin_readiness.cli --serve\n"
+        f"exec {python} -m ai_endurance_coach_over50.cli --serve\n"
     )
     email_script.write_text(
         f"#!/bin/bash\n"
@@ -423,7 +423,7 @@ def _setup_schedule() -> None:
         f"# Retry every 30 min until 10:00 if watch hasn't synced yet (exit 2 = not ready)\n"
         f"DEADLINE=$(date -v+3H +%s 2>/dev/null || date --date='+3 hours' +%s)\n"
         f"while true; do\n"
-        f"    {python} -m garmin_readiness.cli --withings-sync --email --fetch\n"
+        f"    {python} -m ai_endurance_coach_over50.cli --withings-sync --email --fetch\n"
         f"    CODE=$?\n"
         f"    [ $CODE -eq 0 ] && exit 0\n"
         f"    [ $CODE -ne 2 ] && exit $CODE\n"
@@ -438,7 +438,7 @@ def _setup_schedule() -> None:
     serve_script.chmod(0o755)
     email_script.chmod(0o755)
 
-    label = "com.garmin-readiness.daily"
+    label = "com.ai-endurance-coach-over50.daily"
     plist_path = Path.home() / "Library" / "LaunchAgents" / f"{label}.plist"
     plist_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -456,9 +456,9 @@ def _setup_schedule() -> None:
     </array>
     {extra_keys}
     <key>StandardOutPath</key>
-    <string>{Path.home()}/.garmin_readiness/{label.split(".")[-1]}.log</string>
+    <string>{Path.home()}/.ai_endurance_coach_over50/{label.split(".")[-1]}.log</string>
     <key>StandardErrorPath</key>
-    <string>{Path.home()}/.garmin_readiness/{label.split(".")[-1]}.log</string>
+    <string>{Path.home()}/.ai_endurance_coach_over50/{label.split(".")[-1]}.log</string>
 </dict>
 </plist>"""
 
@@ -475,7 +475,7 @@ def _setup_schedule() -> None:
     )
 
     # ── Server plist ─────────────────────────────────────────────────────
-    server_label = "com.garmin-readiness.server"
+    server_label = "com.ai-endurance-coach-over50.server"
     server_plist_path = Path.home() / "Library" / "LaunchAgents" / f"{server_label}.plist"
 
     server_plist = _plist(
@@ -504,8 +504,8 @@ def _setup_schedule() -> None:
     if ok:
         console.print(f"\n  Dashboard: [bold]http://127.0.0.1:8743[/bold]")
         console.print(f"  Email:     daily at 07:00 (or on wake)")
-        console.print(f"  Logs:      ~/.garmin_readiness/server.log  /  daily.log")
-        console.print(f"\n  Test email: [bold]garmin-readiness --email --dry-run[/bold]")
+        console.print(f"  Logs:      ~/.ai_endurance_coach_over50/server.log  /  daily.log")
+        console.print(f"\n  Test email: [bold]endurance-coach --email --dry-run[/bold]")
 
 
 class _null_ctx:

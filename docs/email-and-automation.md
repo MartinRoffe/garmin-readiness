@@ -22,8 +22,8 @@ otherwise it falls back to clear rule-based advice.
 Send one on demand:
 
 ```bash
-garmin-readiness --email            # send now
-garmin-readiness --email --dry-run  # preview in the terminal without sending
+endurance-coach --email            # send now
+endurance-coach --email --dry-run  # preview in the terminal without sending
 ```
 
 You can also trigger it from the **Send Email** action on the
@@ -48,29 +48,29 @@ On macOS the app installs two `launchd` agents — a daily 7 a.m. email and an
 always-on web server:
 
 ```bash
-garmin-readiness --setup-schedule
+endurance-coach --setup-schedule
 ```
 
 After changing any code, restart the background server so it picks up the change:
 
 ```bash
-launchctl kickstart -k "gui/$(id -u)/com.garmin-readiness.server"
+launchctl kickstart -k "gui/$(id -u)/com.ai-endurance-coach-over50.server"
 ```
 
 > **Background runs need their own environment.** `launchd` starts without your
-> shell's environment, so copy your `.env` to `~/.garmin_readiness/.env` as well —
+> shell's environment, so copy your `.env` to `~/.ai_endurance_coach_over50/.env` as well —
 > that's where the scheduled runs read your credentials from.
 
 ## All command-line flags
 
 | Command | What it does |
 |---|---|
-| `garmin-readiness` | Fetch today's data and print a readiness report in the terminal |
-| `garmin-readiness --serve` | Start the web dashboard at **http://127.0.0.1:8743** |
-| `garmin-readiness --email [--dry-run]` | Send the daily email (or preview it) |
-| `garmin-readiness --backfill 30` | Pull the last *N* days from Garmin to build your baseline |
-| `garmin-readiness --workouts [--dry-run]` | Upload the plan's structured cycling workouts to Garmin Connect and schedule them on their dates |
-| `garmin-readiness --setup-schedule` | Install the macOS launchd agents (daily email + server) |
+| `endurance-coach` | Fetch today's data and print a readiness report in the terminal |
+| `endurance-coach --serve` | Start the web dashboard at **http://127.0.0.1:8743** |
+| `endurance-coach --email [--dry-run]` | Send the daily email (or preview it) |
+| `endurance-coach --backfill 30` | Pull the last *N* days from Garmin to build your baseline |
+| `endurance-coach --workouts [--dry-run]` | Upload the plan's structured cycling workouts to Garmin Connect and schedule them on their dates |
+| `endurance-coach --setup-schedule` | Install the macOS launchd agents (daily email + server) |
 
 ### About `--workouts`
 

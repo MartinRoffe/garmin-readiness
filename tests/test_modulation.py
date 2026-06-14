@@ -3,9 +3,9 @@ from datetime import date, timedelta
 
 import pytest
 
-import garmin_readiness.modulation as modulation
-from garmin_readiness.metrics import DailyMetrics
-from garmin_readiness.modulation import hrv_traffic_light, session_modulation
+import ai_endurance_coach_over50.modulation as modulation
+from ai_endurance_coach_over50.metrics import DailyMetrics
+from ai_endurance_coach_over50.modulation import hrv_traffic_light, session_modulation
 
 TODAY = date(2026, 6, 10)
 

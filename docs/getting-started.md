@@ -24,7 +24,7 @@ powers a conversational coach.
 
 ```bash
 git clone <repo-url>
-cd garmin-readiness
+cd ai-endurance-coach-over50
 cp .env.example .env          # then edit .env — see Configuration below
 pip install .
 ```
@@ -59,7 +59,7 @@ The readiness score compares today against the previous 30 days, so on day one
 there's nothing to compare against. Backfill history first:
 
 ```bash
-garmin-readiness --backfill 30      # pulls the last 30 days from Garmin
+endurance-coach --backfill 30      # pulls the last 30 days from Garmin
 ```
 
 This populates the local database so your very first readiness score is
@@ -71,10 +71,10 @@ meaningful. You only need to do it once.
 
 ```bash
 # One-off readiness report in the terminal
-garmin-readiness
+endurance-coach
 
 # Live web dashboard
-garmin-readiness --serve         # then open http://127.0.0.1:8743
+endurance-coach --serve         # then open http://127.0.0.1:8743
 ```
 
 Visit **http://127.0.0.1:8743** and you'll land on the [Readiness](tabs/readiness.md)
@@ -86,7 +86,7 @@ Everything is stored locally in a single SQLite database and a few support files
 under your home directory:
 
 ```
-~/.garmin_readiness/
+~/.ai_endurance_coach_over50/
 ├── history.db        all your metrics, activities, plans, logs, and AI caches
 └── .env              (optional) a copy used by scheduled background runs
 ```

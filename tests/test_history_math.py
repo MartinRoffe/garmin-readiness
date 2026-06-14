@@ -3,7 +3,7 @@ import math
 import statistics
 from datetime import date, timedelta
 
-from garmin_readiness.history import (
+from ai_endurance_coach_over50.history import (
     _stats_from_rows,
     composite_score,
     ftp_retest_due,
@@ -13,7 +13,7 @@ from garmin_readiness.history import (
     weekly_monotony_strain,
     z_score,
 )
-from garmin_readiness.metrics import DailyMetrics
+from ai_endurance_coach_over50.metrics import DailyMetrics
 
 
 # ── z_score ──────────────────────────────────────────────────────────────────
@@ -50,7 +50,7 @@ def test_stats_population_std():
 
 def _row(overrides: dict) -> dict:
     """daily_metrics-row stand-in: every scored field None unless overridden."""
-    from garmin_readiness.history import SCORED_FIELDS
+    from ai_endurance_coach_over50.history import SCORED_FIELDS
     row = {f: None for f in SCORED_FIELDS}
     row.update(overrides)
     return row
@@ -101,7 +101,7 @@ def test_monotony_none_for_untrained_week():
 
 def test_monotony_matches_foster_formula():
     import sqlite3
-    from garmin_readiness.history import _conn, _ensure_activities_schema
+    from ai_endurance_coach_over50.history import _conn, _ensure_activities_schema
 
     today = date.today()
     monday = today - timedelta(days=today.weekday())

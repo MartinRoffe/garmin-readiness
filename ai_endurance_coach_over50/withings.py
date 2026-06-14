@@ -9,7 +9,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-WITHINGS_CONFIG = Path.home() / ".garmin_readiness" / "withings"
+WITHINGS_CONFIG = Path.home() / ".ai_endurance_coach_over50" / "withings"
 
 
 def _to_unix(d: date) -> int:

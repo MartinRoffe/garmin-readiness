@@ -5,7 +5,7 @@ from pathlib import Path
 
 import garminconnect
 
-TOKENSTORE = Path.home() / ".garmin_readiness" / "session"
+TOKENSTORE = Path.home() / ".ai_endurance_coach_over50" / "session"
 logger = logging.getLogger(__name__)
 
 
