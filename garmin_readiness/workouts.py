@@ -1,11 +1,14 @@
 """Build and schedule Garmin structured workouts (cycling, strength, ruck) from the training plan."""
 from __future__ import annotations
 
+import logging
 import math
 import re
 from collections import defaultdict
-from datetime import timedelta
+from datetime import date, timedelta
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from garminconnect.workout import (
     BaseWorkout,
@@ -29,8 +32,12 @@ from .plan import (
 )
 
 _SPORT        = {"sportTypeId": SportType.CYCLING,           "sportTypeKey": "cycling",           "displayOrder": 1}
-_FE_SPORT     = {"sportTypeId": SportType.FITNESS_EQUIPMENT, "sportTypeKey": "fitness_equipment",  "displayOrder": 6}
-_HIKE_SPORT   = {"sportTypeId": SportType.HIKING,            "sportTypeKey": "hiking",             "displayOrder": 7}
+# garminconnect 0.3.6 (needed for the per-date push API) renumbered SportType and
+# dropped the FITNESS_EQUIPMENT / HIKING members. Pin the sport-type IDs to the
+# values the plan's workouts were built and validated against (FITNESS_EQUIPMENT=6,
+# HIKING=7); getattr still picks the named members on the older lib.
+_FE_SPORT     = {"sportTypeId": getattr(SportType, "FITNESS_EQUIPMENT", 6), "sportTypeKey": "fitness_equipment", "displayOrder": 6}
+_HIKE_SPORT   = {"sportTypeId": getattr(SportType, "HIKING", 7),           "sportTypeKey": "hiking",             "displayOrder": 7}
 _CARDIO_SPORT = {"sportTypeId": 11,                          "sportTypeKey": "cardio",             "displayOrder": 11}
 
 _BIKE_TYPES         = {"bike", "tempo", "ftp", "long"}
@@ -40,7 +47,9 @@ _STRENGTH_RUCK_TYPES = {"strength", "ruck"}
 # ── Target type dicts ────────────────────────────────────────────────────────
 
 def _hr_zone_target() -> dict[str, Any]:
-    return {"workoutTargetTypeId": TargetType.HEART_RATE, "workoutTargetTypeKey": "heart.rate.zone", "displayOrder": 4}
+    # 0.3.6 renamed HEART_RATE → HEART_RATE_ZONE (both id 4); OPEN (id 6) was dropped.
+    tid = getattr(TargetType, "HEART_RATE", getattr(TargetType, "HEART_RATE_ZONE", 4))
+    return {"workoutTargetTypeId": tid, "workoutTargetTypeKey": "heart.rate.zone", "displayOrder": 4}
 
 def _cadence_target() -> dict[str, Any]:
     return {"workoutTargetTypeId": TargetType.CADENCE, "workoutTargetTypeKey": "cadence", "displayOrder": 3}
@@ -49,7 +58,7 @@ def _no_target() -> dict[str, Any]:
     return {"workoutTargetTypeId": TargetType.NO_TARGET, "workoutTargetTypeKey": "no.target", "displayOrder": 1}
 
 def _open_target() -> dict[str, Any]:
-    return {"workoutTargetTypeId": TargetType.OPEN, "workoutTargetTypeKey": "open", "displayOrder": 6}
+    return {"workoutTargetTypeId": getattr(TargetType, "OPEN", 6), "workoutTargetTypeKey": "open", "displayOrder": 6}
 
 
 # ── Step builders ────────────────────────────────────────────────────────────
@@ -562,12 +571,43 @@ def _workout_schedule() -> dict[tuple[str, int], list[str]]:
     return schedule
 
 
+def _specs_for(stype: str, label: str, dur: int, week_num: int) -> list[tuple]:
+    """Map one (override-resolved) plan session to its Garmin workout spec(s).
+
+    Returns ``("bike", label, dur_min)`` for cycling sessions and
+    ``("sr", kind, week_num, dur_min)`` for strength/ruck sub-workouts. Compound
+    sessions (KB + MaxiClimber, Ruck + KB) expand to two specs. This is the single
+    source of truth for the plan-label → Garmin-workout mapping, shared by the bulk
+    re-sync (`_workout_schedule_strength_ruck`) and the per-date push
+    (`_workouts_for_date`). week_num=0 is used for ruck (all durations share
+    structure regardless of week).
+    """
+    if stype in _BIKE_TYPES:
+        return [("bike", label, dur)]
+    if stype not in _STRENGTH_RUCK_TYPES:
+        return []
+    if label == "KB + MaxiClimber":
+        spec = MAXI_INTERVALS.get(week_num)
+        maxi_dur = math.ceil((spec["sets"] * (spec["work_s"] + spec["rest_s"]) + 360) / 60) if spec else 25
+        return [("sr", "KB Full", week_num, 20), ("sr", "MaxiClimber", week_num, maxi_dur)]
+    if label == "Ruck + KB":
+        ruck_dur = RUCK_SPECS.get(week_num, {}).get("ruck_min", max(30, dur - 30))
+        return [("sr", "Ruck", 0, ruck_dur), ("sr", "KB Light", week_num, 30)]
+    if label == "Light KB":
+        return [("sr", "KB Light", week_num, dur)]
+    if label in ("Easy MaxiClimber", "MaxiClimber"):
+        return [("sr", "MaxiClimber", week_num, dur)]
+    if stype == "ruck":
+        return [("sr", "Ruck", 0, dur)]
+    print(f"  [skip] no handler for strength/ruck label '{label}'")
+    return []
+
+
 def _workout_schedule_strength_ruck() -> dict[tuple[str, int, int], list[str]]:
     """Map (kind, week_num, dur_min) → dates for strength and ruck sessions.
 
     Compound sessions (KB + MaxiClimber, Ruck + KB) are split into two sub-templates
-    so each appears as a separate workout on the Garmin calendar.
-    week_num=0 is used for ruck (all durations share structure regardless of week).
+    so each appears as a separate workout on the Garmin calendar (see `_specs_for`).
     """
     from .history import get_plan_override
 
@@ -589,26 +629,43 @@ def _workout_schedule_strength_ruck() -> dict[tuple[str, int, int], list[str]]:
                 stype, label, dur = o_type, o_label, o_dur
 
             date_str = d.isoformat()
-
-            if label == "KB + MaxiClimber":
-                spec = MAXI_INTERVALS.get(week_num)
-                maxi_dur = math.ceil((spec["sets"] * (spec["work_s"] + spec["rest_s"]) + 360) / 60) if spec else 25
-                schedule[("KB Full", week_num, 20)].append(date_str)
-                schedule[("MaxiClimber", week_num, maxi_dur)].append(date_str)
-            elif label == "Ruck + KB":
-                ruck_dur = RUCK_SPECS.get(week_num, {}).get("ruck_min", max(30, dur - 30))
-                schedule[("Ruck", 0, ruck_dur)].append(date_str)
-                schedule[("KB Light", week_num, 30)].append(date_str)
-            elif label == "Light KB":
-                schedule[("KB Light", week_num, dur)].append(date_str)
-            elif label in ("Easy MaxiClimber", "MaxiClimber"):
-                schedule[("MaxiClimber", week_num, dur)].append(date_str)
-            elif stype == "ruck":
-                schedule[("Ruck", 0, dur)].append(date_str)
-            else:
-                print(f"  [skip] no handler for strength/ruck label '{label}' on {date_str}")
+            for kind, sr_label, sr_week, sr_dur in (
+                (s[0], s[1], s[2], s[3]) for s in _specs_for(stype, label, dur, week_num) if s[0] == "sr"
+            ):
+                schedule[(sr_label, sr_week, sr_dur)].append(date_str)
 
     return schedule
+
+
+def _workouts_for_date(d: date) -> list[tuple]:
+    """Override-aware Garmin workout specs for a single date (see `_specs_for`).
+
+    Mirrors the per-day logic of the two bulk builders: reads the plan session
+    (12-week plan tuples directly, so week-keyed KB/MaxiClimber/ruck specs resolve;
+    other blocks via the override-aware lookups) and applies any coach plan override.
+    """
+    from .history import get_plan_override
+
+    delta = (d - PLAN_START).days
+    if 0 <= delta < len(TRAINING_WEEKS) * 7:
+        wk_idx, day_idx = divmod(delta, 7)
+        week_num = wk_idx + 1
+        stype, label, dur = TRAINING_WEEKS[wk_idx][day_idx]
+    else:
+        from .plan import session_for_date_extended
+        from .hr_plan import hr_session_for_date
+        sess = session_for_date_extended(d) or hr_session_for_date(d)
+        if not sess:
+            return []
+        week_num = 0
+        stype, label, dur = sess
+
+    ov = get_plan_override(d.isoformat())
+    if ov:
+        stype = ov.get("session_type") or stype
+        label = ov.get("label") or label
+        dur = ov.get("duration_min") or dur
+    return _specs_for(stype, label, dur, week_num)
 
 
 # ── Upload helpers ───────────────────────────────────────────────────────────
@@ -773,3 +830,153 @@ def upload_and_schedule(api: Any, dry_run: bool = False) -> dict[str, int]:
               f"{', '.join(still_failed)} — re-run --workouts to fill the gaps")
 
     return summary
+
+
+# ── Per-date surgical push (single applied override → Garmin) ─────────────────
+
+def _scheduled_items_on(sched: Any, date_str: str) -> list[tuple[Any, str]]:
+    """Extract (scheduledWorkoutId, title) for plan-generated workouts on date_str.
+
+    Garmin's month response shape is not contractually fixed, so probe candidate
+    keys defensively and log each raw item at DEBUG (house style — see metrics.py).
+    Only items whose title matches `_NAME_PREFIXES` are returned, so the athlete's
+    own (non-plan) workouts are never touched.
+    """
+    if isinstance(sched, dict):
+        items = sched.get("calendarItems") or sched.get("scheduledWorkouts") or sched.get("workouts") or []
+    elif isinstance(sched, list):
+        items = sched
+    else:
+        items = []
+    out: list[tuple[Any, str]] = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        logger.debug("scheduled item: %s", it)
+        idate = (it.get("date") or it.get("scheduledDate")
+                 or it.get("calendarDate") or it.get("itemDate"))
+        if idate != date_str:
+            continue
+        title = it.get("title") or it.get("workoutName") or it.get("name") or ""
+        if not any(title.startswith(p) for p in _NAME_PREFIXES):
+            continue
+        sid = (it.get("scheduledWorkoutId") or it.get("workoutScheduleId") or it.get("id"))
+        if sid:
+            out.append((sid, title))
+    return out
+
+
+def _find_template_id(api: Any, name: str) -> int | None:
+    """Return the id of an existing workout template named `name`, or None.
+
+    Lets the per-date push reuse a template already in the library (it's scheduled
+    on other dates too) instead of uploading a near-duplicate each time.
+    """
+    start = 0
+    while True:
+        try:
+            batch = api.get_workouts(start=start, limit=100)
+        except Exception as exc:
+            logger.debug("get_workouts failed while looking up '%s': %s", name, exc)
+            return None
+        if not batch:
+            return None
+        for w in batch:
+            if w.get("workoutName") == name:
+                return w.get("workoutId")
+        if len(batch) < 100:
+            return None
+        start += 100
+
+
+def _push_one_workout(api: Any, workout: Any, kind: str, date_str: str) -> int | None:
+    """Upload (or reuse) one workout template and schedule it on date_str."""
+    name = workout.workoutName
+    wid = _find_template_id(api, name)
+    if wid:
+        print(f"  reusing template '{name}' (id={wid})")
+    else:
+        try:
+            response = (api.upload_cycling_workout(workout) if kind == "bike"
+                        else api.upload_workout(workout.to_dict()))
+        except Exception as exc:
+            print(f"  [error] upload '{name}': {exc}")
+            return None
+        wid = _extract_id(response)
+        if not wid:
+            print(f"  [error] no workoutId for '{name}': {response}")
+            return None
+        print(f"  uploaded '{name}' → id={wid}")
+    try:
+        api.schedule_workout(wid, date_str)
+        print(f"    scheduled {date_str}")
+        return wid
+    except Exception as exc:
+        print(f"  [error] schedule {date_str}: {exc}")
+        return None
+
+
+def apply_override_to_garmin(api: Any, date_str: str, dry_run: bool = False) -> dict:
+    """Surgically reflect a single date's (override-resolved) session on Garmin.
+
+    Unschedules only the plan-generated workout(s) already on that date — other
+    dates sharing the same template are untouched (we never `delete_workout` here) —
+    then uploads/schedules the new session. A swap to rest/non-cycling unschedules
+    and adds nothing. Best-effort: returns a status dict and never raises.
+
+    Returns {ok, unscheduled, scheduled, label, error}.
+    """
+    result: dict = {"ok": False, "unscheduled": 0, "scheduled": 0, "label": None, "error": None}
+    try:
+        d = date.fromisoformat(date_str)
+    except ValueError as exc:
+        result["error"] = f"bad date: {exc}"
+        return result
+
+    # 1. Unschedule the existing plan workout(s) on this date.
+    try:
+        sched = api.get_scheduled_workouts(d.year, d.month)
+        items = _scheduled_items_on(sched, date_str)
+    except Exception as exc:
+        items = []
+        logger.debug("could not fetch scheduled workouts for %s: %s", date_str, exc)
+        result["error"] = f"fetch scheduled failed: {exc}"
+    for sid, name in items:
+        if dry_run:
+            print(f"  [dry] would unschedule '{name}' (sid={sid}) on {date_str}")
+            result["unscheduled"] += 1
+            continue
+        try:
+            api.unschedule_workout(sid)
+            result["unscheduled"] += 1
+            print(f"  unscheduled '{name}' (sid={sid}) on {date_str}")
+        except Exception as exc:
+            print(f"  [warn] unschedule {sid} failed: {exc}")
+
+    # 2. Build, upload and schedule the new session for this date.
+    labels: list[str] = []
+    for spec in _workouts_for_date(d):
+        if spec[0] == "bike":
+            _, label, dur = spec
+            builder = _resolve_builder(label)
+            if not builder:
+                print(f"  [skip] no builder for '{label}' {dur}m")
+                continue
+            workout = builder(dur)
+        else:  # ("sr", kind, week_num, dur)
+            _, kind, week_num, dur = spec
+            workout = _build_strength_ruck_workout(kind, week_num, dur)
+            if not workout:
+                print(f"  [skip] no builder for '{kind}' wk{week_num} {dur}m")
+                continue
+        labels.append(workout.workoutName)
+        if dry_run:
+            print(f"  [dry] would upload+schedule '{workout.workoutName}' on {date_str}")
+            result["scheduled"] += 1
+            continue
+        if _push_one_workout(api, workout, spec[0], date_str):
+            result["scheduled"] += 1
+
+    result["label"] = ", ".join(labels) if labels else None
+    result["ok"] = result["error"] is None
+    return result

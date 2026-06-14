@@ -247,7 +247,13 @@
             reason: btn.dataset.reason,
           }),
         });
-        if (res.ok) { location.reload(); return; }
+        if (res.ok) {
+          let g = {};
+          try { g = (await res.json()).garmin || {}; } catch (e) {}
+          btn.textContent = g.pushed ? '✓ Synced to Garmin' : '✓ Saved (Garmin sync failed)';
+          setTimeout(() => location.reload(), 1100);
+          return;
+        }
         btn.textContent = 'Failed — retry?';
         btn.disabled = false;
       } catch (e) {

@@ -54,7 +54,7 @@ The app has two interfaces sharing the same data layer:
 - `/haute-route` — 46-week Haute Route Alpes 2027 plan with CTL projection
 - `/tenerife` — Tenerife cycling camp itinerary
 - `/coach-chat-stream` — SSE streaming coach chat endpoint
-- `/apply-plan-change` — persist a coach-proposed plan override
+- `/apply-plan-change` — persist a coach-proposed plan override **and** surgically push that single date to Garmin Connect (unschedule the day's plan workout(s), schedule the new one) via `apply_override_to_garmin()`. The local override is the source of truth and is always saved; the Garmin push is best-effort/synchronous and returns a `garmin` block (`{pushed, unscheduled, scheduled, error}`) the confirmation card reports. Every override path (coach chat, HRV traffic-light, FTP re-test) funnels through here, so all of them now push. Distinct from `/sync-workouts` (full delete-all-and-re-upload re-sync).
 - `/log-rpe` — POST: save session RPE (date, activity_id, rpe 1–5, optional note)
 - `/api/ftp-tests` — GET: return all FTP test records (date, ftp_hr, ftp_hr_max)
 - `/log-btb` — POST: save back-to-back fatigue rating (date, day_number, fatigue_rating, note)
@@ -102,7 +102,7 @@ On the calendar, compound session days render as **two independently clickable s
 
 **Mersea routes** (`mersea_routes.py`) — coastal route data for the Mersea Island build (rucking progression in plan weeks 9–10). `MERSEA_TARGET_DATE` drives a countdown displayed on the Calendar tab.
 
-**Garmin workouts** (`workouts.py`) — builds `garminconnect.workout.CyclingWorkout` objects for all 27 distinct session types in the plan, uploads templates once, then schedules each on its plan dates via `upload_cycling_workout` + `schedule_workout`.
+**Garmin workouts** (`workouts.py`) — builds `garminconnect.workout.CyclingWorkout` objects for all 27 distinct session types in the plan, uploads templates once, then schedules each on its plan dates via `upload_cycling_workout` + `schedule_workout`. `upload_and_schedule()` is the bulk re-sync (`_delete_existing_plan_workouts` → re-upload → re-schedule), invoked by `--workouts`/`/sync-workouts`. `_specs_for(stype, label, dur, week_num)` is the single source of truth mapping one (override-resolved) session to its workout spec(s) — `("bike", label, dur)` or `("sr", kind, week_num, dur)`, with compound sessions (KB + MaxiClimber, Ruck + KB) expanding to two specs — shared by the bulk strength/ruck builder and `_workouts_for_date(d)`. `apply_override_to_garmin(api, date_str)` is the **surgical per-date push** used by `/apply-plan-change`: it `get_scheduled_workouts(year, month)` → filters to that date's plan-prefixed (`_NAME_PREFIXES`) items → `unschedule_workout()` each (never `delete_workout`, so shared templates on other dates survive) → builds/reuses-by-name/schedules the new session. Best-effort; never raises.
 
 ## AI Coach chat
 
