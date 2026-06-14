@@ -4,6 +4,8 @@ Personal training readiness dashboard powered by Garmin Connect data and Claude 
 Fetches daily metrics (HRV, sleep, stress, recovery), scores them against a 30-day
 rolling baseline, and delivers a daily email briefing and live web dashboard.
 
+**📖 [User Guide](docs/README.md)** — full walkthrough of every tab and feature.
+
 ## Features
 
 **Readiness & alerts**
