@@ -2702,7 +2702,29 @@ async def apply_plan_change(body: _ApplyChangeRequest):
     stype = body.session_type or sess[0]
     label = body.label or sess[1]
     set_plan_override(body.date, stype, label, body.duration_min, body.reason)
-    return JSONResponse({"ok": True, "date": body.date, "label": label, "duration_min": body.duration_min})
+
+    # Surgically reflect this single date on the Garmin calendar: unschedule the
+    # old plan workout(s) for that day and schedule the new one. The local override
+    # above is the source of truth and is saved regardless; the Garmin push is
+    # best-effort, so a failure never fails the request (the next full /sync-workouts
+    # will reconcile it).
+    garmin: dict = {"pushed": False}
+    email_addr = os.getenv("GARMIN_EMAIL", "")
+    password = os.getenv("GARMIN_PASSWORD", "")
+    if email_addr and password:
+        from fastapi.concurrency import run_in_threadpool
+        try:
+            from .workouts import apply_override_to_garmin
+            api = get_api(email_addr, password)
+            push = await run_in_threadpool(apply_override_to_garmin, api, body.date)
+            garmin = {"pushed": push.get("ok", False), "unscheduled": push.get("unscheduled", 0),
+                      "scheduled": push.get("scheduled", 0), "error": push.get("error")}
+        except Exception as e:
+            logger.error("apply-plan-change Garmin push failed: %s", e)
+            garmin = {"pushed": False, "error": str(e)}
+
+    return JSONResponse({"ok": True, "date": body.date, "label": label,
+                         "duration_min": body.duration_min, "garmin": garmin})
 
 
 @app.post("/regenerate-advice")

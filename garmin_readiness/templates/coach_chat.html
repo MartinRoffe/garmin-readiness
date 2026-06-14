@@ -107,7 +107,11 @@
       const data = await res.json();
       if (data.ok) {
         dismissProposal();
-        renderMessage('assistant', `✓ Applied: **${data.label}** on ${data.date} updated to **${data.duration_min} min**.`);
+        const g = data.garmin || {};
+        const sync = g.pushed
+          ? ' Pushed to Garmin Connect.'
+          : ' Saved locally — Garmin sync failed, it will reconcile on the next full sync.';
+        renderMessage('assistant', `✓ Applied: **${data.label}** on ${data.date} updated to **${data.duration_min} min**.${sync}`);
       }
     } catch(e) {
       btn.textContent = 'APPLY CHANGE';
